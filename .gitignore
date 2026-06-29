@@ -1,5 +1,8 @@
 
 ignore/
 
+*__pycache__*
+*.egg-info
+
 *.env
 *.idea

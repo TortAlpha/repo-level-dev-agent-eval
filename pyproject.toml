@@ -1,0 +1,50 @@
+[project]
+name = "repo-level-dev-agent-eval"
+version = "0.1.0"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Roman Avanesov" }
+]
+dependencies = [
+    "langchain",
+    "langchain-openai",
+    "langchain-openrouter",
+    "langgraph",
+    "langsmith",
+    "pydantic",
+    "pydantic-settings",
+    "python-dotenv",
+    "tiktoken",
+]
+
+[project.scripts]
+run = "src.run:main"
+
+[project.optional-dependencies]
+dev = [
+    "mypy",
+    "pytest",
+    "ruff",
+]
+
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*", "eval*"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_unused_configs = true
+ignore_missing_imports = true
