@@ -1,0 +1,31 @@
+{
+  "run_id": "c91a09c1-cfca-49d2-867e-82986bdd73ee",
+  "task_id": "toolz_pr_603",
+  "model": "z-ai/glm-5.2",
+  "status": "solved",
+  "hidden_tests_passed": true,
+  "metrics": {
+    "n_runs": 1,
+    "n_tasks": 1,
+    "resolved_at_1": 1.0,
+    "task_success_rate": 1.0,
+    "visible_test_pass_rate": 1.0,
+    "hidden_test_pass_rate": 1.0,
+    "patch_validity_rate": 1.0,
+    "handoff_rate": 0.0,
+    "repair_success_rate": 1.0,
+    "regression_rate": 0.0,
+    "mean_regressions": 0.0,
+    "test_overfitting_rate": 0.0,
+    "tool_use_validity_rate": 1.0,
+    "hallucinated_refs_per_run": 0.0,
+    "mean_iterations": 2.0,
+    "mean_steps": 14.0,
+    "mean_duration_s": 122.69,
+    "mean_llm_calls": 14.0,
+    "mean_total_tokens": 103975.0,
+    "mean_cost_usd": 0.11673228000000002,
+    "total_cost_usd": 0.11673228000000002,
+    "mean_quality_score": null
+  }
+}

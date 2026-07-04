@@ -8,25 +8,27 @@ authors = [
     { name = "Roman Avanesov" }
 ]
 dependencies = [
-    "langchain",
-    "langchain-openai",
-    "langchain-openrouter",
-    "langgraph",
-    "langsmith",
-    "pydantic",
-    "pydantic-settings",
-    "python-dotenv",
-    "tiktoken",
+    "langchain-core==1.4.8",
+    "langchain-openai==1.3.3",
+    "langsmith==0.9.4",
+    "pydantic==2.13.4",
+    "pydantic-settings==2.14.2",
 ]
 
 [project.scripts]
 run = "src.run:main"
+benchmark = "src.benchmark:main"
+metrics = "src.metrics.report:main"
+quality = "src.metrics.quality:main"
+refresh-pricing = "src.metrics.pricing:main"
 
 [project.optional-dependencies]
+graph = [
+    "langgraph==1.2.7",
+]
 dev = [
-    "mypy",
-    "pytest",
-    "ruff",
+    "mypy==2.1.0",
+    "ruff==0.15.20",
 ]
 
 [build-system]
