@@ -1,5 +1,9 @@
 
 ignore/
+mock/
+experiments/workspaces
+repositories/repos
+repositories/tasks
 
 *__pycache__*
 *.egg-info
