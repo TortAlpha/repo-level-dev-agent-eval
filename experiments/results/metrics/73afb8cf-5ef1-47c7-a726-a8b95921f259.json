@@ -1,0 +1,32 @@
+{
+  "run_id": "73afb8cf-5ef1-47c7-a726-a8b95921f259",
+  "task_id": "sqlparse_pr_40ed3aa",
+  "model": "z-ai/glm-5.2",
+  "status": "handoff",
+  "hidden_tests_passed": false,
+  "quality_score": null,
+  "metrics": {
+    "n_runs": 1,
+    "n_tasks": 1,
+    "resolved_at_1": 0.0,
+    "task_success_rate": 0.0,
+    "visible_test_pass_rate": 0.0,
+    "hidden_test_pass_rate": 0.0,
+    "patch_validity_rate": 0.0,
+    "handoff_rate": 1.0,
+    "repair_success_rate": null,
+    "regression_rate": 0.0,
+    "mean_regressions": 0.0,
+    "test_overfitting_rate": null,
+    "tool_use_validity_rate": null,
+    "hallucinated_refs_per_run": null,
+    "mean_iterations": 0.0,
+    "mean_steps": 0.0,
+    "mean_duration_s": 525.86,
+    "mean_llm_calls": 76.0,
+    "mean_total_tokens": 1145346.0,
+    "mean_cost_usd": 1.06517178,
+    "total_cost_usd": 1.06517178,
+    "mean_quality_score": null
+  }
+}
