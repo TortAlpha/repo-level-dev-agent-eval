@@ -79,11 +79,22 @@ class ActionExecutor(BaseModel):
         )
 
     def _inspect_file(self, state: State, action: InspectFileAction) -> State:
-        content = self._truncate(self.workspace.read_file(action.path))
+        lines = self.workspace.read_file(action.path).splitlines()
+        total = len(lines)
+        start = min(max(action.offset, 1), total or 1)
+        window = lines[start - 1 : start - 1 + action.limit]
+        end = start - 1 + len(window)
+        header = f"File: {action.path} (lines {start}-{end} of {total})"
+        if end < total:
+            header += (
+                f"  [+{total - end} more lines below — inspect_file with "
+                f"offset={end + 1} to continue]"
+            )
+        rendered = self._truncate(f"{header}\n\n" + "\n".join(window))
         return (
             state.with_relevant_files([action.path])
-            .with_observation(f"File: {action.path}\n\n{content}")
-            .with_context(kind="inspect_file", path=action.path, text=content)
+            .with_observation(rendered)
+            .with_context(kind="inspect_file", path=action.path, text=rendered)
             .advance_step()
         )
 

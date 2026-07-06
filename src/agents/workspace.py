@@ -15,6 +15,23 @@ def _is_ignored(path: Path) -> bool:
     return any(part in IGNORED_DIR_NAMES for part in path.parts)
 
 
+def _reject_if_broken_python(rel_path: str, content: str) -> None:
+    """SWE-agent-style guard: reject a write/edit that would leave a Python file
+    syntactically invalid, so a bad edit is surfaced instead of silently
+    breaking the file (the file on disk is left unchanged)."""
+    if not rel_path.endswith(".py"):
+        return
+    try:
+        compile(content, rel_path, "exec")
+    except SyntaxError as exc:
+        where = f" (line {exc.lineno})" if exc.lineno else ""
+        raise ValueError(
+            f"Rejected: this change would introduce a Python syntax error in "
+            f"{rel_path}: {exc.msg}{where}. The file was left unchanged — fix "
+            f"the change and try again."
+        ) from exc
+
+
 class Workspace(BaseModel):
     """File and search operations confined to one repository checkout.
 
@@ -47,9 +64,11 @@ class Workspace(BaseModel):
     @trace_workspace_op("Workspace.write_file")
     def write_file(self, path: str, content: str) -> str:
         file_path = self.resolve(path)
+        rel_path = self.to_relative(file_path)
+        _reject_if_broken_python(rel_path, content)
         file_path.parent.mkdir(parents=True, exist_ok=True)
         file_path.write_text(content, encoding="utf-8")
-        return self.to_relative(file_path)
+        return rel_path
 
     @trace_workspace_op("Workspace.edit_file")
     def edit_file(
@@ -80,8 +99,10 @@ class Workspace(BaseModel):
 
         new_count = -1 if replace_all else 1
         new_content = content.replace(old_string, new_string, new_count)
+        rel_path = self.to_relative(file_path)
+        _reject_if_broken_python(rel_path, new_content)
         file_path.write_text(new_content, encoding="utf-8")
-        return self.to_relative(file_path), count
+        return rel_path, count
 
     @trace_workspace_op("Workspace.list_files")
     def list_files(self, path: str = ".") -> str:

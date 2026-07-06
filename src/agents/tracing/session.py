@@ -45,7 +45,10 @@ def run_trace_extra(
         metadata.update(settings)
 
     extra: dict[str, Any] = {
-        "name": f"SingleAgent.run[{task_id}]",
+        # Name the top-level span after the actual agent so swe-agent / single /
+        # multi runs are distinguishable at a glance in LangSmith (tags/metadata
+        # also carry agent_mode for filtering).
+        "name": f"{agent_mode}.run[{task_id}]",
         "tags": tags,
         "metadata": metadata,
     }

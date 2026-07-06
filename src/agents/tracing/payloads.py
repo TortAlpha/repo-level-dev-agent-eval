@@ -26,11 +26,19 @@ def generate_inputs(inputs: dict) -> dict:
     return {
         "model": model,
         "prompt": inputs.get("prompt"),
+        "transport": inputs.get("transport"),
         "state": state.to_string() if isinstance(state, State) else state,
     }
 
 
-def generate_outputs(output: str) -> dict:
+def generate_outputs(output: Any) -> dict:
+    if hasattr(output, "action") and hasattr(output, "transport"):
+        action = getattr(output, "action", None)
+        return {
+            "transport": getattr(output, "transport", None),
+            "action": action.model_dump() if hasattr(action, "model_dump") else action,
+            "response": _head(getattr(output, "text", "") or ""),
+        }
     return {"response": output}
 
 
