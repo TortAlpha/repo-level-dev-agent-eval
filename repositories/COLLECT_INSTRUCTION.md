@@ -294,7 +294,7 @@ If a task is manually created instead of PR-derived, use:
 The current CSV header is:
 
 ```csv
-task_id,repo_path,task_file_path,size,repo_url,pr_number,pr_url,base_commit,merge_commit,hidden_tests_path,source_files,source_loc,source_loc_nonblank,test_files,visible_test_command,hidden_test_command,task_status,notes
+task_id,repo_path,task_file_path,size,task_type,repo_url,pr_number,pr_url,base_commit,merge_commit,hidden_tests_path,source_files,source_loc,source_loc_nonblank,patch_files,patch_loc,test_files,visible_test_command,hidden_test_command,hidden_semantic_test_command,hidden_compat_test_command,hidden_pr_parity_test_command,task_status,notes
 ```
 
 Column meanings:
@@ -303,6 +303,9 @@ Column meanings:
 - `repo_path`: path to the initial task checkout at `base_commit`.
 - `task_file_path`: path to the task description.
 - `size`: `small` or `medium`.
+- `task_type`: `bugfix` or `feature` — the kind of change the PR makes, so
+  results can be compared within a task type (features are typically harder and
+  more open-ended than localized bug fixes).
 - `repo_url`: upstream Git repository URL.
 - `pr_number`: source PR number, if PR-derived.
 - `pr_url`: source PR URL, if PR-derived.
@@ -315,9 +318,17 @@ Column meanings:
 - `source_loc_nonblank`: non-blank Python source LOC with the same exclusions.
 - `test_files`: Python test file count in the initial checkout.
 - `visible_test_command`: test command visible to the agent.
-- `hidden_test_command`: evaluator-only hidden test command. References
-  `../hidden_tests/<repo-relative path>`; the evaluator overlays `hidden_tests/`
-  onto the repo and runs it from the repo root (the prefix is stripped).
+- `hidden_test_command`: legacy/all evaluator-only hidden test command.
+  References `../hidden_tests/<repo-relative path>`; the evaluator overlays
+  `hidden_tests/` onto the repo and runs it from the repo root (the prefix is
+  stripped).
+- `hidden_semantic_test_command`: hidden tests that directly follow from
+  `task.md`; these count toward task success.
+- `hidden_compat_test_command`: hidden tests for preserving existing behavior;
+  these count toward task success.
+- `hidden_pr_parity_test_command`: hidden tests for exact upstream PR parity
+  when the PR added behavior not stated in `task.md`; these are reported
+  separately and do not count toward task success.
 - `task_status`: validation status.
 - `notes`: short screening and validation notes.
 

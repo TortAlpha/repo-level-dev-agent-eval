@@ -39,7 +39,13 @@ Additional columns make the collection reproducible and easier to filter:
 - `test_files`: Python test file count under conventional test directories.
 - `visible_test_command`: suggested visible test command after dependencies are
   installed.
-- `hidden_test_command`: suggested command for evaluator-only tests.
+- `hidden_test_command`: legacy/all evaluator-only hidden test command.
+- `hidden_semantic_test_command`: hidden tests that directly follow from the
+  task description and count toward task success.
+- `hidden_compat_test_command`: hidden tests that check preserved behavior and
+  count toward task success.
+- `hidden_pr_parity_test_command`: hidden tests that check exact upstream PR
+  parity but do not count toward task success.
 - `task_status`: current validation status.
 - `notes`: screening notes for later task creation.
 

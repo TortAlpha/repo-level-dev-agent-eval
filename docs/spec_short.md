@@ -112,8 +112,8 @@ The evaluation will include standard software engineering metrics and
 AI-agent-specific metrics:
 
 - pass@1 / resolved@1;
-- task success rate;
-- hidden or withheld test pass rate;
+- task success rate (visible + required hidden semantic/compat suites);
+- hidden or withheld test pass rate, with PR-parity checks reported separately;
 - patch validity rate;
 - tool-use validity rate;
 - number of hallucinated references;

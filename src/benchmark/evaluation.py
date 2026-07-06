@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import shutil
 import xml.etree.ElementTree as ET
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from langsmith import tracing_context
@@ -28,8 +28,14 @@ _JUNIT_FILE = ".pytest-report.xml"
 
 @dataclass
 class EvalResult:
+    visible_passed: bool | None = None
     hidden_passed: bool | None = None
+    hidden_semantic_passed: bool | None = None
+    hidden_compat_passed: bool | None = None
+    hidden_pr_parity_passed: bool | None = None
+    task_success: bool | None = None
     regressions: int | None = None
+    hidden_suite_results: dict[str, bool] = field(default_factory=dict)
 
 
 def _sandbox(repo: Path, image: str, network_disabled: bool, timeout: int) -> DockerSandbox:
@@ -56,14 +62,39 @@ def _parse_junit_passing(path: Path) -> set[str]:
 
 def _run_visible_junit(
     sandbox: DockerSandbox, repo: Path, command: str, timeout: int
-) -> set[str]:
+) -> tuple[bool, set[str], str]:
     """Run the visible suite with a JUnit report and return the passing ids.
     The report is removed afterwards so it never pollutes the repo/diff."""
-    sandbox.run_shell(f"{command} --junit-xml={_JUNIT_FILE}", timeout)
+    run = sandbox.run_shell(f"{command} --junit-xml={_JUNIT_FILE}", timeout)
     report = repo / _JUNIT_FILE
     passing = _parse_junit_passing(report)
     report.unlink(missing_ok=True)
-    return passing
+    return run.success, passing, run.output
+
+
+def _repo_relative_hidden_command(command: str) -> str:
+    # Hidden tests are copied into the repo before execution, so a command like
+    # ``pytest ../hidden_tests/tests/x.py`` becomes ``pytest tests/x.py``.
+    return command.replace("../hidden_tests/", "")
+
+
+def _hidden_suite_label(name: str) -> str:
+    return {
+        "hidden": "Hidden tests",
+        "hidden_semantic": "Hidden semantic tests",
+        "hidden_compat": "Hidden compat tests",
+        "hidden_pr_parity": "Hidden PR-parity tests",
+    }.get(name, name.replace("_", " ").title())
+
+
+def _set_hidden_result(result: EvalResult, name: str, passed: bool) -> None:
+    result.hidden_suite_results[name] = passed
+    if name == "hidden_semantic":
+        result.hidden_semantic_passed = passed
+    elif name == "hidden_compat":
+        result.hidden_compat_passed = passed
+    elif name == "hidden_pr_parity":
+        result.hidden_pr_parity_passed = passed
 
 
 def collect_visible_passing(
@@ -84,7 +115,8 @@ def collect_visible_passing(
             sandbox.start()
             for setup in setup_commands:
                 sandbox.run_shell(setup, shell_timeout)
-            return _run_visible_junit(sandbox, repo, command, test_timeout)
+            _, passing, _ = _run_visible_junit(sandbox, repo, command, test_timeout)
+            return passing
         finally:
             sandbox.stop()
 
@@ -120,25 +152,47 @@ def evaluate_solution(
             for setup in setup_commands:
                 sandbox.run_shell(setup, shell_timeout)
 
+            visible_passed, after, visible_output = _run_visible_junit(
+                sandbox, repo, visible_command, test_timeout
+            )
+            result.visible_passed = visible_passed
+            verdict = "PASSED" if visible_passed else "FAILED"
+            print(f"\n=== Visible tests: {verdict} ===")
+            if not visible_passed:
+                print(visible_output[-2000:])
+
             if baseline_passing is not None:
-                after = _run_visible_junit(sandbox, repo, visible_command, test_timeout)
                 regressed = sorted(baseline_passing - after)
                 result.regressions = len(regressed)
                 print(f"\n=== Regressions: {len(regressed)} ===")
                 for test_id in regressed[:20]:
                     print(f"  - {test_id}")
 
-            if do_hidden and task.hidden_test_command:
+            hidden_suites = task.hidden_suites() if do_hidden else []
+            if hidden_suites:
                 if hidden.exists():
                     shutil.copytree(hidden, repo, dirs_exist_ok=True)
-                # "pytest ../hidden_tests/x.py" -> a repo-relative path, since
-                # the overlay put those files at the same path in the repo.
-                command = task.hidden_test_command.replace("../hidden_tests/", "")
-                hidden_result = sandbox.run_shell(command, test_timeout)
-                result.hidden_passed = hidden_result.success
-                verdict = "PASSED" if result.hidden_passed else "FAILED"
-                print(f"\n=== Hidden tests: {verdict} ===")
-                print(hidden_result.output[-2000:])
+
+                required: list[bool] = []
+                for suite in hidden_suites:
+                    command = _repo_relative_hidden_command(suite.command)
+                    hidden_result = sandbox.run_shell(command, test_timeout)
+                    passed = hidden_result.success
+                    _set_hidden_result(result, suite.name, passed)
+                    if suite.required:
+                        required.append(passed)
+                    verdict = "PASSED" if passed else "FAILED"
+                    label = _hidden_suite_label(suite.name)
+                    print(f"\n=== {label}: {verdict} ===")
+                    print(hidden_result.output[-2000:])
+
+                if required:
+                    result.hidden_passed = all(required)
+                    verdict = "PASSED" if result.hidden_passed else "FAILED"
+                    print(f"\n=== Required hidden tests: {verdict} ===")
+
+            if result.hidden_passed is not None:
+                result.task_success = bool(result.visible_passed) and result.hidden_passed
         finally:
             sandbox.stop()
     return result

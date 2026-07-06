@@ -285,12 +285,15 @@ efficiency metrics, and solution-quality metrics.
 
 - **Pass@1 / resolved@1:** percentage of tasks solved by the first final patch
   produced by the system.
-- **Task success rate:** percentage of tasks where the final solution passes the
-  evaluation tests.
+- **Task success rate:** percentage of tasks where the final solution passes
+  visible tests and the required hidden suites. Required hidden suites include
+  semantic tests derived from the task description and compatibility tests for
+  preserved behavior.
 - **Visible test pass rate:** percentage of visible tests passed by the final
   solution.
-- **Hidden test pass rate:** percentage of hidden or withheld tests passed by
-  the final solution.
+- **Hidden test pass rate:** percentage of required hidden or withheld tests
+  passed by the final solution. PR-parity hidden tests that check upstream
+  implementation details not stated in the task are reported separately.
 - **Patch validity rate:** percentage of generated patches that apply cleanly,
   keep the repository runnable, and do not introduce invalid file states.
 - **Human handoff rate:** percentage of tasks where the system reaches an
