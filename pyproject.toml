@@ -21,6 +21,7 @@ benchmark = "src.benchmark:main"
 metrics = "src.metrics.report:main"
 quality = "src.metrics.quality:main"
 refresh-pricing = "src.metrics.pricing:main"
+console-api = "src.console.server:main"
 
 [project.optional-dependencies]
 graph = [

@@ -10,3 +10,8 @@ repositories/tasks
 
 *.env
 *.idea
+
+web-console/node_modules/
+web-console/dist/
+web-console/tsconfig.tsbuildinfo
+experiments/results/jobs/
