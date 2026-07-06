@@ -17,6 +17,7 @@ from pathlib import Path
 from ..agents.model import LangChainModel
 from ..agents.single_agent import SingleAgent
 from ..agents.state import State
+from ..agents.swe_agent import MANAGED_BASE_IMAGE, SweAgentAdapter
 from ..agents.tracing import attach_run_feedback, configure_langsmith, run_trace_extra
 from ..config import Config, ProviderSpec, load_config
 from ..metrics.compute import compute_metrics
@@ -30,19 +31,20 @@ from .evaluation import (
     evaluate_solution,
 )
 from .review import DEFAULT_REVIEW_MODEL, review_solution
-from .workspace import prepare_workspace, write_agent_patch
+from .workspace import clean_workspace_repo, prepare_workspace, write_agent_patch
 
 
-def build_task_agent(
-    config: Config,
-    args: argparse.Namespace,
-    model: LangChainModel,
-    spec: ProviderSpec,
-) -> SingleAgent:
+TaskAgent = SingleAgent | SweAgentAdapter
+
+
+def _core_agent_kwargs(
+    config: Config, args: argparse.Namespace, model: LangChainModel, spec: ProviderSpec
+) -> dict:
+    """Shared construction kwargs for the built-in loop agents (single/multi)."""
     setup_commands: list[str] = []
     if not args.no_setup:
         setup_commands = args.setup_command or list(DEFAULT_SETUP_COMMANDS)
-    return SingleAgent(
+    return dict(
         model=model,
         docker_image=args.docker_image or config.docker_image or "python:3.11-slim",
         docker_network_disabled=args.no_network,
@@ -52,13 +54,62 @@ def build_task_agent(
         context_window_tokens=args.context_window_tokens or spec.context_window_tokens,
         max_response_tokens=config.max_tokens,
         compaction_mode=config.compaction_mode,
+        action_transport=args.action_transport or config.agent_action_transport,
         setup_commands=setup_commands,
     )
+
+
+def build_task_agent(
+    config: Config,
+    args: argparse.Namespace,
+    model: LangChainModel,
+    spec: ProviderSpec,
+) -> TaskAgent:
+    """Dispatch on ``config.agent_mode``. All agents expose the same interface
+    the runner needs (docker settings + ``run(state)``), so the downstream
+    evaluation and metrics are identical across agents."""
+    mode = config.agent_mode
+    if mode == "single":
+        return SingleAgent(**_core_agent_kwargs(config, args, model, spec))
+    if mode == "multi":
+        try:
+            from ..agents.multi_agent import MultiAgent  # type: ignore[attr-defined]
+        except ImportError as exc:
+            raise SystemExit(
+                "--agent multi: MultiAgent is not implemented yet "
+                f"(src/agents/multi_agent.py). {exc}"
+            )
+        return MultiAgent(**_core_agent_kwargs(config, args, model, spec))
+    if mode == "swe-agent":
+        # Fast path (default): prebuilt base image + skip standalone build, with
+        # the repo installed via the same setup commands single-agent uses, so
+        # startup drops from minutes to seconds without changing the comparison.
+        fast = not args.swe_no_fast
+        post_startup: list[str] = []
+        if fast and not args.no_setup:
+            post_startup = args.setup_command or list(DEFAULT_SETUP_COMMANDS)
+        return SweAgentAdapter(
+            model=model,
+            api_key=spec.api_key,
+            base_url=spec.base_url,
+            docker_image=args.docker_image or config.docker_image or "python:3.11-slim",
+            docker_network_disabled=args.no_network,
+            context_window_tokens=args.context_window_tokens or spec.context_window_tokens,
+            max_response_tokens=config.max_tokens,
+            env_image=MANAGED_BASE_IMAGE if fast else None,
+            post_startup_commands=post_startup,
+            extra_args=list(args.sweagent_arg or []),
+        )
+    raise SystemExit(f"Unknown agent mode: {mode!r}")
 
 
 def main() -> int:
     args = parse_args()
     config = load_config(args.provider)
+    if args.agent:
+        config.agent_mode = args.agent
+    if args.session:
+        config.session_id = args.session
     configure_langsmith(config)
 
     collection = load_collection(args.collection)
@@ -101,8 +152,10 @@ def main() -> int:
             shell_timeout=config.shell_timeout_seconds,
             test_timeout=config.test_timeout_seconds,
         )
+    clean_workspace_repo(repo_dir, config.workspaces_dir)
 
     meta = load_task_meta(task.task_file_path)
+    action_transport = getattr(agent, "resolved_action_transport", "external")
     started = time.perf_counter()
     final_state = agent.run(
         state,
@@ -114,14 +167,17 @@ def main() -> int:
             run_id=run_id,
             complexity=meta.get("complexity") or task.size,
             settings={
+                "session_id": config.session_id,
                 "compaction_mode": config.compaction_mode,
                 "context_window_tokens": agent.context_window_tokens,
                 "max_response_tokens": agent.max_response_tokens,
+                "action_transport": action_transport,
                 "max_steps": state.max_steps,
                 "max_iterations": state.max_iterations,
                 "docker_image": agent.docker_image,
                 "visible_test_command": test_command,
                 "size": task.size,
+                "task_type": task.task_type,
             },
         ),
     )
@@ -132,10 +188,14 @@ def main() -> int:
     write_agent_patch(repo_dir, repo_dir.parent / "agent.patch")
 
     metrics = run_metrics(model, final_state, duration_s)
+    metrics["provider"] = config.model_provider
+    metrics["action_transport"] = action_transport
     metrics["workspace"] = str(repo_dir)
+    metrics["task_type"] = task.task_type
     eval_result = evaluate_and_report(
         task, repo_dir.parent, test_command, baseline, config, args, agent, run_id
     )
+    metrics.update(eval_metrics(eval_result))
     if eval_result.regressions is not None:
         metrics["regressions"] = eval_result.regressions
 
@@ -145,6 +205,7 @@ def main() -> int:
         run_id=run_id,
         model_name=model.model,
         final_state=final_state,
+        test_passed=eval_result.visible_passed,
         hidden_tests_passed=eval_result.hidden_passed,
         extra=metrics,
     )
@@ -167,7 +228,7 @@ def evaluate_and_report(
     baseline_passing: set[str] | None,
     config: Config,
     args: argparse.Namespace,
-    agent: SingleAgent,
+    agent: TaskAgent,
     run_id: str,
 ) -> EvalResult:
     """Run the post-run evaluation (regressions + hidden tests) and push a
@@ -189,9 +250,35 @@ def evaluate_and_report(
             attach_run_feedback(
                 run_id, "hidden_tests_passed", 1.0 if result.hidden_passed else 0.0
             )
+            if result.task_success is not None:
+                attach_run_feedback(
+                    run_id, "task_success", 1.0 if result.task_success else 0.0
+                )
+            for name, passed in result.hidden_suite_results.items():
+                attach_run_feedback(
+                    run_id, f"{name}_passed", 1.0 if passed else 0.0
+                )
         except Exception as exc:  # noqa: BLE001 - feedback is best-effort
             print(f"(could not attach LangSmith feedback: {exc})")
     return result
+
+
+def eval_metrics(result: EvalResult) -> dict:
+    """Run-record fields derived from post-run evaluation."""
+    out: dict = {}
+    if result.task_success is not None:
+        out["task_success"] = result.task_success
+    if result.hidden_passed is not None:
+        out["hidden_required_tests_passed"] = result.hidden_passed
+    if result.hidden_semantic_passed is not None:
+        out["hidden_semantic_tests_passed"] = result.hidden_semantic_passed
+    if result.hidden_compat_passed is not None:
+        out["hidden_compat_tests_passed"] = result.hidden_compat_passed
+    if result.hidden_pr_parity_passed is not None:
+        out["hidden_pr_parity_tests_passed"] = result.hidden_pr_parity_passed
+    if result.hidden_suite_results:
+        out["hidden_suite_results"] = dict(result.hidden_suite_results)
+    return out
 
 
 def write_run_metrics(
@@ -205,7 +292,12 @@ def write_run_metrics(
         "task_id": run_record.task_id,
         "model": run_record.model,
         "status": run_record.status,
+        "task_success": run_record.task_success,
         "hidden_tests_passed": run_record.hidden_tests_passed,
+        "hidden_required_tests_passed": run_record.hidden_required_tests_passed,
+        "hidden_semantic_tests_passed": run_record.hidden_semantic_tests_passed,
+        "hidden_compat_tests_passed": run_record.hidden_compat_tests_passed,
+        "hidden_pr_parity_tests_passed": run_record.hidden_pr_parity_tests_passed,
         "quality_score": run_record.quality_score,
         "metrics": compute_metrics([run_record]).as_dict(),
     }
@@ -220,6 +312,10 @@ def plan(task: TaskSpec, repo_dir: Path, test_command: str, agent: SingleAgent,
          args: argparse.Namespace) -> str:
     setup = "\n".join(f"    {c}" for c in agent.setup_commands) or "    (none)"
     network = "disabled" if agent.docker_network_disabled else "enabled"
+    hidden = "\n".join(
+        f"    {suite.name}{'' if suite.required else ' (optional)'}: {suite.command}"
+        for suite in task.hidden_suites()
+    ) or "    (none)"
     return (
         "Dry run — prepared, not executed:\n"
         f"  task_id:       {task.task_id} ({task.size})\n"
@@ -227,11 +323,12 @@ def plan(task: TaskSpec, repo_dir: Path, test_command: str, agent: SingleAgent,
         f"  test command:  {test_command}\n"
         f"  network:       {network}\n"
         f"  docker image:  {agent.docker_image}\n"
+        f"  action ACI:    {getattr(agent, 'resolved_action_transport', 'external')}\n"
         f"  setup:\n{setup}\n"
         f"  hidden score:  {'on' if not args.no_score else 'off'}\n"
         f"  regression:    {'on' if not args.no_regression else 'off'}\n"
         f"  quality review:{'on' if args.enable_review else 'off'}\n"
-        f"  hidden tests:  {task.hidden_test_command or '(none)'}"
+        f"  hidden tests:\n{hidden}"
     )
 
 
@@ -240,7 +337,41 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--task-id", default="h11_pr_181")
     parser.add_argument("--collection", type=Path, default=DEFAULT_COLLECTION)
     parser.add_argument("--provider", choices=["local", "openrouter"], default=None)
+    parser.add_argument(
+        "--agent",
+        choices=["single", "multi", "swe-agent"],
+        default=None,
+        help="Which agent solves the task (default: config.agent_mode). "
+        "swe-agent runs the external SWE-agent scaffold; multi/single are built-in.",
+    )
+    parser.add_argument(
+        "--sweagent-arg",
+        action="append",
+        default=None,
+        help="Extra flag passed through to `sweagent run` (repeatable); "
+        "use to match your installed SWE-agent version.",
+    )
+    parser.add_argument(
+        "--swe-no-fast",
+        action="store_true",
+        help="Disable the swe-agent fast path (prebuilt image + skipped "
+        "standalone build); fall back to SWE-agent's slow default startup.",
+    )
+    parser.add_argument(
+        "--session", default=None,
+        help="Experiment/session name recorded with the run; group or filter by "
+        "it in the report (`--session NAME` / `--list-sessions`). "
+        "New name = clean slate without deleting history.",
+    )
     parser.add_argument("--model", default=None)
+    parser.add_argument(
+        "--action-transport",
+        choices=["text_json", "tools", "auto"],
+        default=None,
+        help="Action interface for built-in agents. text_json is the legacy "
+        "JSON-text protocol; tools uses model tool calls; auto keeps known "
+        "non-tool models on text_json and uses tools for OpenAI/Claude.",
+    )
     parser.add_argument(
         "--test-command", default=None,
         help="Override the task's visible test command.",

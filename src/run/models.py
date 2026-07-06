@@ -38,6 +38,9 @@ def build_agent(
         context_window_tokens=args.context_window_tokens or spec.context_window_tokens,
         max_response_tokens=config.max_tokens,
         compaction_mode=config.compaction_mode,
+        action_transport=getattr(
+            args, "action_transport", None
+        ) or config.agent_action_transport,
     )
 
 

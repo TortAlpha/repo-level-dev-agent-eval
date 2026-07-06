@@ -5,7 +5,9 @@ from typing import Literal
 from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-AgentMode = Literal["single", "multi"]
+from .agents.transport import ActionTransport
+
+AgentMode = Literal["single", "multi", "swe-agent"]
 ModelProvider = Literal["local", "openrouter"]
 
 
@@ -30,9 +32,14 @@ class Config(BaseSettings):
 
     model_provider: ModelProvider = "openrouter"
     agent_mode: AgentMode = "single"
+    # Groups runs into a named experiment. Every run records its session_id so
+    # the report can filter/aggregate one batch without deleting history — a new
+    # session gives a clean slate; old sessions stay selectable.
+    session_id: str = "default"
 
     temperature: float = 0.2
     max_tokens: int = 4096
+    agent_action_transport: ActionTransport = "text_json"
     request_timeout_seconds: int = 120
     max_retries: int = 10
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
-from .actions import AgentAction, parse_action
+from .actions import ActionParseError, AgentAction
 from .context import CompactionMode, ContextCompactor
 from .executor import ActionExecutor
 from .model import LangChainModel
@@ -10,6 +10,7 @@ from .prompts import SINGLE_AGENT_PROMPT
 from .sandbox import DockerSandbox
 from .state import ContextBudget, State
 from .tracing import trace_agent_run, trace_agent_step
+from .transport import ActionTransport, resolve_action_transport
 from .workspace import Workspace
 
 
@@ -26,7 +27,13 @@ class SingleAgent(BaseModel):
     max_response_tokens: int = Field(default=4096, gt=0)
     compaction_mode: CompactionMode = "summarize"
     max_repeated_actions: int = Field(default=3, gt=1)
+    max_parse_failures: int = Field(default=5, gt=0)
+    action_transport: ActionTransport = "text_json"
     setup_commands: list[str] = Field(default_factory=list)
+
+    @property
+    def resolved_action_transport(self) -> str:
+        return resolve_action_transport(self.action_transport, self.model.model)
 
     @trace_agent_run
     def run(self, state: State) -> State:
@@ -87,8 +94,26 @@ class SingleAgent(BaseModel):
         previous_action: AgentAction | None,
     ) -> tuple[State, AgentAction | None]:
         try:
-            response = self.model.generate(SINGLE_AGENT_PROMPT, state)
-        except Exception as exc:  # noqa: BLE001 - a dead endpoint ends the run, not the process
+            generated = self.model.generate_action(
+                SINGLE_AGENT_PROMPT,
+                state,
+                self.resolved_action_transport,
+            )
+        except ActionParseError as exc:
+            return (
+                self._reject_parse_failure(state, exc, exc.raw_response),
+                previous_action,
+            )
+        # A dead endpoint ends the run, not the whole benchmark process.
+        except ValueError as exc:
+            return (
+                state.with_error(str(exc))
+                .with_context(kind="invalid_action", text=f"error: {exc}")
+                .with_last_action_json("")
+                .advance_step(),
+                previous_action,
+            )
+        except Exception as exc:  # noqa: BLE001
             reason = f"Model request failed: {exc}"
             return (
                 state.mark_handoff(reason).with_context(
@@ -97,18 +122,8 @@ class SingleAgent(BaseModel):
                 previous_action,
             )
 
-        try:
-            action = parse_action(response)
-        except ValueError as exc:
-            return (
-                state.with_error(str(exc))
-                .with_context(kind="invalid_action", text=f"error: {exc}")
-                .with_last_action_json(response)
-                .advance_step(),
-                previous_action,
-            )
-
-        action_json = action.model_dump_json()
+        action = generated.action
+        action_json = generated.action_json
         if action == previous_action:
             return (
                 self._reject_repeat(state, action).with_last_action_json(
@@ -132,6 +147,51 @@ class SingleAgent(BaseModel):
                 .advance_step(),
                 action,
             )
+
+    def _reject_parse_failure(
+        self, state: State, error: ActionParseError, response: str
+    ) -> State:
+        """Handle model responses that are not executable JSON actions.
+
+        Reasoning-capable models can produce reasoning-only turns. Retrying a
+        few times is useful; retrying until max_steps only burns budget and
+        hides the failure mode behind a pile of identical invalid actions.
+        """
+        attempt = self._parse_failure_streak(state) + 1
+        kind = error.kind
+
+        if attempt >= self.max_parse_failures:
+            reason = (
+                "No executable action returned after "
+                f"{attempt} consecutive model responses. Last failure "
+                f"({kind}): {error}"
+            )
+            return (
+                state.mark_handoff(reason)
+                .with_context(kind=kind, text=reason)
+                .with_last_action_json(response)
+            )
+
+        guidance = (
+            f"error: {error}\n"
+            f"Attempt {attempt}/{self.max_parse_failures}. Return exactly one "
+            "JSON action object and no reasoning text."
+        )
+        return (
+            state.with_error(str(error))
+            .with_context(kind=kind, text=guidance)
+            .with_last_action_json(response)
+            .advance_step()
+        )
+
+    def _parse_failure_streak(self, state: State) -> int:
+        parse_failure_kinds = {"no_action", "malformed_action", "invalid_action"}
+        streak = 0
+        for entry in reversed(state.context):
+            if entry.kind not in parse_failure_kinds:
+                break
+            streak += 1
+        return streak
 
     def _reject_repeat(self, state: State, action: AgentAction) -> State:
         """Push back on a verbatim-repeated action, escalating each time.

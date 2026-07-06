@@ -55,6 +55,7 @@ def main() -> int:
                 "compaction_mode": config.compaction_mode,
                 "context_window_tokens": agent.context_window_tokens,
                 "max_response_tokens": agent.max_response_tokens,
+                "action_transport": agent.resolved_action_transport,
                 "max_steps": state.max_steps,
                 "max_iterations": state.max_iterations,
                 "docker_image": agent.docker_image,
@@ -65,6 +66,8 @@ def main() -> int:
     print(final_state.to_string())
 
     metrics = run_metrics(model, final_state, duration_s)
+    metrics["provider"] = config.model_provider
+    metrics["action_transport"] = agent.resolved_action_transport
 
     summary: str | None = None
     if args.summarize == "enabled":
@@ -99,13 +102,21 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--model", default=None)
     parser.add_argument(
+        "--action-transport",
+        choices=["text_json", "tools", "auto"],
+        default=None,
+        help="How the single-agent obtains actions from the model. "
+        "text_json keeps the legacy JSON-text protocol; tools uses model "
+        "tool calls; auto enables tools only for known tool-capable families.",
+    )
+    parser.add_argument(
         "--summarize",
         choices=["enabled", "disabled"],
         default="disabled",
         help="When enabled, call the model at the end to summarize what was done.",
     )
     parser.add_argument("--max-iterations", type=int, default=None)
-    parser.add_argument("--max-steps", type=int, default=25)
+    parser.add_argument("--max-steps", type=int, default=50)
     parser.add_argument("--docker-image", default=None)
     parser.add_argument("--context-window-tokens", type=int, default=None)
     parser.add_argument(
