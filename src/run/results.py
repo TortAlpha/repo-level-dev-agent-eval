@@ -45,6 +45,7 @@ def record_run_result(
     model_name: str,
     final_state: State,
     summary: str | None = None,
+    test_passed: bool | None = None,
     hidden_tests_passed: bool | None = None,
     extra: dict | None = None,
 ) -> dict:
@@ -56,12 +57,13 @@ def record_run_result(
     record = {
         "task_id": task_id,
         "run_id": run_id,
+        "session_id": config.session_id,
         "agent_mode": config.agent_mode,
         "model": model_name,
         "status": final_state.status,
         "steps": final_state.step,
         "iterations": final_state.iteration,
-        "test_passed": final_state.test_passed,
+        "test_passed": final_state.test_passed if test_passed is None else test_passed,
         "changed_files": [str(path) for path in final_state.changed_files],
         "compaction_mode": config.compaction_mode,
         "finished_at": datetime.now(timezone.utc).isoformat(),

@@ -24,7 +24,12 @@ _VALID_ACTION_KINDS = frozenset({
     "set_plan", "inspect_file", "list_dir", "search", "write_file",
     "edit_file", "run_shell", "run_tests", "finish", "handoff",
 })
-_INVALID_ACTION_KINDS = frozenset({"invalid_action", "repeated_action"})
+_INVALID_ACTION_KINDS = frozenset({
+    "invalid_action", "malformed_action", "no_action", "repeated_action",
+})
+_ACTION_FAILURE_KINDS = frozenset({
+    "invalid_action", "malformed_action", "no_action",
+})
 
 
 @dataclass
@@ -38,6 +43,9 @@ class MetricSet:
     task_success_rate: float | None
     visible_test_pass_rate: float | None
     hidden_test_pass_rate: float | None
+    hidden_semantic_pass_rate: float | None
+    hidden_compat_pass_rate: float | None
+    hidden_pr_parity_pass_rate: float | None
     patch_validity_rate: float | None
     handoff_rate: float | None
     repair_success_rate: float | None
@@ -75,9 +83,10 @@ def compute_metrics(
     *,
     price_override: ModelPrice | None = None,
 ) -> MetricSet:
-    # Hidden tests are the evaluation signal; only scored runs count toward
-    # hidden/success/overfitting rates.
-    scored = [r for r in records if r.hidden_tests_passed is not None]
+    # New runs record task_success (visible + required hidden suites). Older
+    # runs only have hidden_tests_passed, exposed via RunRecord.outcome.
+    scored = [r for r in records if r.outcome is not None]
+    hidden_scored = [r for r in records if r.required_hidden_passed is not None]
     visible_ok_scored = [r for r in scored if r.test_passed]
     # A run needing more than one test iteration started from a failing state;
     # finishing with green visible tests means it was repaired.
@@ -88,9 +97,9 @@ def compute_metrics(
     for record in sorted(records, key=lambda r: r.finished_at or ""):
         first_run.setdefault(record.task_id, record)
     first_scored = [
-        r.hidden_tests_passed
+        r.outcome
         for r in first_run.values()
-        if r.hidden_tests_passed is not None
+        if r.outcome is not None
     ]
 
     # Tool-use validity and hallucinations come from the action histograms.
@@ -121,20 +130,46 @@ def compute_metrics(
         n_runs=len(records),
         n_tasks=len({r.task_id for r in records}),
         resolved_at_1=_rate(first_scored),
-        task_success_rate=_rate([bool(r.hidden_tests_passed) for r in scored]),
+        task_success_rate=_rate([bool(r.outcome) for r in scored]),
         visible_test_pass_rate=_rate([r.test_passed for r in records]),
-        hidden_test_pass_rate=_rate([bool(r.hidden_tests_passed) for r in scored]),
+        hidden_test_pass_rate=_rate(
+            [bool(r.required_hidden_passed) for r in hidden_scored]
+        ),
+        hidden_semantic_pass_rate=_rate(
+            [
+                r.hidden_semantic_tests_passed
+                for r in records
+                if r.hidden_semantic_tests_passed is not None
+            ]
+        ),
+        hidden_compat_pass_rate=_rate(
+            [
+                r.hidden_compat_tests_passed
+                for r in records
+                if r.hidden_compat_tests_passed is not None
+            ]
+        ),
+        hidden_pr_parity_pass_rate=_rate(
+            [
+                r.hidden_pr_parity_tests_passed
+                for r in records
+                if r.hidden_pr_parity_tests_passed is not None
+            ]
+        ),
         patch_validity_rate=_rate([r.changed_any for r in records]),
         handoff_rate=_rate([r.status == "handoff" for r in records]),
         repair_success_rate=_rate([r.test_passed for r in retried]),
         regression_rate=_rate([r.regressions > 0 for r in regressed]),
         mean_regressions=_mean([r.regressions for r in regressed]),
         test_overfitting_rate=_rate(
-            [not r.hidden_tests_passed for r in visible_ok_scored]
+            [not bool(r.outcome) for r in visible_ok_scored]
         ),
         tool_use_validity_rate=(valid_calls / total_calls if total_calls else None),
         hallucinated_refs_per_run=_mean(
-            [r.action_counts.get("invalid_action", 0) for r in with_actions]
+            [
+                sum(r.action_counts.get(k, 0) for k in _ACTION_FAILURE_KINDS)
+                for r in with_actions
+            ]
         ),
         mean_iterations=_mean([r.iterations for r in records]),
         mean_steps=_mean([r.steps for r in records]),

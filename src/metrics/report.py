@@ -10,25 +10,33 @@ import argparse
 from pathlib import Path
 
 from .compute import EXTERNAL_METRICS, MetricSet, compute_metrics, group_by
+from .difficulty import MIN_RUNS, attach_difficulty, empirical_difficulty
 from .pricing import ModelPrice
 from .records import (
     DEFAULT_COLLECTION_PATH,
     DEFAULT_QUALITY_PATH,
     DEFAULT_RUNS_PATH,
+    attach_hidden_suite_fallbacks,
     attach_quality,
     attach_sizes,
+    attach_task_types,
     filter_runs,
+    load_hidden_suite_specs,
     load_quality,
     load_runs,
     load_sizes,
+    load_task_types,
 )
 
 # (field, label, kind) in spec order; kind picks the number format.
 _ROWS: list[tuple[str, str, str]] = [
-    ("resolved_at_1", "Resolved@1 (hidden, first patch)", "rate"),
-    ("task_success_rate", "Task success rate (hidden)", "rate"),
+    ("resolved_at_1", "Resolved@1 (task success)", "rate"),
+    ("task_success_rate", "Task success rate", "rate"),
     ("visible_test_pass_rate", "Visible test pass rate", "rate"),
-    ("hidden_test_pass_rate", "Hidden test pass rate", "rate"),
+    ("hidden_test_pass_rate", "Required hidden pass rate", "rate"),
+    ("hidden_semantic_pass_rate", "Hidden semantic pass rate", "rate"),
+    ("hidden_compat_pass_rate", "Hidden compat pass rate", "rate"),
+    ("hidden_pr_parity_pass_rate", "Hidden PR parity pass rate", "rate"),
     ("patch_validity_rate", "Patch validity rate", "rate"),
     ("handoff_rate", "Human handoff rate", "rate"),
     ("repair_success_rate", "Repair success rate", "rate"),
@@ -101,6 +109,27 @@ def _external_note() -> str:
     return "\n".join(lines)
 
 
+def _print_sessions(records: list) -> None:
+    """List sessions with run counts, distinct tasks/agents, and last run time."""
+    from collections import defaultdict
+
+    agg: dict[str, dict] = defaultdict(
+        lambda: {"n": 0, "last": "", "tasks": set(), "agents": set()}
+    )
+    for r in records:
+        s = agg[r.session_id or "default"]
+        s["n"] += 1
+        s["last"] = max(s["last"], r.finished_at or "")
+        s["tasks"].add(r.task_id)
+        s["agents"].add(r.agent_mode)
+    print(f"{'session':<28}{'runs':>6}{'tasks':>7}  {'agents':<20}last")
+    print("-" * 78)
+    for name in sorted(agg, key=lambda k: agg[k]["last"], reverse=True):
+        s = agg[name]
+        agents = ",".join(sorted(s["agents"]))
+        print(f"{name:<28}{s['n']:>6}{len(s['tasks']):>7}  {agents:<20}{s['last'][:19]}")
+
+
 def main() -> int:
     args = parse_args()
     records = load_runs(args.runs)
@@ -108,14 +137,22 @@ def main() -> int:
         print(f"No runs found in {args.runs}.")
         return 1
 
+    if args.list_sessions:
+        _print_sessions(records)
+        return 0
+
     records = filter_runs(
-        records, run_id=args.run_id, task_id=args.task_id, last=args.last
+        records, run_id=args.run_id, task_id=args.task_id,
+        session_id=args.session, last=args.last,
     )
     if not records:
         print("No runs match the given filter.")
         return 1
 
     attach_sizes(records, load_sizes(args.collection))
+    attach_task_types(records, load_task_types(args.collection))
+    attach_hidden_suite_fallbacks(records, load_hidden_suite_specs(args.collection))
+    attach_difficulty(records, args.collection)
     attach_quality(records, load_quality(args.quality))
 
     override = None
@@ -130,10 +167,41 @@ def main() -> int:
             columns.append((name, compute_metrics(group, price_override=override)))
 
     print(render(columns))
+    if args.difficulty:
+        print(_difficulty_table(records))
     note = _external_note()
     if note:
         print(note)
     return 0
+
+
+def _difficulty_table(records: list[RunRecord]) -> str:
+    """Per-task empirical difficulty, hardest first, with flags for tasks that
+    carry little signal (everyone solves, everyone fails, or models agree)."""
+    measured = sorted(
+        empirical_difficulty(records).values(),
+        key=lambda d: (-d.difficulty, -(d.discrimination or 0)),
+    )
+    lines = ["", "Task difficulty (measured from runs):",
+             f"  {'task':30} {'runs':>4} {'models':>6} {'solve':>6} {'diff':>6} {'discrim':>7}  flags"]
+    for d in measured:
+        flags = []
+        if d.n_runs < MIN_RUNS:
+            flags.append("low-n")
+        elif d.solve_rate == 1.0:
+            flags.append("too-easy")
+        elif d.solve_rate == 0.0:
+            flags.append("unsolved")
+        if d.n_models >= 2 and (d.discrimination or 0) == 0:
+            flags.append("no-discrim")
+        disc = "n/a" if d.discrimination is None else f"{d.discrimination:.2f}"
+        lines.append(
+            f"  {d.task_id:30} {d.n_runs:>4} {d.n_models:>6} "
+            f"{d.solve_rate:>6.2f} {d.difficulty:>6.2f} {disc:>7}  {' '.join(flags)}"
+        )
+    if not measured:
+        lines.append("  (no runs with a known outcome yet)")
+    return "\n".join(lines)
 
 
 def parse_args() -> argparse.Namespace:
@@ -143,8 +211,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--quality", type=Path, default=DEFAULT_QUALITY_PATH)
     parser.add_argument(
         "--group-by",
-        choices=["agent_mode", "size", "model", "none"],
+        choices=[
+            "agent_mode", "size", "task_type", "difficulty",
+            "difficulty_estimate", "model", "session_id", "none",
+            "action_transport",
+        ],
         default="agent_mode",
+    )
+    parser.add_argument(
+        "--difficulty",
+        action="store_true",
+        help="Also print per-task measured difficulty (solve rate, discrimination).",
     )
     parser.add_argument(
         "--last",
@@ -154,6 +231,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--run-id", default=None, help="Only this run_id.")
     parser.add_argument("--task-id", default=None, help="Only this task_id.")
+    parser.add_argument("--session", default=None, help="Only runs from this session.")
+    parser.add_argument(
+        "--list-sessions", action="store_true",
+        help="List recorded sessions (run counts, agents, last time) and exit.",
+    )
     parser.add_argument(
         "--price-in",
         type=float,
