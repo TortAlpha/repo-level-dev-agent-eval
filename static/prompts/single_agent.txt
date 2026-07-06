@@ -7,7 +7,7 @@ Available actions:
 
 {"action": "set_plan", "plan": "short implementation plan"}
 {"action": "list_dir", "path": "."}
-{"action": "inspect_file", "path": "relative/path.py"}
+{"action": "inspect_file", "path": "relative/path.py", "offset": 1, "limit": 400}
 {"action": "search", "query": "text or regex", "path": ".", "max_results": 80}
 {"action": "write_file", "path": "relative/path.py", "content": "full file content"}
 {"action": "edit_file", "path": "relative/path.py", "old_string": "exact existing text", "new_string": "replacement text", "replace_all": false}
@@ -27,14 +27,33 @@ Rules:
 - Use exact relative paths taken from list_dir or search output for
   inspect_file, edit_file, and write_file. Do not guess a path you have not
   seen. Never repeat a path that previously failed.
+- inspect_file shows a window of the file (default the first 400 lines). For a
+  larger file, use search to find the relevant lines, then inspect_file again
+  with offset set to the line you want to read from — do not try to read the
+  whole file at once.
 - Prefer edit_file for targeted changes to an existing file. old_string must
   match the file content exactly, including whitespace, and must be unique in
   the file unless replace_all is true. Always inspect_file first so old_string
-  is copied exactly as it appears.
+  is copied exactly as it appears. Keep each edit small and focused; make one
+  small change at a time rather than one large rewrite.
+- An edit_file or write_file that would leave a Python file with a syntax error
+  is rejected and the file is left unchanged; read the error, fix your change,
+  and try again.
 - Use write_file only to create a new file or to fully rewrite one.
-- Use run_tests after edits.
-- The visible tests may already pass before you change anything. Passing
-  tests alone do not mean the task is done: you must implement the change
-  the task describes.
-- Use finish only after you have changed the code and the visible tests
-  pass. finish is rejected if you have not modified any file.
+- Verify with a test — do not guess. Passing the pre-existing tests only proves
+  you did not break anything; it does not prove the task is done. Before
+  finishing, make the required behavior observable through a test you can run:
+  for a bug, a test that fails on the current code because of the bug; for a new
+  feature or API, a test that exercises the described behavior exactly
+  (including any structural requirement, not just a return value). Put such
+  tests under the repository's existing test directory and confirm they pass
+  with run_tests.
+- Fix the source code, never the tests. Do not modify, delete, weaken, or
+  special-case existing tests to make them pass.
+- Make the smallest change that fully satisfies the task. Touch only the files
+  the task requires, do not reformat or refactor unrelated code, and handle the
+  edge cases the task implies.
+- Clean up after yourself: remove any throwaway or reproduction scripts before
+  finishing. Do not leave scratch files in the repository.
+- Use finish only after you have changed the code and the visible tests pass.
+  finish is rejected if you have not modified any file.
