@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from pydantic import BaseModel, Field
 
 from .actions import (
@@ -29,6 +31,37 @@ DENIED_SHELL_COMMANDS = (
     "rm -rf .",
     "rm -rf /workspace",
 )
+
+_TEST_LAUNCHERS = (
+    "pytest",
+    "py.test",
+    "python -m pytest",
+    "python3 -m pytest",
+    "python -m unittest",
+    "python3 -m unittest",
+)
+_SHELL_OPERATORS = ("&&", "||", ";", "|", ">", "<")
+_ENV_ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+
+
+def _is_test_invocation(command: str) -> bool:
+    """A bare test-runner call (no shell composition), e.g. ``pytest -x tests``.
+
+    Agents often run pytest through run_shell instead of run_tests. Left
+    unrecorded, that never sets ``test_passed`` (so finish is always rejected)
+    and gives unlimited test feedback outside the iteration budget. Compound
+    commands are skipped: their exit code can't be attributed to the tests.
+    """
+    if any(op in command for op in _SHELL_OPERATORS):
+        return False
+    parts = command.strip().split()
+    while parts and _ENV_ASSIGNMENT.match(parts[0]):
+        parts = parts[1:]
+    normalized = " ".join(parts)
+    return any(
+        normalized == launcher or normalized.startswith(f"{launcher} ")
+        for launcher in _TEST_LAUNCHERS
+    )
 
 
 class ActionExecutor(BaseModel):
@@ -159,6 +192,15 @@ class ActionExecutor(BaseModel):
         result = self.sandbox.run_shell(action.command, action.timeout_seconds)
         output = self._truncate(result.output or "Command passed.")
         entry_text = f"$ {action.command}\n{output}"
+        if _is_test_invocation(action.command):
+            # Same bookkeeping as run_tests: sets test_passed (unblocks
+            # finish) and consumes one test iteration from the budget.
+            status = "PASSED" if result.success else "FAILED"
+            note = "(counted as a test run — prefer the run_tests action)"
+            return state.with_context(
+                kind="run_shell",
+                text=f"$ {action.command}\n{status}\n{output}\n{note}",
+            ).record_test_result(passed=result.success, output=output)
         if result.success:
             return (
                 state.with_status("running")
@@ -194,8 +236,8 @@ class ActionExecutor(BaseModel):
     def _finish(self, state: State, action: FinishAction) -> State:
         if not state.test_passed:
             reason = (
-                "Finish rejected: run the visible tests first and make sure "
-                "they pass before finishing."
+                "Finish rejected: run the visible tests first (use the "
+                "run_tests action) and make sure they pass before finishing."
             )
             return (
                 state.with_error(reason)

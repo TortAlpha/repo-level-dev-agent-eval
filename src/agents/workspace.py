@@ -134,6 +134,17 @@ class Workspace(BaseModel):
                 text=True,
                 timeout=30,
             )
+            if result.returncode not in (0, 1) and "regex parse error" in result.stderr:
+                # Models routinely search for literal code (`def parse(self,`),
+                # which is rarely valid regex. Retry literally instead of
+                # burning the agent's step on a pattern syntax error.
+                result = subprocess.run(
+                    ["rg", "-n", "--no-heading", "--fixed-strings", query, str(search_root)],
+                    capture_output=True,
+                    check=False,
+                    text=True,
+                    timeout=30,
+                )
         except FileNotFoundError:
             return self._python_search(search_root, query, max_results)
 
