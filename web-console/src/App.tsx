@@ -105,6 +105,8 @@ function sweepPayloadFromJob(job: JobRecord): SweepPayload {
     action_transport: normalizeActionTransport(
       commandOption(command, "--action-transport") || job.action_transport
     ) ?? "text_json",
+    reasoning_effort:
+      commandOption(command, "--reasoning-effort") || job.reasoning_effort || undefined,
     session: nextSessionName(commandOption(command, "--session") || job.session),
     provider: normalizeProvider(commandOption(command, "--provider") || job.provider) ?? "openrouter",
     concurrency: commandNumberOption(command, "--concurrency"),
@@ -748,7 +750,10 @@ function LauncherTab({
   jobs: JobRecord[];
   onJobsChange: (jobs: JobRecord[]) => void;
 }) {
-  const firstTask = overview.tasks[0]?.task_id ?? "";
+  // Only verified tasks are offered; rejected/candidate rows and fixtures can
+  // still be launched from the CLI by naming them explicitly.
+  const pickableTasks = overview.tasks.filter((task) => task.task_status.endsWith("_verified"));
+  const firstTask = pickableTasks[0]?.task_id ?? "";
   const seenModels = Array.from(new Set(overview.runs.map((run) => run.model))).sort();
   const [meta, setMeta] = useState<Meta | null>(null);
   useEffect(() => {
@@ -759,6 +764,8 @@ function LauncherTab({
   ).filter(Boolean);
   const agentOptions = meta?.agents ?? ["single", "swe-agent", "multi"];
   const actionTransportOptions = meta?.action_transports ?? ["text_json", "tools", "auto"];
+  const reasoningEffortOptions = meta?.reasoning_efforts ?? ["low", "medium", "high"];
+  const reasoningModels = meta?.reasoning_models ?? null;
   const knownSessions = meta?.sessions ?? [];
 
   const [mode, setMode] = useState<"single" | "sweep">("single");
@@ -767,10 +774,11 @@ function LauncherTab({
   const [agent, setAgent] = useState("single");
   const [provider, setProvider] = useState<"openrouter" | "local">("openrouter");
   const [actionTransport, setActionTransport] = useState<ActionTransport>("text_json");
+  const [reasoningEffort, setReasoningEffort] = useState("");
   const [model, setModel] = useState("");
   const [allTasks, setAllTasks] = useState(true);
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
-  const [taskTypeFilter, setTaskTypeFilter] = useState<"all" | "feature" | "bugfix">("all");
+  const [taskSearch, setTaskSearch] = useState("");
   const [modelsCsv, setModelsCsv] = useState("");
   const [sweepAgents, setSweepAgents] = useState<string[]>(["single"]);
   const [concurrency, setConcurrency] = useState(1);
@@ -796,17 +804,53 @@ function LauncherTab({
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
   }
-  function selectTasksByType(type: "feature" | "bugfix" | null) {
-    setSelectedTasks(
-      type === null
-        ? []
-        : overview.tasks.filter((task) => task.task_type === type).map((task) => task.task_id)
+
+  // One facet group per collection dimension; a chip toggles its whole group.
+  const facetGroups = [
+    facetGroup("Size", pickableTasks, (task) => task.size, ["small", "medium", "large"]),
+    facetGroup("Type", pickableTasks, (task) => task.task_type, ["bugfix", "feature"]),
+    facetGroup("Difficulty", pickableTasks, (task) => task.difficulty_estimate, ["easy", "medium", "hard"])
+  ].filter((group) => group.values.length > 0);
+
+  function groupState(ids: string[]): "on" | "partial" | "off" {
+    const picked = ids.filter((id) => selectedTasks.includes(id)).length;
+    return picked === ids.length ? "on" : picked > 0 ? "partial" : "off";
+  }
+  function toggleGroup(ids: string[]) {
+    setSelectedTasks((prev) =>
+      ids.every((id) => prev.includes(id))
+        ? prev.filter((id) => !ids.includes(id))
+        : Array.from(new Set([...prev, ...ids]))
     );
   }
-  const visibleTasks = overview.tasks.filter(
-    (task) => taskTypeFilter === "all" || task.task_type === taskTypeFilter
+
+  const visibleTasks = pickableTasks.filter(
+    (task) => !taskSearch.trim() || task.task_id.toLowerCase().includes(taskSearch.trim().toLowerCase())
   );
-  const taskCount = allTasks ? overview.tasks.length : selectedTasks.length;
+  const taskCount = allTasks ? pickableTasks.length : selectedTasks.length;
+
+  // Reasoning effort only means something for reasoning models on OpenRouter.
+  // OpenRouter ignores the field for unsupported models, so this is guidance,
+  // not a hard gate; with the catalog unavailable, support stays unknown and
+  // the select remains enabled.
+  const enteredModels = (mode === "sweep" ? splitCsv(modelsCsv) : splitCsv(model)).filter(Boolean);
+  const effortSupport = (() => {
+    if (provider === "local") {
+      return { enabled: false, note: "not sent to the local provider" };
+    }
+    if (!reasoningModels || enteredModels.length === 0) {
+      return { enabled: true, note: null as string | null };
+    }
+    const supporting = enteredModels.filter((id) => reasoningModels.includes(id));
+    if (supporting.length === 0) {
+      return { enabled: false, note: "entered model(s) have no reasoning — effort would be ignored" };
+    }
+    if (supporting.length < enteredModels.length) {
+      return { enabled: true, note: `applies only to: ${supporting.join(", ")}` };
+    }
+    return { enabled: true, note: null };
+  })();
+  const effortToSend = effortSupport.enabled ? reasoningEffort || undefined : undefined;
   const sweepCount =
     taskCount * Math.max(1, splitCsv(modelsCsv).length) * Math.max(1, sweepAgents.length);
 
@@ -820,6 +864,7 @@ function LauncherTab({
           models: modelsCsv.trim(),
           agents: (sweepAgents.length ? sweepAgents : ["single"]).join(","),
           action_transport: actionTransport,
+          reasoning_effort: effortToSend,
           session: session.trim() || undefined,
           provider,
           concurrency,
@@ -839,6 +884,7 @@ function LauncherTab({
           model: model.trim() || undefined,
           agent,
           action_transport: actionTransport,
+          reasoning_effort: effortToSend,
           session: session.trim() || undefined,
           max_steps: maxSteps,
           max_iterations: maxIterations,
@@ -908,7 +954,7 @@ function LauncherTab({
               <label>
                 Task
                 <select value={taskId} onChange={(event) => setTaskId(event.target.value)}>
-                  {overview.tasks.map((task) => (
+                  {pickableTasks.map((task) => (
                     <option key={task.task_id} value={task.task_id}>{task.task_id}</option>
                   ))}
                 </select>
@@ -930,15 +976,33 @@ function LauncherTab({
                 <span className="rowBetween">Tasks<Toggle label="all" checked={allTasks} onChange={setAllTasks} /></span>
                 {!allTasks ? (
                   <div className="taskPicker">
+                    {facetGroups.map((group) => (
+                      <div key={group.label} className="facetRow">
+                        <span className="facetLabel">{group.label}</span>
+                        {group.values.map(({ value, ids }) => (
+                          <button
+                            key={value}
+                            type="button"
+                            className={`chip ${groupState(ids)}`}
+                            title={`Select/deselect all ${value} tasks`}
+                            onClick={() => toggleGroup(ids)}
+                          >
+                            {value} · {ids.length}
+                          </button>
+                        ))}
+                      </div>
+                    ))}
                     <div className="taskPickerBar">
-                      <button type="button" className="chip" onClick={() => selectTasksByType("feature")}>All features</button>
-                      <button type="button" className="chip" onClick={() => selectTasksByType("bugfix")}>All bugfixes</button>
-                      <button type="button" className="chip" onClick={() => selectTasksByType(null)}>Clear</button>
-                      <select value={taskTypeFilter} onChange={(event) => setTaskTypeFilter(event.target.value as "all" | "feature" | "bugfix")}>
-                        <option value="all">show all</option>
-                        <option value="feature">features only</option>
-                        <option value="bugfix">bugfixes only</option>
-                      </select>
+                      <button type="button" className={`chip ${groupState(pickableTasks.map((task) => task.task_id))}`} onClick={() => toggleGroup(pickableTasks.map((task) => task.task_id))}>
+                        All · {pickableTasks.length}
+                      </button>
+                      <button type="button" className="chip" onClick={() => setSelectedTasks([])}>Clear</button>
+                      <input
+                        className="taskSearch"
+                        value={taskSearch}
+                        onChange={(event) => setTaskSearch(event.target.value)}
+                        placeholder="filter by id…"
+                      />
                       <span className="muted">{selectedTasks.length} selected</span>
                     </div>
                     <div className="taskList">
@@ -946,9 +1010,12 @@ function LauncherTab({
                         <label key={task.task_id} className="taskItem">
                           <input type="checkbox" checked={selectedTasks.includes(task.task_id)} onChange={() => toggleTask(task.task_id)} />
                           <span className="taskItemId">{task.task_id}</span>
+                          <SizePill value={task.size} />
                           <TypePill value={task.task_type} />
+                          <DifficultyPill value={task.difficulty_estimate} />
                         </label>
                       ))}
+                      {visibleTasks.length === 0 ? <span className="muted taskListEmpty">no tasks match “{taskSearch}”</span> : null}
                     </div>
                   </div>
                 ) : null}
@@ -1002,17 +1069,34 @@ function LauncherTab({
             <button className={provider === "local" ? "active" : ""} onClick={() => setProvider("local")}>Local</button>
           </div>
 
-          <label className="fullWidth">
-            Action transport
-            <select
-              value={actionTransport}
-              onChange={(event) => setActionTransport(event.target.value as ActionTransport)}
-            >
-              {actionTransportOptions.map((item) => (
-                <option key={item} value={item}>{item}</option>
-              ))}
-            </select>
-          </label>
+          <div className="formGrid">
+            <label>
+              Action transport
+              <select
+                value={actionTransport}
+                onChange={(event) => setActionTransport(event.target.value as ActionTransport)}
+              >
+                {actionTransportOptions.map((item) => (
+                  <option key={item} value={item}>{item}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Reasoning effort
+              <select
+                value={effortSupport.enabled ? reasoningEffort : ""}
+                disabled={!effortSupport.enabled}
+                onChange={(event) => setReasoningEffort(event.target.value)}
+                title="Reasoning budget for reasoning models (OpenRouter). Hidden reasoning shares max_tokens with the answer; on long contexts an uncapped model can burn the whole budget and return empty actions."
+              >
+                <option value="">{effortSupport.enabled ? "provider default" : "n/a"}</option>
+                {reasoningEffortOptions.map((item) => (
+                  <option key={item} value={item}>{item}</option>
+                ))}
+              </select>
+              {effortSupport.note ? <span className="muted">{effortSupport.note}</span> : null}
+            </label>
+          </div>
 
           <div className="toggleGrid">
             <Toggle label="Hidden score" checked={score} onChange={setScore} />
@@ -1041,7 +1125,7 @@ function LauncherTab({
                 <div>
                   <div className="strong">{job.kind === "sweep" ? `sweep · ${job.task_id}` : job.task_id}</div>
                   <div className="muted mono">
-                    {job.session || "default"} · {job.agent || "single"} · {job.action_transport || "text_json"} · {job.model || "default"}
+                    {job.session || "default"} · {job.agent || "single"} · {job.action_transport || "text_json"}{job.reasoning_effort ? ` · effort ${job.reasoning_effort}` : ""} · {job.model || "default"}
                   </div>
                   <div className="muted mono commandLine">{job.command.join(" ")}</div>
                 </div>
@@ -1394,6 +1478,30 @@ function AgentPill({ value }: { value: string }) {
 function TypePill({ value }: { value: string }) {
   const variant = value === "feature" ? "feature" : value === "bugfix" ? "bugfix" : "";
   return <span className={`pill ${variant}`}>{value}</span>;
+}
+
+function SizePill({ value }: { value: string | null }) {
+  if (!value) return null;
+  return <span className={`pill size-${value}`}>{value}</span>;
+}
+
+function facetGroup(
+  label: string,
+  tasks: TaskRecord[],
+  key: (task: TaskRecord) => string | null,
+  order: string[]
+): { label: string; values: { value: string; ids: string[] }[] } {
+  const buckets = new Map<string, string[]>();
+  for (const task of tasks) {
+    const value = key(task);
+    if (!value) continue;
+    buckets.set(value, [...(buckets.get(value) ?? []), task.task_id]);
+  }
+  const ordered = [
+    ...order.filter((value) => buckets.has(value)),
+    ...[...buckets.keys()].filter((value) => !order.includes(value)).sort()
+  ];
+  return { label, values: ordered.map((value) => ({ value, ids: buckets.get(value)! })) };
 }
 
 function HiddenPill({ value }: { value: boolean | null }) {

@@ -179,6 +179,7 @@ export interface JobRecord {
   model: string | null;
   agent?: string | null;
   action_transport?: string | null;
+  reasoning_effort?: string | null;
   session?: string | null;
   dry_run: boolean;
   command: string[];
@@ -195,6 +196,7 @@ export interface LaunchPayload {
   model?: string;
   agent?: string;
   action_transport?: ActionTransport;
+  reasoning_effort?: string;
   session?: string;
   max_steps?: number;
   max_iterations?: number;
@@ -211,6 +213,7 @@ export interface SweepPayload {
   models: string;  // comma-separated models ("" = provider default)
   agents: string;  // comma-separated agents
   action_transport?: ActionTransport;
+  reasoning_effort?: string;
   session?: string;
   provider: "openrouter" | "local";
   concurrency?: number;  // parallel runs (1 = sequential)
@@ -233,6 +236,10 @@ export interface Meta {
   generated_at: string;
   agents: string[];
   action_transports: ActionTransport[];
+  reasoning_efforts?: string[];
+  // Models that accept the `reasoning` config (OpenRouter catalog);
+  // null/absent = catalog unavailable, treat support as unknown.
+  reasoning_models?: string[] | null;
   providers: string[];
   model_presets: string[];
   models_seen: string[];

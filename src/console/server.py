@@ -15,6 +15,7 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote, urlparse
+from urllib.request import urlopen
 
 from ..metrics.compute import compute_metrics, group_by
 from ..metrics.difficulty import attach_difficulty, empirical_difficulty
@@ -44,6 +45,7 @@ MAX_PATCH_CHARS = 200_000
 PROVIDERS = {"local", "openrouter"}
 AGENTS = ("single", "swe-agent", "multi")
 ACTION_TRANSPORTS = ("text_json", "tools", "auto")
+REASONING_EFFORTS = ("low", "medium", "high")
 # Suggested models for the launcher (free text still allowed).
 MODEL_PRESETS = (
     "openai/gpt-4o-mini",
@@ -314,6 +316,7 @@ class JobStore:
             "model": clean_optional_str(payload.get("model")),
             "agent": clean_optional_str(payload.get("agent")),
             "action_transport": clean_optional_str(payload.get("action_transport")),
+            "reasoning_effort": clean_optional_str(payload.get("reasoning_effort")),
             "session": clean_optional_str(payload.get("session")),
             "dry_run": bool(payload.get("dry_run", False)),
         })
@@ -328,6 +331,7 @@ class JobStore:
             "model": clean_optional_str(payload.get("models")),
             "agent": clean_optional_str(payload.get("agents")) or "single",
             "action_transport": clean_optional_str(payload.get("action_transport")),
+            "reasoning_effort": clean_optional_str(payload.get("reasoning_effort")),
             "session": clean_optional_str(payload.get("session")),
             "dry_run": False,
         })
@@ -454,6 +458,15 @@ class JobStore:
                 )
             command.extend(["--action-transport", transport])
 
+        effort = clean_optional_str(payload.get("reasoning_effort"))
+        if effort:
+            if effort not in REASONING_EFFORTS:
+                raise ApiError(
+                    f"unsupported reasoning_effort: {effort}",
+                    HTTPStatus.BAD_REQUEST,
+                )
+            command.extend(["--reasoning-effort", effort])
+
         for key, flag, lower, upper in (
             ("max_steps", "--max-steps", 1, 200),
             ("max_iterations", "--max-iterations", 1, 50),
@@ -508,6 +521,15 @@ class JobStore:
                     HTTPStatus.BAD_REQUEST,
                 )
             command.extend(["--action-transport", transport])
+
+        effort = clean_optional_str(payload.get("reasoning_effort"))
+        if effort:
+            if effort not in REASONING_EFFORTS:
+                raise ApiError(
+                    f"unsupported reasoning_effort: {effort}",
+                    HTTPStatus.BAD_REQUEST,
+                )
+            command.extend(["--reasoning-effort", effort])
         for key, flag, lower, upper in (
             ("max_steps", "--max-steps", 1, 200),
             ("max_iterations", "--max-iterations", 1, 50),
@@ -561,6 +583,35 @@ class JobStore:
         return job
 
 
+# OpenRouter catalog of models whose endpoints accept the `reasoning` config.
+# Cached because the launcher polls meta; None means "catalog unavailable",
+# which the frontend treats as unknown (no restrictions). OpenRouter silently
+# ignores `reasoning` for unsupported models, so this is UX, not safety.
+_REASONING_MODELS_TTL_S = 6 * 3600
+_reasoning_models_cache: tuple[float, list[str] | None] = (0.0, None)
+_reasoning_models_lock = threading.Lock()
+
+
+def reasoning_models() -> list[str] | None:
+    global _reasoning_models_cache
+    with _reasoning_models_lock:
+        fetched_at, cached = _reasoning_models_cache
+        if cached is not None and time.time() - fetched_at < _REASONING_MODELS_TTL_S:
+            return cached
+        try:
+            with urlopen("https://openrouter.ai/api/v1/models", timeout=5) as response:
+                catalog = json.load(response).get("data", [])
+            models = sorted(
+                entry["id"]
+                for entry in catalog
+                if "reasoning" in (entry.get("supported_parameters") or [])
+            )
+            _reasoning_models_cache = (time.time(), models)
+            return models
+        except Exception:  # noqa: BLE001 - offline console keeps working
+            return cached
+
+
 def build_meta(root: Path) -> dict:
     """Launcher metadata: agents, providers, model presets, and known sessions."""
     records = load_records(root)
@@ -580,6 +631,8 @@ def build_meta(root: Path) -> dict:
         "generated_at": utc_now(),
         "agents": list(AGENTS),
         "action_transports": list(ACTION_TRANSPORTS),
+        "reasoning_efforts": list(REASONING_EFFORTS),
+        "reasoning_models": reasoning_models(),
         "providers": sorted(PROVIDERS),
         "model_presets": list(MODEL_PRESETS),
         "models_seen": sorted({r.model for r in records if r.model}),

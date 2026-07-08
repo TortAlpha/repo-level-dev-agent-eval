@@ -842,6 +842,24 @@ button {
   gap: 8px;
 }
 
+.facetRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.facetLabel {
+  width: 78px;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #7b8b97;
+}
+
+.facetRow .chip,
 .taskPickerBar .chip {
   min-height: 30px;
   padding: 0 12px;
@@ -855,10 +873,40 @@ button {
   transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 }
 
+.facetRow .chip:hover,
 .taskPickerBar .chip:hover {
   border-color: #2f6fed;
   color: #2f6fed;
   background: #f2f6ff;
+}
+
+.facetRow .chip.on,
+.taskPickerBar .chip.on {
+  border-color: #2f6fed;
+  background: #2f6fed;
+  color: #ffffff;
+}
+
+.facetRow .chip.partial,
+.taskPickerBar .chip.partial {
+  border-color: #2f6fed;
+  background: #e4edff;
+  color: #2456bd;
+}
+
+.taskSearch {
+  width: 150px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid #d5dde3;
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 12px;
+}
+
+.taskListEmpty {
+  padding: 10px;
+  font-size: 12px;
 }
 
 .taskPickerBar select {
@@ -940,6 +988,22 @@ button {
   background: #ffe7e0;
   color: #c14a2c;
 }
+
+.pill.size-small {
+  background: #e5f3e9;
+  color: #2f7d4f;
+}
+
+.pill.size-medium {
+  background: #e3edf8;
+  color: #2f6191;
+}
+
+.pill.size-large {
+  background: #fdeeda;
+  color: #a8641c;
+}
+
 
 .toggle {
   display: flex;
