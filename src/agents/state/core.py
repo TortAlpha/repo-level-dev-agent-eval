@@ -83,12 +83,23 @@ class State(BaseModel):
             update={"context": [*self.context, entry], "action_counts": counts}
         )
 
-    def with_last_action_json(self, action_json: str) -> State:
+    def with_last_action_json(
+        self,
+        action_json: str,
+        tool_call_id: str | None = None,
+        tool_name: str | None = None,
+    ) -> State:
         """Attach the raw action to the newest history entry, so the history
-        can be replayed to the model as an assistant/user dialogue."""
+        can be replayed to the model as an assistant/user dialogue. When the
+        action came in as a native tool call, its id/name are kept so the
+        replay can use the provider's tool-message protocol instead of text."""
         if not self.context:
             return self
-        last = self.context[-1].model_copy(update={"action_json": action_json})
+        last = self.context[-1].model_copy(update={
+            "action_json": action_json,
+            "tool_call_id": tool_call_id,
+            "tool_name": tool_name,
+        })
         return self.model_copy(update={"context": [*self.context[:-1], last]})
 
     def invalidate_path(self, path: str) -> State:

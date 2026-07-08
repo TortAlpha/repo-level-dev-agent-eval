@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PrivateAttr
 
-from .actions import ActionParseError, AgentAction
+from .actions import ActionParseError, AgentAction, same_action
 from .context import CompactionMode, ContextCompactor
 from .executor import ActionExecutor
 from .model import LangChainModel
@@ -24,6 +24,8 @@ class SingleAgent(BaseModel):
     test_timeout_seconds: int = Field(default=600, gt=0)
     stop_container: bool = True
     context_window_tokens: int = Field(default=8192, gt=0)
+    # Compactor working budget; None = the full window (see Config).
+    context_budget_tokens: int | None = Field(default=None, gt=0)
     max_response_tokens: int = Field(default=4096, gt=0)
     compaction_mode: CompactionMode = "summarize"
     max_repeated_actions: int = Field(default=3, gt=1)
@@ -31,9 +33,25 @@ class SingleAgent(BaseModel):
     action_transport: ActionTransport = "text_json"
     setup_commands: list[str] = Field(default_factory=list)
 
+    # Cached probe result: resolving auto/tools costs one live request.
+    _transport_cache: tuple[str, bool] | None = PrivateAttr(default=None)
+
+    def _resolve_transport(self) -> tuple[str, bool]:
+        if self._transport_cache is None:
+            self._transport_cache = resolve_action_transport(
+                self.action_transport, self.model
+            )
+        return self._transport_cache
+
     @property
     def resolved_action_transport(self) -> str:
-        return resolve_action_transport(self.action_transport, self.model.model)
+        return self._resolve_transport()[0]
+
+    @property
+    def transport_downgraded(self) -> bool:
+        """True when an explicit ``tools`` request failed the live probe and
+        the run fell back to text JSON."""
+        return self._resolve_transport()[1]
 
     @trace_agent_run
     def run(self, state: State) -> State:
@@ -48,7 +66,10 @@ class SingleAgent(BaseModel):
         executor = ActionExecutor(workspace=workspace, sandbox=sandbox)
         compactor = ContextCompactor(
             budget=ContextBudget(
-                window_tokens=self.context_window_tokens,
+                window_tokens=min(
+                    self.context_budget_tokens or self.context_window_tokens,
+                    self.context_window_tokens,
+                ),
                 reserved_output_tokens=self.max_response_tokens,
                 overhead_chars=len(SINGLE_AGENT_PROMPT),
             ),
@@ -124,10 +145,12 @@ class SingleAgent(BaseModel):
 
         action = generated.action
         action_json = generated.action_json
-        if action == previous_action:
+        tool_call_id = generated.tool_call_id or None
+        tool_name = generated.tool_name or None
+        if same_action(action, previous_action):
             return (
                 self._reject_repeat(state, action).with_last_action_json(
-                    action_json
+                    action_json, tool_call_id, tool_name
                 ),
                 action,
             )
@@ -135,7 +158,7 @@ class SingleAgent(BaseModel):
         try:
             return (
                 executor.execute(state, action).with_last_action_json(
-                    action_json
+                    action_json, tool_call_id, tool_name
                 ),
                 action,
             )
@@ -143,7 +166,7 @@ class SingleAgent(BaseModel):
             return (
                 state.with_error(str(exc))
                 .with_context(kind="invalid_action", text=f"error: {exc}")
-                .with_last_action_json(action_json)
+                .with_last_action_json(action_json, tool_call_id, tool_name)
                 .advance_step(),
                 action,
             )
@@ -172,10 +195,13 @@ class SingleAgent(BaseModel):
                 .with_last_action_json(response)
             )
 
+        if self.resolved_action_transport == "tools":
+            expected = "Call exactly one of the provided action tools."
+        else:
+            expected = "Return exactly one JSON action object and no reasoning text."
         guidance = (
             f"error: {error}\n"
-            f"Attempt {attempt}/{self.max_parse_failures}. Return exactly one "
-            "JSON action object and no reasoning text."
+            f"Attempt {attempt}/{self.max_parse_failures}. {expected}"
         )
         return (
             state.with_error(str(error))

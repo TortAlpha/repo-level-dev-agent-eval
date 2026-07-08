@@ -7,12 +7,26 @@ from typing import Annotated, Any, Literal, TypeAlias
 from pydantic import BaseModel, Field, TypeAdapter, ValidationError
 
 
-class SetPlanAction(BaseModel):
+class ActionBase(BaseModel):
+    """Shared optional fields for every action.
+
+    ``thought`` is a visible ReAct-style reasoning channel: 1-3 sentences the
+    model may emit *before* the action fields. It gives reasoning models a
+    legal place to think (instead of burning hidden reasoning budget and
+    returning action-less turns), is ignored by the executor, and is replayed
+    in the history/traces. Declared first so it precedes the action fields in
+    schemas and generation order.
+    """
+
+    thought: str | None = None
+
+
+class SetPlanAction(ActionBase):
     action: Literal["set_plan"]
     plan: str
 
 
-class InspectFileAction(BaseModel):
+class InspectFileAction(ActionBase):
     action: Literal["inspect_file"]
     path: str
     # Windowed view (SWE-agent-style): show `limit` lines starting at 1-based
@@ -22,25 +36,25 @@ class InspectFileAction(BaseModel):
     limit: int = Field(default=400, ge=1, le=2000)
 
 
-class ListDirectoryAction(BaseModel):
+class ListDirectoryAction(ActionBase):
     action: Literal["list_dir"]
     path: str = "."
 
 
-class SearchAction(BaseModel):
+class SearchAction(ActionBase):
     action: Literal["search"]
     query: str
     path: str = "."
     max_results: int = Field(default=80, ge=1, le=500)
 
 
-class WriteFileAction(BaseModel):
+class WriteFileAction(ActionBase):
     action: Literal["write_file"]
     path: str
     content: str
 
 
-class EditFileAction(BaseModel):
+class EditFileAction(ActionBase):
     action: Literal["edit_file"]
     path: str
     old_string: str
@@ -48,24 +62,24 @@ class EditFileAction(BaseModel):
     replace_all: bool = False
 
 
-class RunShellAction(BaseModel):
+class RunShellAction(ActionBase):
     action: Literal["run_shell"]
     command: str
     timeout_seconds: int | None = Field(default=None, gt=0)
 
 
-class RunTestsAction(BaseModel):
+class RunTestsAction(ActionBase):
     action: Literal["run_tests"]
     command: str | None = None
     timeout_seconds: int | None = Field(default=None, gt=0)
 
 
-class FinishAction(BaseModel):
+class FinishAction(ActionBase):
     action: Literal["finish"]
     summary: str
 
 
-class HandoffAction(BaseModel):
+class HandoffAction(ActionBase):
     action: Literal["handoff"]
     reason: str
 
@@ -111,6 +125,14 @@ ACTION_DESCRIPTIONS = {
 }
 
 
+def same_action(a: AgentAction | None, b: AgentAction | None) -> bool:
+    """Semantic equality for the repeated-action guard: two identical actions
+    with different ``thought`` texts are still the same repeated action."""
+    if a is None or b is None:
+        return False
+    return a.model_dump(exclude={"thought"}) == b.model_dump(exclude={"thought"})
+
+
 class ActionParseError(ValueError):
     """Raised when a model response cannot be parsed into an action."""
 
@@ -128,8 +150,9 @@ def parse_action(text: str) -> AgentAction:
         raise ActionParseError(
             "no_action",
             "No action returned — reply with exactly one JSON action object and "
-            'nothing else, e.g. {"action": "inspect_file", "path": "..."}. Do not '
-            "return reasoning-only output.",
+            'nothing else, e.g. {"thought": "why", "action": "inspect_file", '
+            '"path": "..."}. Put brief reasoning in the optional thought field '
+            "instead of returning reasoning-only output.",
             raw_response=text,
         )
     try:
@@ -148,8 +171,36 @@ def parse_action(text: str) -> AgentAction:
         return ACTION_ADAPTER.validate_python(data)
     except ValidationError as exc:
         raise ActionParseError(
-            "invalid_action", f"Invalid agent action: {exc}", raw_response=text
+            "invalid_action", _validation_message(data, exc), raw_response=text
         ) from exc
+
+
+def _validation_message(data: Any, exc: ValidationError) -> str:
+    """Actionable validation feedback for the model.
+
+    Raw pydantic errors (union_tag_not_found, docs URLs) are noise a model
+    cannot act on; name the actual problem and the valid vocabulary instead.
+    """
+    names = ", ".join(ACTION_MODELS)
+    if isinstance(data, dict):
+        tag = data.get("action")
+        if tag is None:
+            keys = ", ".join(sorted(map(str, data.keys()))) or "none"
+            return (
+                f'Invalid agent action: missing the "action" field. Received '
+                f"keys: {keys}. Reply with one JSON action object whose "
+                f'"action" is one of: {names}.'
+            )
+        if tag not in ACTION_MODELS:
+            return (
+                f"Invalid agent action: unknown action {tag!r}. "
+                f'Valid "action" values: {names}.'
+            )
+    problems = "; ".join(
+        f"{'.'.join(str(p) for p in err['loc'])}: {err['msg']}"
+        for err in exc.errors()[:5]
+    )
+    return f"Invalid agent action: {problems}"
 
 
 def action_tool_schemas() -> list[dict[str, Any]]:
@@ -174,12 +225,9 @@ def parse_tool_action(tool_calls: Sequence[Mapping[str, Any]]) -> AgentAction:
             "no_action",
             "No tool action returned — call exactly one available action tool.",
         )
-    if len(tool_calls) != 1:
-        raise ActionParseError(
-            "invalid_action",
-            f"Expected exactly one action tool call, got {len(tool_calls)}.",
-        )
-
+    # Some backends ignore single-call hints and return several calls; running
+    # the first one keeps the one-action-per-step loop moving instead of
+    # burning the step on a rejection.
     call = tool_calls[0]
     name = str(call.get("name") or "")
     if name not in ACTION_MODELS:
@@ -231,7 +279,7 @@ def _validate_action(data: dict[str, Any]) -> AgentAction:
         return ACTION_ADAPTER.validate_python(data)
     except ValidationError as exc:
         raise ActionParseError(
-            "invalid_action", f"Invalid agent action: {exc}"
+            "invalid_action", _validation_message(data, exc)
         ) from exc
 
 

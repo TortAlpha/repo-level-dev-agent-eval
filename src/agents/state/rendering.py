@@ -34,6 +34,16 @@ def render_messages(state: State) -> list[tuple[str, str]]:
     return _merge_consecutive_users(messages)
 
 
+def render_header(state: State) -> str:
+    """Stable opening message (task, workdir, test command)."""
+    return _header(state)
+
+
+def render_progress(state: State) -> str:
+    """Volatile per-step tail message (plan, iteration, budget)."""
+    return _progress_message(state)
+
+
 def render_state(state: State) -> str:
     """Render the whole state as one text dump (used for tracing and by the
     context budget). Section order matters for llama.cpp/LM Studio prefix
