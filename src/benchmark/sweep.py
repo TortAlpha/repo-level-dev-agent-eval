@@ -36,6 +36,17 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Forwarded to each built-in agent run.",
     )
+    parser.add_argument(
+        "--reasoning-effort",
+        default=None,
+        help="Forwarded to each run (reasoning budget for reasoning models).",
+    )
+    parser.add_argument(
+        "--context-budget-tokens",
+        type=int,
+        default=None,
+        help="Forwarded to each run (compactor working budget).",
+    )
     parser.add_argument("--collection", type=Path, default=DEFAULT_COLLECTION)
     parser.add_argument("--max-steps", type=int, default=None)
     parser.add_argument("--max-iterations", type=int, default=None)
@@ -59,7 +70,12 @@ def parse_args() -> argparse.Namespace:
 
 def _combos(args: argparse.Namespace) -> list[tuple[str, str, str]]:
     collection = load_collection(args.collection)
-    all_tasks = list(collection)
+    # "all" means all *verified* tasks; rejected/candidate rows and fixtures
+    # only run when named explicitly.
+    all_tasks = [
+        task_id for task_id, spec in collection.items()
+        if spec.task_status.endswith("_verified")
+    ]
     tasks = all_tasks if args.tasks.strip() == "all" else _split(args.tasks)
     unknown = [t for t in tasks if t not in collection]
     if unknown:
@@ -80,6 +96,10 @@ def _run_command(task: str, model: str, agent: str, args: argparse.Namespace) ->
         cmd += ["--session", args.session]
     if args.action_transport:
         cmd += ["--action-transport", args.action_transport]
+    if args.reasoning_effort:
+        cmd += ["--reasoning-effort", args.reasoning_effort]
+    if args.context_budget_tokens:
+        cmd += ["--context-budget-tokens", str(args.context_budget_tokens)]
     if args.max_steps:
         cmd += ["--max-steps", str(args.max_steps)]
     if args.max_iterations:

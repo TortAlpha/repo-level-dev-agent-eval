@@ -39,6 +39,14 @@ class Config(BaseSettings):
 
     temperature: float = 0.2
     max_tokens: int = 4096
+    # Reasoning-model budget control, forwarded to OpenRouter as
+    # ``reasoning: {effort: ...}`` (e.g. "low"/"medium"/"high"). Hidden
+    # reasoning spends the same completion budget as the answer; on long
+    # contexts codex/o-series models can burn all of ``max_tokens`` reasoning
+    # and return an empty or truncated action. Applies identically to both
+    # action transports so transport comparisons stay fair. None = provider
+    # default. Ignored for the local provider.
+    reasoning_effort: str | None = None
     agent_action_transport: ActionTransport = "text_json"
     request_timeout_seconds: int = 120
     max_retries: int = 10
@@ -48,6 +56,15 @@ class Config(BaseSettings):
     shell_timeout_seconds: int = 300
 
     compaction_mode: Literal["drop", "summarize"] = "summarize"
+    # Working context budget for the agent's history compactor, in tokens.
+    # Distinct from the model's physical context window: the window is what
+    # the model *can* take, the budget is what is *useful* to carry — too big
+    # and reasoning models burn their completion budget re-thinking a huge
+    # history (empty/truncated actions), too small and the agent loses its
+    # findings to summarization and re-explores in circles. None = fall back
+    # to the provider's context window (compaction effectively off for
+    # large-window models). 48000 was a good middle for codex-mini.
+    context_budget_tokens: int | None = None
 
     docker_enabled: bool = True
     docker_image: str | None = None

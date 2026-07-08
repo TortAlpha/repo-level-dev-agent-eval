@@ -36,6 +36,8 @@ def build_agent(
         test_timeout_seconds=config.test_timeout_seconds,
         stop_container=not args.keep_container,
         context_window_tokens=args.context_window_tokens or spec.context_window_tokens,
+        context_budget_tokens=getattr(args, "context_budget_tokens", None)
+        or config.context_budget_tokens,
         max_response_tokens=config.max_tokens,
         compaction_mode=config.compaction_mode,
         action_transport=getattr(
@@ -53,6 +55,16 @@ def build_chat_model(config: Config, spec: ProviderSpec) -> BaseChatModel:
             "Install dependencies with: python -m pip install -e ."
         ) from exc
 
+    # NOTE: OpenRouter's provider.require_parameters was tried here to pin
+    # tools-capable backends and rejected: endpoints under-declare common
+    # params (max_tokens, temperature), so it 404s legitimate models. Backend
+    # variance is handled at the transport layer instead: a live probe at run
+    # start, per-step text fallback (tools_fallback_calls), and the
+    # parse-failure streak.
+    extra_body = None
+    if config.model_provider == "openrouter" and config.reasoning_effort:
+        extra_body = {"reasoning": {"effort": config.reasoning_effort}}
+
     # Both "local" and "openrouter" speak the OpenAI-compatible API, so the
     # same client works for either — only the spec (url/key/headers) differs.
     return ChatOpenAI(
@@ -64,4 +76,5 @@ def build_chat_model(config: Config, spec: ProviderSpec) -> BaseChatModel:
         timeout=config.request_timeout_seconds,
         max_retries=config.max_retries,
         default_headers=spec.default_headers or None,
+        extra_body=extra_body,
     )

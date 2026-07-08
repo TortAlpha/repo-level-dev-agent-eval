@@ -37,13 +37,22 @@ from .workspace import clean_workspace_repo, prepare_workspace, write_agent_patc
 TaskAgent = SingleAgent | SweAgentAdapter
 
 
+def resolve_setup_commands(args: argparse.Namespace, task: TaskSpec) -> list[str]:
+    """CLI override > per-task ``setup_commands`` from the CSV > defaults."""
+    return list(args.setup_command or task.setup_commands or DEFAULT_SETUP_COMMANDS)
+
+
 def _core_agent_kwargs(
-    config: Config, args: argparse.Namespace, model: LangChainModel, spec: ProviderSpec
+    config: Config,
+    args: argparse.Namespace,
+    model: LangChainModel,
+    spec: ProviderSpec,
+    task: TaskSpec,
 ) -> dict:
     """Shared construction kwargs for the built-in loop agents (single/multi)."""
     setup_commands: list[str] = []
     if not args.no_setup:
-        setup_commands = args.setup_command or list(DEFAULT_SETUP_COMMANDS)
+        setup_commands = resolve_setup_commands(args, task)
     return dict(
         model=model,
         docker_image=args.docker_image or config.docker_image or "python:3.11-slim",
@@ -52,6 +61,7 @@ def _core_agent_kwargs(
         test_timeout_seconds=config.test_timeout_seconds,
         stop_container=not args.keep_container,
         context_window_tokens=args.context_window_tokens or spec.context_window_tokens,
+        context_budget_tokens=args.context_budget_tokens or config.context_budget_tokens,
         max_response_tokens=config.max_tokens,
         compaction_mode=config.compaction_mode,
         action_transport=args.action_transport or config.agent_action_transport,
@@ -64,13 +74,14 @@ def build_task_agent(
     args: argparse.Namespace,
     model: LangChainModel,
     spec: ProviderSpec,
+    task: TaskSpec,
 ) -> TaskAgent:
     """Dispatch on ``config.agent_mode``. All agents expose the same interface
     the runner needs (docker settings + ``run(state)``), so the downstream
     evaluation and metrics are identical across agents."""
     mode = config.agent_mode
     if mode == "single":
-        return SingleAgent(**_core_agent_kwargs(config, args, model, spec))
+        return SingleAgent(**_core_agent_kwargs(config, args, model, spec, task))
     if mode == "multi":
         try:
             from ..agents.multi_agent import MultiAgent  # type: ignore[attr-defined]
@@ -79,7 +90,7 @@ def build_task_agent(
                 "--agent multi: MultiAgent is not implemented yet "
                 f"(src/agents/multi_agent.py). {exc}"
             )
-        return MultiAgent(**_core_agent_kwargs(config, args, model, spec))
+        return MultiAgent(**_core_agent_kwargs(config, args, model, spec, task))
     if mode == "swe-agent":
         # Fast path (default): prebuilt base image + skip standalone build, with
         # the repo installed via the same setup commands single-agent uses, so
@@ -87,7 +98,7 @@ def build_task_agent(
         fast = not args.swe_no_fast
         post_startup: list[str] = []
         if fast and not args.no_setup:
-            post_startup = args.setup_command or list(DEFAULT_SETUP_COMMANDS)
+            post_startup = resolve_setup_commands(args, task)
         return SweAgentAdapter(
             model=model,
             api_key=spec.api_key,
@@ -110,6 +121,10 @@ def main() -> int:
         config.agent_mode = args.agent
     if args.session:
         config.session_id = args.session
+    if args.action_transport:
+        config.agent_action_transport = args.action_transport
+    if args.reasoning_effort:
+        config.reasoning_effort = args.reasoning_effort
     configure_langsmith(config)
 
     collection = load_collection(args.collection)
@@ -126,7 +141,7 @@ def main() -> int:
 
     spec = config.provider_spec(args.model)
     model = build_model(config, spec)
-    agent = build_task_agent(config, args, model, spec)
+    agent = build_task_agent(config, args, model, spec, task)
 
     state = State(
         task=task.task_file_path.read_text(encoding="utf-8"),
@@ -140,7 +155,7 @@ def main() -> int:
         print(plan(task, repo_dir, test_command, agent, args))
         return 0
 
-    scoring_setup = args.setup_command or list(DEFAULT_SETUP_COMMANDS)
+    scoring_setup = resolve_setup_commands(args, task)
     baseline = None
     if not args.no_regression:
         baseline = collect_visible_passing(
@@ -170,8 +185,10 @@ def main() -> int:
                 "session_id": config.session_id,
                 "compaction_mode": config.compaction_mode,
                 "context_window_tokens": agent.context_window_tokens,
+                "context_budget_tokens": getattr(agent, "context_budget_tokens", None),
                 "max_response_tokens": agent.max_response_tokens,
                 "action_transport": action_transport,
+                "reasoning_effort": config.reasoning_effort,
                 "max_steps": state.max_steps,
                 "max_iterations": state.max_iterations,
                 "docker_image": agent.docker_image,
@@ -190,6 +207,14 @@ def main() -> int:
     metrics = run_metrics(model, final_state, duration_s)
     metrics["provider"] = config.model_provider
     metrics["action_transport"] = action_transport
+    if config.reasoning_effort:
+        metrics["reasoning_effort"] = config.reasoning_effort
+    if action_transport == "tools":
+        metrics["tools_fallback_calls"] = model.fallback_calls
+    if getattr(agent, "transport_downgraded", False):
+        metrics["transport_downgraded"] = True
+    if model.empty_retries:
+        metrics["no_action_retries"] = model.empty_retries
     metrics["workspace"] = str(repo_dir)
     metrics["task_type"] = task.task_type
     eval_result = evaluate_and_report(
@@ -241,7 +266,7 @@ def evaluate_and_report(
         do_hidden=not args.no_score,
         docker_image=agent.docker_image,
         network_disabled=agent.docker_network_disabled,
-        setup_commands=args.setup_command or list(DEFAULT_SETUP_COMMANDS),
+        setup_commands=resolve_setup_commands(args, task),
         shell_timeout=config.shell_timeout_seconds,
         test_timeout=config.test_timeout_seconds,
     )
@@ -365,12 +390,31 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--model", default=None)
     parser.add_argument(
+        "--context-budget-tokens",
+        type=int,
+        default=None,
+        help="Working history budget for the compactor, in tokens (defaults "
+        "to CONTEXT_BUDGET_TOKENS, else the model window). Too big: reasoning "
+        "models burn the completion budget re-thinking a huge history; too "
+        "small: the agent loses findings to summarization and re-explores.",
+    )
+    parser.add_argument(
+        "--reasoning-effort",
+        default=None,
+        help="Reasoning budget for reasoning models via OpenRouter (e.g. low/"
+        "medium/high). Hidden reasoning shares max_tokens with the answer; on "
+        "long contexts an uncapped model can burn the whole budget and return "
+        "empty/truncated actions. Applies to both transports.",
+    )
+    parser.add_argument(
         "--action-transport",
         choices=["text_json", "tools", "auto"],
         default=None,
-        help="Action interface for built-in agents. text_json is the legacy "
-        "JSON-text protocol; tools uses model tool calls; auto keeps known "
-        "non-tool models on text_json and uses tools for OpenAI/Claude.",
+        help="Action interface for built-in agents. text_json is the JSON-text "
+        "protocol; tools uses native tool calls with the history replayed in "
+        "tool protocol; auto probes the endpoint once and picks tools only if "
+        "the probe succeeds. An explicit tools request that fails the probe "
+        "downgrades to text_json (recorded as transport_downgraded).",
     )
     parser.add_argument(
         "--test-command", default=None,

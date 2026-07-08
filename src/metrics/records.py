@@ -59,6 +59,13 @@ class RunRecord:
     hidden_suite_results: dict[str, bool] = field(default_factory=dict)
     provider: str | None = None
     action_transport: str | None = None
+    reasoning_effort: str | None = None
+    # Tools-transport health: steps that fell back to text parsing, and
+    # whether an explicit tools request was downgraded by the live probe.
+    tools_fallback_calls: int | None = None
+    transport_downgraded: bool | None = None
+    # Reasoning-only turns recovered by the in-call nudged retry.
+    no_action_retries: int | None = None
     changed_files: list[str] = field(default_factory=list)
     finished_at: str | None = None
     # Efficiency/behavior signals (present on runs recorded since run_metrics).
@@ -126,6 +133,18 @@ class RunRecord:
             session_id=row.get("session_id", "default"),
             provider=row.get("provider"),
             action_transport=row.get("action_transport"),
+            reasoning_effort=row.get("reasoning_effort"),
+            tools_fallback_calls=(
+                int(row["tools_fallback_calls"])
+                if row.get("tools_fallback_calls") is not None
+                else None
+            ),
+            transport_downgraded=_bool_or_none(row.get("transport_downgraded")),
+            no_action_retries=(
+                int(row["no_action_retries"])
+                if row.get("no_action_retries") is not None
+                else None
+            ),
             steps=int(row.get("steps", 0)),
             iterations=int(row.get("iterations", 0)),
             test_passed=bool(row.get("test_passed", False)),
@@ -181,7 +200,7 @@ def _collection_field(path: Path, field: str) -> dict[str, str]:
 
 
 def load_sizes(path: Path = DEFAULT_COLLECTION_PATH) -> dict[str, str]:
-    """Map ``task_id`` to its size bucket (small/medium) from collection.csv."""
+    """Map ``task_id`` to its size bucket (small/medium/large) from collection.csv."""
     return _collection_field(path, "size")
 
 
