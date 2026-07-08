@@ -42,8 +42,11 @@ Each task will include:
 A small repository is defined as a repository with approximately 500-3,000
 lines of Python code, excluding tests, and 5-30 source files. A medium
 repository is defined as a repository with 3,001-15,000 lines of Python code
-and 31-120 source files. Repositories below 500 lines of Python code will not
-be included.
+and 31-120 source files. A large repository has more than 15,000 lines of
+Python code or more than 120 source files; large tasks form an optional
+extension bucket reported separately from the core small/medium comparison.
+When LOC and file count disagree, the LOC bucket wins. Repositories below 500
+lines of Python code will not be included.
 
 Data collection will be semi-automated. A script will find and clone candidate
 repositories, measure repository size, check dependency files, identify or

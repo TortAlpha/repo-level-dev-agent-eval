@@ -73,7 +73,7 @@ of different complexity levels.
 The project will use a benchmark of software development tasks. Each task will
 contain:
 
-- a small or medium-sized Python Git repository;
+- a small, medium, or large Python Git repository;
 - a natural language issue or task description;
 - a visible test command available to the agent;
 - a reproducible Docker execution environment;
@@ -90,13 +90,18 @@ different build tools and execution environments.
 A **small** repository is defined as a repository with approximately 500-3,000
 lines of Python code, excluding tests, and 5-30 source files. A **medium**
 repository is defined as a repository with 3,001-15,000 lines of Python code and
-31-120 source files. Repositories with fewer than 500 lines of Python code will
-not be included because they are likely to be too small for a meaningful
-repository-level evaluation.
+31-120 source files. A **large** repository is defined as a repository with more
+than 15,000 lines of Python code or more than 120 source files. When the LOC
+count and the file count disagree, the LOC bucket wins and the disagreement is
+noted in the collection metadata. Repositories with fewer than 500 lines of
+Python code will not be included because they are likely to be too small for a
+meaningful repository-level evaluation.
 
 The final benchmark will contain at least 24 tasks, with a target of 30 tasks.
 It will include at least 12 tasks from small repositories and at least 12 tasks
-from medium repositories.
+from medium repositories. Large-repository tasks are an optional extension
+bucket used to probe how the compared architectures scale with codebase size;
+they are reported separately and are not required for the core comparison.
 
 The dataset will be more complex than homework datasets because it is not a
 single tabular dataset. Each example consists of a full repository state,

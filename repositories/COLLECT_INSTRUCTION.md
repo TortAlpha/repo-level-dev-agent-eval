@@ -59,9 +59,13 @@ bucket; if they disagree, prefer the LOC bucket and note it):
 - `small`: 500-3000 Python source LOC and 5-30 source files, excluding tests.
 - `medium`: 3001-15000 Python source LOC and 31-120 source files, excluding
   tests.
+- `large`: more than 15000 Python source LOC or more than 120 source files,
+  excluding tests.
 
-Repositories below 500 source LOC are too small for this benchmark. Repositories
-above 15000 source LOC should be rejected unless the project scope changes.
+Repositories below 500 source LOC are too small for this benchmark. `large`
+tasks are an optional extension bucket for probing how architectures scale
+with codebase size; they are reported separately and do not count toward the
+12-small/12-medium core targets.
 
 ## Pull Request Selection Criteria
 
@@ -302,7 +306,7 @@ Column meanings:
 - `task_id`: stable identifier, usually `<repo_name>_pr_<number>`.
 - `repo_path`: path to the initial task checkout at `base_commit`.
 - `task_file_path`: path to the task description.
-- `size`: `small` or `medium`.
+- `size`: `small`, `medium`, or `large`.
 - `task_type`: `bugfix` or `feature` — the kind of change the PR makes, so
   results can be compared within a task type (features are typically harder and
   more open-ended than localized bug fixes).
@@ -331,6 +335,12 @@ Column meanings:
   separately and do not count toward task success.
 - `task_status`: validation status.
 - `notes`: short screening and validation notes.
+- `setup_commands`: optional `;`-separated container setup commands for this
+  task (e.g. `SETUPTOOLS_SCM_PRETEND_VERSION=<x> python -m pip install -q -e .`
+  or extra test deps). Empty means the evaluator defaults
+  (`pip install -e .` + `pip install pytest`). Used by the runner, the agent
+  sandbox, and `src.benchmark.validate` alike; a `--setup-command` CLI flag
+  still overrides it.
 
 Recommended `task_status` values:
 

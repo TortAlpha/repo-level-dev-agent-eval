@@ -21,8 +21,9 @@ The first three columns are the minimal fields needed by the evaluator:
 - `repo_path`: local path to the repository checkout.
 - `task_file_path`: local path to the task description file.
 - `size`: LOC bucket, using the project specification thresholds:
-  `small` for 500-3000 Python source LOC and `medium` for 3001-15000 Python
-  source LOC.
+  `small` for 500-3000 Python source LOC, `medium` for 3001-15000 Python
+  source LOC, and `large` above 15000 Python source LOC (extension bucket,
+  reported separately from the core small/medium comparison).
 
 Additional columns make the collection reproducible and easier to filter:
 
@@ -48,6 +49,8 @@ Additional columns make the collection reproducible and easier to filter:
   parity but do not count toward task success.
 - `task_status`: current validation status.
 - `notes`: screening notes for later task creation.
+- `setup_commands`: optional `;`-separated per-task container setup commands;
+  empty means the evaluator defaults.
 
 Before a row becomes a final benchmark task, verify that visible tests pass on
 `base_commit`, hidden tests fail on `base_commit`, and hidden tests pass on

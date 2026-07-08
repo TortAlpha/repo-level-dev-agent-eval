@@ -34,6 +34,8 @@ class TaskSpec:
     hidden_pr_parity_test_command: str
     hidden_tests_path: Path
     base_commit: str
+    task_status: str
+    setup_commands: list[str]
 
     @classmethod
     def from_row(cls, row: dict[str, str]) -> TaskSpec:
@@ -52,6 +54,14 @@ class TaskSpec:
             if row.get("hidden_tests_path")
             else Path(),
             base_commit=row.get("base_commit", ""),
+            task_status=row.get("task_status", ""),
+            # Per-task container setup (e.g. SETUPTOOLS_SCM_PRETEND_VERSION or
+            # extra test deps), ';'-separated. Empty -> evaluator defaults.
+            setup_commands=[
+                part.strip()
+                for part in row.get("setup_commands", "").split(";")
+                if part.strip()
+            ],
         )
 
     def hidden_suites(self) -> list[HiddenTestSuite]:
