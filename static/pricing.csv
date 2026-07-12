@@ -3,6 +3,8 @@ ai21/jamba-large-1.7,2.0,8.0
 aion-labs/aion-1.0,4.0,8.0
 aion-labs/aion-1.0-mini,0.7,1.4
 aion-labs/aion-2.0,0.8,1.6
+aion-labs/aion-3.0,3.0,6.0
+aion-labs/aion-3.0-mini,0.7,1.4
 aion-labs/aion-rp-llama-3.1-8b,0.8,1.6
 allenai/olmo-3-32b-think,0.15,0.5
 amazon/nova-2-lite-v1,0.3,2.5
@@ -36,6 +38,7 @@ bytedance-seed/seed-1.6-flash,0.075,0.3
 bytedance-seed/seed-2.0-lite,0.25,2.0
 bytedance-seed/seed-2.0-mini,0.1,0.4
 bytedance/ui-tars-1.5-7b,0.1,0.2
+cognitivecomputations/dolphin-mistral-24b-venice-edition,0.2,0.9
 cohere/command-a,2.5,10.0
 cohere/command-r-08-2024,0.15,0.6
 cohere/command-r-plus-08-2024,2.5,10.0
@@ -48,9 +51,9 @@ deepseek/deepseek-r1,0.7,2.5
 deepseek/deepseek-r1-0528,0.5,2.15
 deepseek/deepseek-r1-distill-llama-70b,0.8,0.8
 deepseek/deepseek-v3.1-terminus,0.27,0.95
-deepseek/deepseek-v3.2,0.2288,0.3432
+deepseek/deepseek-v3.2,0.2145,0.3217
 deepseek/deepseek-v3.2-exp,0.27,0.41
-deepseek/deepseek-v4-flash,0.09,0.18
+deepseek/deepseek-v4-flash,0.077,0.154
 deepseek/deepseek-v4-pro,0.435,0.87
 google/gemini-2.5-flash,0.3,2.5
 google/gemini-2.5-flash-image,0.3,2.5
@@ -94,7 +97,7 @@ meta-llama/llama-3.1-70b-instruct,0.4,0.4
 meta-llama/llama-3.1-8b-instruct,0.02,0.03
 meta-llama/llama-3.2-11b-vision-instruct,0.345,0.345
 meta-llama/llama-3.2-1b-instruct,0.027,0.201
-meta-llama/llama-3.2-3b-instruct,0.0509,0.335
+meta-llama/llama-3.2-3b-instruct,0.05,0.33
 meta-llama/llama-3.3-70b-instruct,0.1,0.32
 meta-llama/llama-4-maverick,0.15,0.6
 meta-llama/llama-4-scout,0.1,0.3
@@ -106,8 +109,8 @@ minimax/minimax-m1,0.4,2.2
 minimax/minimax-m2,0.255,1.02
 minimax/minimax-m2-her,0.3,1.2
 minimax/minimax-m2.1,0.3,1.2
-minimax/minimax-m2.5,0.12,0.48
-minimax/minimax-m2.7,0.18,0.72
+minimax/minimax-m2.5,0.15,0.9
+minimax/minimax-m2.7,0.24,0.96
 minimax/minimax-m3,0.3,1.2
 mistralai/codestral-2508,0.3,0.9
 mistralai/devstral-2512,0.4,2.0
@@ -133,9 +136,10 @@ moonshotai/kimi-k2-0905,0.6,2.5
 moonshotai/kimi-k2-thinking,0.6,2.5
 moonshotai/kimi-k2.5,0.375,2.025
 moonshotai/kimi-k2.6,0.66,3.41
-moonshotai/kimi-k2.7-code,0.74,3.5
+moonshotai/kimi-k2.7-code,0.72,3.5
 morph/morph-v3-fast,0.8,1.2
 morph/morph-v3-large,0.9,1.9
+nex-agi/nex-n2-mini,0.025,0.1
 nex-agi/nex-n2-pro,0.25,1.0
 nousresearch/hermes-3-llama-3.1-405b,1.0,1.0
 nousresearch/hermes-3-llama-3.1-70b,0.7,0.7
@@ -143,7 +147,7 @@ nousresearch/hermes-4-405b,1.0,3.0
 nousresearch/hermes-4-70b,0.13,0.4
 nvidia/llama-3.3-nemotron-super-49b-v1.5,0.4,0.4
 nvidia/nemotron-3-nano-30b-a3b,0.05,0.2
-nvidia/nemotron-3-super-120b-a12b,0.085,0.4
+nvidia/nemotron-3-super-120b-a12b,0.08,0.45
 nvidia/nemotron-3-ultra-550b-a55b,0.5,2.2
 openai/gpt-3.5-turbo,0.5,1.5
 openai/gpt-3.5-turbo-0613,1.0,2.0
@@ -189,10 +193,16 @@ openai/gpt-5.4-nano,0.2,1.25
 openai/gpt-5.4-pro,30.0,180.0
 openai/gpt-5.5,5.0,30.0
 openai/gpt-5.5-pro,30.0,180.0
+openai/gpt-5.6-luna,1.0,6.0
+openai/gpt-5.6-luna-pro,1.0,6.0
+openai/gpt-5.6-sol,5.0,30.0
+openai/gpt-5.6-sol-pro,5.0,30.0
+openai/gpt-5.6-terra,2.5,15.0
+openai/gpt-5.6-terra-pro,2.5,15.0
 openai/gpt-audio,2.5,10.0
 openai/gpt-audio-mini,0.6,2.4
 openai/gpt-chat-latest,5.0,30.0
-openai/gpt-oss-120b,0.03,0.15
+openai/gpt-oss-120b,0.036,0.18
 openai/gpt-oss-20b,0.029,0.14
 openai/gpt-oss-safeguard-20b,0.075,0.3
 openai/o1,15.0,60.0
@@ -274,6 +284,7 @@ stepfun/step-3.5-flash,0.1,0.3
 stepfun/step-3.7-flash,0.2,1.15
 switchpoint/router,0.85,3.4
 tencent/hunyuan-a13b-instruct,0.14,0.57
+tencent/hy3,0.14,0.58
 tencent/hy3-preview,0.063,0.21
 thedrummer/cydonia-24b-v4.1,0.3,0.5
 thedrummer/rocinante-12b,0.25,0.5
@@ -285,6 +296,7 @@ writer/palmyra-x5,0.6,6.0
 x-ai/grok-4.20,1.25,2.5
 x-ai/grok-4.20-multi-agent,1.25,2.5
 x-ai/grok-4.3,1.25,2.5
+x-ai/grok-4.5,2.0,6.0
 x-ai/grok-build-0.1,1.0,2.0
 xiaomi/mimo-v2.5,0.105,0.28
 xiaomi/mimo-v2.5-pro,0.435,0.87
@@ -298,7 +310,7 @@ z-ai/glm-4.7-flash,0.06,0.4
 z-ai/glm-5,0.6,1.92
 z-ai/glm-5-turbo,1.2,4.0
 z-ai/glm-5.1,0.966,3.036
-z-ai/glm-5.2,0.93,3.0
+z-ai/glm-5.2,0.392,1.232
 z-ai/glm-5v-turbo,1.2,4.0
 ~anthropic/claude-fable-latest,10.0,50.0
 ~anthropic/claude-haiku-latest,1.0,5.0
@@ -309,3 +321,4 @@ z-ai/glm-5v-turbo,1.2,4.0
 ~moonshotai/kimi-latest,0.66,3.41
 ~openai/gpt-latest,5.0,30.0
 ~openai/gpt-mini-latest,0.75,4.5
+~x-ai/grok-latest,2.0,6.0
