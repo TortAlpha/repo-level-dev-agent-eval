@@ -1,0 +1,92 @@
+diff --git a/more_itertools/more.py b/more_itertools/more.py
+index 1986250..086e539 100755
+--- a/more_itertools/more.py
++++ b/more_itertools/more.py
+@@ -1,6 +1,7 @@
+ import math
+ import types
+ 
++from numbers import Integral
+ from collections import Counter, defaultdict, deque
+ from collections.abc import Sequence
+ from contextlib import suppress
+@@ -159,6 +160,7 @@ __all__ = [
+     'split_when',
+     'spy',
+     'stagger',
++    'subfactorial',
+     'strip',
+     'strictly_n',
+     'substrings',
+@@ -889,6 +891,30 @@ def distinct_permutations(iterable, r=None):
+     return iter(() if r else ((),))
+ 
+ 
++def subfactorial(n):
++    """Return the number of derangements of *n* distinct items (OEIS A000166).
++
++    The value is also called the subfactorial of *n*.
++
++        >>> subfactorial(4)
++        9
++
++    The sequence satisfies the recurrence ``D(n) = n * D(n - 1) + (-1) ** n`` with
++    ``D(0) = 1``.
++
++    Non-integer input raises ``TypeError`` and negative values raise
++    ``ValueError``.
++    """
++    if not isinstance(n, Integral):
++        raise TypeError('n must be an integer')
++    if n < 0:
++        raise ValueError('n must be >= 0')
++    result = 1
++    for k in range(1, n + 1):
++        result = k * result + (-1) ** k
++    return result
++
++
+ def derangements(iterable, r=None):
+     """Yield successive derangements of the elements in *iterable*.
+ 
+diff --git a/more_itertools/more.pyi b/more_itertools/more.pyi
+index 31ca1c9..6539cd1 100644
+--- a/more_itertools/more.pyi
++++ b/more_itertools/more.pyi
+@@ -246,6 +246,7 @@ def distinct_permutations(
+ def derangements(
+     iterable: Iterable[_T], r: int | None = None
+ ) -> Iterator[tuple[_T, ...]]: ...
++def subfactorial(n: int) -> int: ...
+ def intersperse(
+     e: _U, iterable: Iterable[_T], n: int = ...
+ ) -> Iterator[_T | _U]: ...
+diff --git a/tests/test_more.py b/tests/test_more.py
+index a019677..16ab074 100644
+--- a/tests/test_more.py
++++ b/tests/test_more.py
+@@ -635,6 +635,24 @@ class DerangementsTests(TestCase):
+                 self.assertEqual(actual, expected)
+ 
+ 
++class SubfactorialTests(TestCase):
++    def test_known_values(self):
++        expected = {0: 1, 1: 0, 2: 1, 3: 2, 4: 9, 5: 44, 6: 265}
++        for n, value in expected.items():
++            with self.subTest(n=n):
++                self.assertEqual(mi.subfactorial(n), value)
++
++    def test_non_integer(self):
++        for invalid in (3.5, '5', None):
++            with self.subTest(invalid=invalid):
++                with self.assertRaises(TypeError):
++                    mi.subfactorial(invalid)  # type: ignore[arg-type]
++
++    def test_negative(self):
++        with self.assertRaises(ValueError):
++            mi.subfactorial(-1)
++
++
+ class IlenTests(TestCase):
+     def test_ilen(self):
+         """Sanity-checks for ``ilen()``."""

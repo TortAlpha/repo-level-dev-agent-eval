@@ -1,0 +1,31 @@
+diff --git a/h11/_headers.py b/h11/_headers.py
+index b97d020..77bb55a 100644
+--- a/h11/_headers.py
++++ b/h11/_headers.py
+@@ -173,6 +173,8 @@ def normalize_and_validate(
+                 raise LocalProtocolError("conflicting Content-Length headers")
+             value = lengths.pop()
+             validate(_content_length_re, value, "bad Content-Length")
++            if len(value) > 16:
++                raise LocalProtocolError("Content-Length too large")
+             if seen_content_length is None:
+                 seen_content_length = value
+                 new_headers.append((raw_name, name, value))
+diff --git a/h11/tests/test_headers.py b/h11/tests/test_headers.py
+index ba53d08..a571ec4 100644
+--- a/h11/tests/test_headers.py
++++ b/h11/tests/test_headers.py
+@@ -74,6 +74,13 @@ def test_normalize_and_validate() -> None:
+         )
+     with pytest.raises(LocalProtocolError):
+         normalize_and_validate([("Content-Length", "1 , 1,2")])
++    # unreasonably large content-length values are rejected promptly
++    with pytest.raises(LocalProtocolError):
++        normalize_and_validate([("Content-Length", "1" * 100)])
++    # a large but still reasonable value is accepted
++    assert normalize_and_validate([("Content-Length", "1" * 16)]) == [
++        (b"content-length", b"1" * 16)
++    ]
+ 
+     # transfer-encoding
+     assert normalize_and_validate([("Transfer-Encoding", "chunked")]) == [

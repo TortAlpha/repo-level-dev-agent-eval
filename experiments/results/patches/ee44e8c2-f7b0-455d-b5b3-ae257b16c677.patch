@@ -1,0 +1,41 @@
+diff --git a/src/cachetools/_cachedmethod.py b/src/cachetools/_cachedmethod.py
+index cdf63d4..8dfe2cc 100644
+--- a/src/cachetools/_cachedmethod.py
++++ b/src/cachetools/_cachedmethod.py
+@@ -77,6 +77,10 @@ class _DescriptorBase:
+ 
+     def __get__(self, obj, objtype=None):
+         wrapper = self.Wrapper(obj)
++        if obj is None:
++            # Class access (e.g. introspection by unittest.mock.create_autospec):
++            # there is no instance dict to store the wrapper in, so just return it.
++            return wrapper
+         if self.__attrname is not None:
+             # replace descriptor instance with wrapper in instance dict
+             try:
+diff --git a/tests/test_cachedmethod.py b/tests/test_cachedmethod.py
+index e600485..fba2249 100644
+--- a/tests/test_cachedmethod.py
++++ b/tests/test_cachedmethod.py
+@@ -673,3 +673,21 @@ class NoneMethodTest(unittest.TestCase):
+ 
+         with self.assertRaises(TypeError):
+             wrapper.cache_info()
++
++
++class AutospecTest(unittest.TestCase):
++    def test_create_autospec_no_warnings(self):
++        import unittest.mock
++
++        with warnings.catch_warnings():
++            warnings.simplefilter("error")
++            unittest.mock.create_autospec(Cached, instance=True)
++
++    def test_class_access_no_warnings(self):
++        with warnings.catch_warnings():
++            warnings.simplefilter("error")
++            Cached.get
++            Cached.get_typed
++            Cached.get_info
++            Cached.get_lock
++            Cached.get_cond

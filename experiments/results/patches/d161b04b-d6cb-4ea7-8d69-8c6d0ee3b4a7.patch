@@ -1,0 +1,60 @@
+diff --git a/src/dotenv/parser.py b/src/dotenv/parser.py
+index eb100b4..58d3f49 100644
+--- a/src/dotenv/parser.py
++++ b/src/dotenv/parser.py
+@@ -69,6 +69,8 @@ class Error(Exception):
+ class Reader:
+     def __init__(self, stream: IO[str]) -> None:
+         self.string = stream.read()
++        if self.string.startswith("\ufeff"):
++            self.string = self.string[1:]
+         self.position = Position.start()
+         self.mark = Position.start()
+ 
+diff --git a/tests/test_parser.py b/tests/test_parser.py
+index 43386e5..231b26b 100644
+--- a/tests/test_parser.py
++++ b/tests/test_parser.py
+@@ -551,3 +551,42 @@ def test_parse_stream(test_input, expected):
+     result = parse_stream(io.StringIO(test_input))
+ 
+     assert list(result) == expected
++
++
++@pytest.mark.parametrize(
++    "test_input,expected",
++    [
++        (
++            "\ufeffa=b",
++            [
++                Binding(
++                    key="a",
++                    value="b",
++                    original=Original(string="a=b", line=1),
++                    error=False,
++                )
++            ],
++        ),
++        (
++            "\ufeffa=b\nc=d",
++            [
++                Binding(
++                    key="a",
++                    value="b",
++                    original=Original(string="a=b\n", line=1),
++                    error=False,
++                ),
++                Binding(
++                    key="c",
++                    value="d",
++                    original=Original(string="c=d", line=2),
++                    error=False,
++                ),
++            ],
++        ),
++    ],
++)
++def test_parse_stream_strips_leading_bom(test_input, expected):
++    result = parse_stream(io.StringIO(test_input))
++
++    assert list(result) == expected

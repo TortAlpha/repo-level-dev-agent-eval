@@ -1,0 +1,30 @@
+diff --git a/sqlglot/parsers/clickhouse.py b/sqlglot/parsers/clickhouse.py
+index 592ecc70..96096594 100644
+--- a/sqlglot/parsers/clickhouse.py
++++ b/sqlglot/parsers/clickhouse.py
+@@ -849,6 +849,25 @@ class ClickHouseParser(parser.Parser):
+             this = exp.Apply(this=this, expression=self._parse_var(any_token=True))
+             self._match(TokenType.R_PAREN)
+ 
++        if (
++            isinstance(this, exp.Anonymous)
++            and isinstance(this.this, str)
++            and this.this.lower() == "groupconcat"
++            and this.expressions
++            and not this.expressions[0].expression
++            and self._match(TokenType.L_PAREN, advance=False)
++        ):
++            separator = this.expressions[0]
++            self._match(TokenType.L_PAREN)
++            argument = self._parse_disjunction()
++            self._match(TokenType.R_PAREN)
++            return self.expression(
++                exp.GroupConcat(
++                    this=argument,
++                    separator=separator,
++                )
++            )
++
+         return this
+ 
+     def _parse_columns(self) -> exp.Expr:

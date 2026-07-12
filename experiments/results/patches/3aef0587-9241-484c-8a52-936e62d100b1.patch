@@ -1,0 +1,77 @@
+diff --git a/markdown/extensions/footnotes.py b/markdown/extensions/footnotes.py
+index 30c0811..ad7dce4 100644
+--- a/markdown/extensions/footnotes.py
++++ b/markdown/extensions/footnotes.py
+@@ -104,6 +104,7 @@ class FootnoteExtension(Extension):
+         self.unique_prefix += 1
+         self.found_refs = {}
+         self.used_refs = set()
++        self.reference_order: list[str] = []
+ 
+     def unique_ref(self, reference: str, found: bool = False) -> str:
+         """ Get a unique reference if there are duplicates. """
+@@ -183,7 +184,7 @@ class FootnoteExtension(Extension):
+         # Backward compatibility with old '%d' placeholder
+         backlink_title = self.getConfig("BACKLINK_TITLE").replace("%d", "{}")
+ 
+-        for index, id in enumerate(self.footnotes.keys(), start=1):
++        for index, id in enumerate(self.reference_order, start=1):
+             li = etree.SubElement(ol, "li")
+             li.set("id", self.makeFootnoteId(id))
+             # Parse footnote with surrogate parent as `li` cannot be used.
+@@ -311,6 +312,8 @@ class FootnoteInlineProcessor(InlineProcessor):
+ 
+     def handleMatch(self, m: re.Match[str], data: str) -> tuple[etree.Element | None, int | None, int | None]:
+         id = m.group(1)
++        if id not in self.footnotes.reference_order:
++            self.footnotes.reference_order.append(id)
+         if id in self.footnotes.footnotes.keys():
+             sup = etree.Element("sup")
+             a = etree.SubElement(sup, "a")
+@@ -318,7 +321,7 @@ class FootnoteInlineProcessor(InlineProcessor):
+             a.set('href', '#' + self.footnotes.makeFootnoteId(id))
+             a.set('class', 'footnote-ref')
+             a.text = self.footnotes.getConfig("SUPERSCRIPT_TEXT").format(
+-                list(self.footnotes.footnotes.keys()).index(id) + 1
++                self.footnotes.reference_order.index(id) + 1
+             )
+             return sup, m.start(0), m.end(0)
+         else:
+diff --git a/tests/test_syntax/extensions/test_footnotes_reference_order.py b/tests/test_syntax/extensions/test_footnotes_reference_order.py
+new file mode 100644
+index 0000000..5a32af6
+--- /dev/null
++++ b/tests/test_syntax/extensions/test_footnotes_reference_order.py
+@@ -0,0 +1,32 @@
++from markdown.test_tools import TestCase
++
++
++class TestFootnotesReferenceOrder(TestCase):
++    default_kwargs = {'extensions': ['footnotes']}
++
++    def test_reference_order_definitions_swapped(self):
++        self.assertMarkdownRenders(
++            self.dedent(
++                """
++                foo[^first] and bar[^second]
++
++                [^second]: Second footnote
++                [^first]: First footnote
++                """
++            ),
++            '<p>foo<sup id="fnref:1"><a class="footnote-ref" href="#fn:1">1</a></sup> and '
++            'bar<sup id="fnref:2"><a class="footnote-ref" href="#fn:2">2</a></sup></p>\n'
++            '<div class="footnote">\n'
++            '<hr />\n'
++            '<ol>\n'
++            '<li id="fn:1">\n'
++            '<p>First footnote&#160;<a class="footnote-backref" href="#fnref:1"'
++            ' title="Jump back to footnote 1 in the text">&#8617;</a></p>\n'
++            '</li>\n'
++            '<li id="fn:2">\n'
++            '<p>Second footnote&#160;<a class="footnote-backref" href="#fnref:2"'
++            ' title="Jump back to footnote 2 in the text">&#8617;</a></p>\n'
++            '</li>\n'
++            '</ol>\n'
++            '</div>'
++        )

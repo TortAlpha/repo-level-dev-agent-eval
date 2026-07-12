@@ -1,0 +1,93 @@
+diff --git a/markdown/extensions/footnotes.py b/markdown/extensions/footnotes.py
+index 30c0811..4b85218 100644
+--- a/markdown/extensions/footnotes.py
++++ b/markdown/extensions/footnotes.py
+@@ -104,6 +104,8 @@ class FootnoteExtension(Extension):
+         self.unique_prefix += 1
+         self.found_refs = {}
+         self.used_refs = set()
++        self.reference_order: list[str] = []
++        self.reference_numbers: dict[str, int] = {}
+ 
+     def unique_ref(self, reference: str, found: bool = False) -> str:
+         """ Get a unique reference if there are duplicates. """
+@@ -150,6 +152,28 @@ class FootnoteExtension(Extension):
+         """ Store a footnote for later retrieval. """
+         self.footnotes[id] = text
+ 
++    def registerReference(self, id: str) -> int:
++        """Track the order in which footnotes are referenced."""
++        if id not in self.reference_numbers:
++            self.reference_order.append(id)
++            self.reference_numbers[id] = len(self.reference_order)
++        return self.reference_numbers[id]
++
++    def registerReference(self, id: str) -> int:
++        """ Track the order in which footnotes are referenced. """
++        if id not in self.reference_numbers:
++            self.reference_order.append(id)
++            self.reference_numbers[id] = len(self.reference_order)
++        return self.reference_numbers[id]
++
++    def registerReference(self, id: str) -> int:
++        """ Track the order in which footnotes are referenced. """
++        if id not in self.reference_numbers:
++            self.reference_order.append(id)
++            self.reference_numbers[id] = len(self.reference_order)
++        return self.reference_numbers[id]
++
++
+     def get_separator(self) -> str:
+         """ Get the footnote separator. """
+         return self.getConfig("SEPARATOR")
+@@ -171,9 +195,12 @@ class FootnoteExtension(Extension):
+     def makeFootnotesDiv(self, root: etree.Element) -> etree.Element | None:
+         """ Return `div` of footnotes as `etree` Element. """
+ 
+-        if not list(self.footnotes.keys()):
++        if not self.footnotes:
+             return None
+ 
++        ordered_ids = [id for id in self.reference_order if id in self.footnotes]
++        ordered_ids.extend([id for id in self.footnotes.keys() if id not in self.reference_numbers])
++
+         div = etree.Element("div")
+         div.set('class', 'footnote')
+         etree.SubElement(div, "hr")
+@@ -183,7 +210,7 @@ class FootnoteExtension(Extension):
+         # Backward compatibility with old '%d' placeholder
+         backlink_title = self.getConfig("BACKLINK_TITLE").replace("%d", "{}")
+ 
+-        for index, id in enumerate(self.footnotes.keys(), start=1):
++        for index, id in enumerate(ordered_ids, start=1):
+             li = etree.SubElement(ol, "li")
+             li.set("id", self.makeFootnoteId(id))
+             # Parse footnote with surrogate parent as `li` cannot be used.
+diff --git a/repro_footnotes.py b/repro_footnotes.py
+new file mode 100644
+index 0000000..6aa4684
+--- /dev/null
++++ b/repro_footnotes.py
+@@ -0,0 +1,10 @@
++import markdown
++
++text = """
++First reference[^first] appears before last reference[^last].
++
++[^last]: The last footnote text.
++[^first]: The first footnote text.
++"""
++
++print(markdown.markdown(text, extensions=['markdown.extensions.footnotes']))
+diff --git a/repro_unref.py b/repro_unref.py
+new file mode 100644
+index 0000000..792662a
+--- /dev/null
++++ b/repro_unref.py
+@@ -0,0 +1,6 @@
++import markdown
++
++text = """
++[^1]: Unreferenced footnote
++"""
++print(markdown.markdown(text, extensions=['markdown.extensions.footnotes']))

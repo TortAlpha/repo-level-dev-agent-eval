@@ -1,0 +1,61 @@
+diff --git a/tests/unit/utils/test_qtlog_hide.py b/tests/unit/utils/test_qtlog_hide.py
+new file mode 100644
+index 000000000..7041e54de
+--- /dev/null
++++ b/tests/unit/utils/test_qtlog_hide.py
+@@ -0,0 +1,55 @@
++import logging
++
++import pytest
++
++from qutebrowser.utils import qtlog
++
++
++@pytest.fixture
++def qt_logger():
++    return logging.getLogger('qt-tests')
++
++
++def test_hide_qt_warning_allows_unmatched(qt_logger, caplog):
++    with qtlog.hide_qt_warning('World', qt_logger.name):
++        with caplog.at_level(logging.WARNING, qt_logger.name):
++            qt_logger.warning('Hello World')
++    assert len(caplog.records) == 1
++    record = caplog.records[0]
++    assert record.levelname == 'WARNING'
++    assert record.message == 'Hello World'
++
++
++@pytest.mark.parametrize('line', [
++    'Hello',
++    'Hello World',
++    '  Hello World  ',
++])
++def test_hide_qt_warning_filters_prefix(qt_logger, caplog, line):
++    with qtlog.hide_qt_warning('Hello', qt_logger.name):
++        with caplog.at_level(logging.WARNING, qt_logger.name):
++            qt_logger.warning(line)
++    assert not caplog.records
++
++
++def test_qt_warning_filter_strip_and_exact():
++    qt_filter = qtlog.QtWarningFilter('Hello')
++    logger = logging.getLogger('qt-tests-filter')
++    record_matching = logger.makeRecord(logger.name, logging.WARNING, '', 0,
++                                        '  Hello there  ', (), None)
++    record_other = logger.makeRecord(logger.name, logging.WARNING, '', 0,
++                                     'Different message', (), None)
++    assert not qt_filter.filter(record_matching)
++    assert qt_filter.filter(record_other)
++
++
++def test_hide_qt_warning_different_loggers(caplog):
++    logger1 = logging.getLogger('qt-log-1')
++    logger2 = logging.getLogger('qt-log-2')
++    with qtlog.hide_qt_warning('Drop', logger1.name):
++        with caplog.at_level(logging.WARNING, logger1.name):
++            logger1.warning('Drop this')
++        with caplog.at_level(logging.WARNING, logger2.name):
++            logger2.warning('Drop this')
++    assert not any(r.name == logger1.name for r in caplog.records)
++    assert any(r.name == logger2.name for r in caplog.records)

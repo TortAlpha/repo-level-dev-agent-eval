@@ -1,0 +1,13 @@
+diff --git a/test_parse.py b/test_parse.py
+new file mode 100644
+index 0000000..9f1979a
+--- /dev/null
++++ b/test_parse.py
+@@ -0,0 +1,7 @@
++# test_parse.py
++from parse import parse
++
++# Test cases
++print(parse("a {:.0f} b", "a 12 b"))  # Should return 12.0
++print(parse("foo_{:02.0f}t", "foo_20t"))  # Should return 20.0
++print(parse("a {:.0f} b", "a 12.0 b"))  # Should return None

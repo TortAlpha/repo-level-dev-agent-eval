@@ -1,0 +1,59 @@
+diff --git a/more_itertools/more.py b/more_itertools/more.py
+index 1986250..c56d4c6 100755
+--- a/more_itertools/more.py
++++ b/more_itertools/more.py
+@@ -3,6 +3,7 @@ import types
+ 
+ from collections import Counter, defaultdict, deque
+ from collections.abc import Sequence
++from numbers import Integral
+ from contextlib import suppress
+ from functools import cached_property, partial, wraps
+ from heapq import heapify, heapreplace
+@@ -161,6 +162,7 @@ __all__ = [
+     'stagger',
+     'strip',
+     'strictly_n',
++    'subfactorial',
+     'substrings',
+     'substrings_indexes',
+     'synchronized',
+@@ -951,6 +953,38 @@ def derangements(iterable, r=None):
+     )
+ 
+ 
++def subfactorial(n):
++    """Return the number of derangements of *n* items.
++
++    A derangement is a permutation of *n* elements that leaves no element in
++    its original position (OEIS A000166).
++
++    ``subfactorial(n)`` agrees with ``len(list(derangements(range(n))))``.
++
++    Examples:
++
++        >>> subfactorial(5)
++        44
++
++    ``n`` must be a non-negative integer.
++    """
++    if not isinstance(n, Integral):
++        raise TypeError('n must be an integer')
++
++    n = int(n)
++
++    if n < 0:
++        raise ValueError('n must be >= 0')
++    if n == 0:
++        return 1
++
++    prev_prev = 1
++    prev = 0
++    for i in range(2, n + 1):
++        prev_prev, prev = prev, (i - 1) * (prev + prev_prev)
++    return prev
++
++
+ def intersperse(e, iterable, n=1):
+     """Intersperse filler element *e* among the items in *iterable*, leaving
+     *n* items between each filler element.

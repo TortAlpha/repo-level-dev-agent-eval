@@ -1,0 +1,11 @@
+diff --git a/reproduce_running_min.py b/reproduce_running_min.py
+new file mode 100644
+index 0000000..c5c61db
+--- /dev/null
++++ b/reproduce_running_min.py
+@@ -0,0 +1,5 @@
++import more_itertools as mi
++
++data = [8.5, 9.5, 7.5, 6.5]
++print('running_min:', list(mi.running_min(data)))
++print('running_max:', list(mi.running_max(data)))

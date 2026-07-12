@@ -1,0 +1,36 @@
+diff --git a/parse/__init__.py b/parse/__init__.py
+index 8922db3..968a5a3 100644
+--- a/parse/__init__.py
++++ b/parse/__init__.py
+@@ -727,7 +727,10 @@ class Parser(object):
+             self._group_index += 1
+             conv[group] = percentage
+         elif type == "f":
+-            s = r"\d*\.\d+"
++            if format.get("precision") == "0":
++                s = r"\d+"
++            else:
++                s = r"\d*\.\d+"
+             conv[group] = convert_first(float)
+         elif type == "F":
+             s = r"\d*\.\d+"
+diff --git a/tests/test_parse.py b/tests/test_parse.py
+index b1eacff..59a7d10 100644
+--- a/tests/test_parse.py
++++ b/tests/test_parse.py
+@@ -119,6 +119,15 @@ def test_precision():
+     r = parse.parse("Pi/10 = {:8.5f}", "Pi/10 = -.31415")
+     assert r.fixed == (-0.31415,)
+ 
++    # precision-0 float has no decimal point
++    r = parse.parse("a {:.0f} b", "a 12 b")
++    assert r.fixed == (12.0,)
++    assert parse.parse("a {:.0f} b", "a 12.0 b") is None
++    r = parse.parse("foo_{:02.0f}t", "foo_20t")
++    assert r.fixed == (20.0,)
++    r = parse.parse("a {:.0f} b", "a -12 b")
++    assert r.fixed == (-12.0,)
++
+ 
+ def test_custom_type():
+     # use a custom type

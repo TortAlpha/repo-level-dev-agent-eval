@@ -1,0 +1,17 @@
+diff --git a/parse/__init__.py b/parse/__init__.py
+index 8922db3..5e0dc16 100644
+--- a/parse/__init__.py
++++ b/parse/__init__.py
+@@ -727,10 +727,10 @@ class Parser(object):
+             self._group_index += 1
+             conv[group] = percentage
+         elif type == "f":
+-            s = r"\d*\.\d+"
++            s = r"\d+|\d*\.\d+"
+             conv[group] = convert_first(float)
+         elif type == "F":
+-            s = r"\d*\.\d+"
++            s = r"\d+|\d*\.\d+"
+             conv[group] = convert_first(Decimal)
+         elif type == "e":
+             s = r"\d*\.\d+[eE][-+]?\d+|nan|NAN|[-+]?inf|[-+]?INF"

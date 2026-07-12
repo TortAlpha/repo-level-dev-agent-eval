@@ -1,0 +1,112 @@
+diff --git a/sqlparse/engine/grouping.py b/sqlparse/engine/grouping.py
+index 926a3c1..259cbd5 100644
+--- a/sqlparse/engine/grouping.py
++++ b/sqlparse/engine/grouping.py
+@@ -371,11 +371,28 @@ def group_functions(tlist):
+     while token:
+         nidx, next_ = tlist.token_next(tidx)
+         if isinstance(next_, sql.Parenthesis):
+-            over_idx, over = tlist.token_next(nidx)
+-            if over and isinstance(over, sql.Over):
+-                eidx = over_idx
+-            else:
+-                eidx = nidx
++            # Check for OVER clause after the parenthesis
++            eidx = nidx
++            # Look for whitespace and then OVER keyword
++            ws_idx, ws_token = tlist.token_next(nidx)
++            if ws_token and ws_token.is_whitespace:
++                over_idx, over_token = tlist.token_next(ws_idx)
++                if (over_token and over_token.ttype is T.Keyword 
++                    and over_token.normalized == 'OVER'):
++                    # Include whitespace and OVER keyword
++                    eidx = over_idx
++                    # Look for what follows OVER
++                    window_ws_idx, window_ws_token = tlist.token_next(over_idx)
++                    if window_ws_token and window_ws_token.is_whitespace:
++                        window_idx, window_token = tlist.token_next(window_ws_idx)
++                        if window_token:
++                            if isinstance(window_token, sql.Parenthesis):
++                                # Inline window: OVER (PARTITION BY ...)
++                                eidx = window_idx
++                            elif window_token.ttype in (T.Name, T.String.Symbol):
++                                # Named window: OVER win1
++                                eidx = window_idx
++            
+             tlist.group_tokens(sql.Function, tidx, eidx)
+         tidx, token = tlist.token_next_by(t=T.Name, idx=tidx)
+ 
+diff --git a/sqlparse/sql.py b/sqlparse/sql.py
+index def0679..cb77a2a 100644
+--- a/sqlparse/sql.py
++++ b/sqlparse/sql.py
+@@ -623,7 +623,17 @@ class Function(NameAliasMixin, TokenList):
+ 
+     def get_parameters(self):
+         """Return a list of parameters."""
+-        parenthesis = self.tokens[-1]
++        # Find the parenthesis containing parameters
++        # It should be the first parenthesis in the function
++        parenthesis = None
++        for token in self.tokens:
++            if isinstance(token, Parenthesis):
++                parenthesis = token
++                break
++        
++        if parenthesis is None:
++            return []
++            
+         result = []
+         for token in parenthesis.tokens:
+             if isinstance(token, IdentifierList):
+@@ -632,6 +642,28 @@ class Function(NameAliasMixin, TokenList):
+                      t=T.Literal):
+                 result.append(token)
+         return result
++    
++    def get_window(self):
++        """Return the window of the function.
++        
++        Returns:
++        - For a named window (foo(5) OVER win1), the window identifier
++        - For an inline window (foo(5) OVER (PARTITION BY c1)), the parenthesised window definition
++        - None when the function has no OVER clause
++        """
++        # Look for an Over clause in the function tokens
++        for token in self.tokens:
++            if isinstance(token, Over):
++                # Find what comes after the OVER keyword
++                for over_token in token.tokens:
++                    if over_token.ttype is T.Keyword and over_token.normalized == 'OVER':
++                        continue
++                    elif over_token.is_whitespace:
++                        continue
++                    else:
++                        # This is the window specification
++                        return over_token
++        return None
+ 
+ 
+ class Begin(TokenList):
+diff --git a/test_debug.py b/test_debug.py
+new file mode 100644
+index 0000000..2db0037
+--- /dev/null
++++ b/test_debug.py
+@@ -0,0 +1,16 @@
++import sqlparse
++
++# Test the current parsing behavior
++p = sqlparse.parse('foo(c1) over win1 as bar')[0]
++print('Full parse tree:')
++p._pprint_tree()
++
++print('\nFunction tokens:', len(p.tokens[0].tokens[0].tokens))
++for i, t in enumerate(p.tokens[0].tokens[0].tokens):
++    print(f'{i}: {type(t).__name__} - {repr(t.value)}')
++
++print('\nExpected: Function should have 4 tokens:')
++print('1. Function name (foo)')
++print('2. Parenthesis ((c1))')
++print('3. Whitespace')
++print('4. OVER clause (over win1)')

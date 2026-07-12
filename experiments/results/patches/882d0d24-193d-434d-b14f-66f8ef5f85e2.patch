@@ -1,0 +1,63 @@
+diff --git a/sqlglot/generators/clickhouse.py b/sqlglot/generators/clickhouse.py
+index eef1a97a..89d03bd1 100644
+--- a/sqlglot/generators/clickhouse.py
++++ b/sqlglot/generators/clickhouse.py
+@@ -378,6 +378,7 @@ class ClickHouseGenerator(generator.Generator):
+             rename_func("editDistance")
+         ),
+         exp.ParseDatetime: rename_func("parseDateTime"),
++        exp.GroupConcat: lambda self, e: f"groupConcat({self.format_args(e.args.get('separator'))})({self.sql(e, 'this')})",
+     }
+ 
+     PROPERTIES_LOCATION = {
+diff --git a/sqlglot/parsers/clickhouse.py b/sqlglot/parsers/clickhouse.py
+index 592ecc70..308c69ec 100644
+--- a/sqlglot/parsers/clickhouse.py
++++ b/sqlglot/parsers/clickhouse.py
+@@ -364,6 +364,7 @@ class ClickHouseParser(parser.Parser):
+         "ARRAYJOIN": lambda self: self.expression(exp.Explode(this=self._parse_expression())),
+         "QUANTILE": lambda self: self._parse_quantile(),
+         "MEDIAN": lambda self: self._parse_quantile(),
++        "GROUPCONCAT": lambda self: self._parse_group_concat(),
+         "COLUMNS": lambda self: self._parse_columns(),
+         "TUPLE": lambda self: exp.Struct.from_arg_list(self._parse_function_args(alias=True)),
+         "AND": lambda self: exp.and_(*self._parse_function_args(alias=False)),
+@@ -736,6 +737,13 @@ class ClickHouseParser(parser.Parser):
+             return self.expression(exp.Quantile(this=params[0], quantile=this))
+         return self.expression(exp.Quantile(this=this, quantile=exp.Literal.number(0.5)))
+ 
++    def _parse_group_concat(self) -> exp.GroupConcat:
++        # ClickHouse parametric form: groupConcat(separator)(this)
++        separator = self._parse_lambda()
++        self._match_pair(TokenType.R_PAREN, TokenType.L_PAREN)
++        this = self._parse_lambda()
++        return self.expression(exp.GroupConcat(this=this, separator=separator))
++
+     def _parse_wrapped_id_vars(self, optional: bool = False) -> list[exp.Expr]:
+         return super()._parse_wrapped_id_vars(optional=True)
+ 
+diff --git a/tests/dialects/test_clickhouse_group_concat.py b/tests/dialects/test_clickhouse_group_concat.py
+new file mode 100644
+index 00000000..ae9a95dd
+--- /dev/null
++++ b/tests/dialects/test_clickhouse_group_concat.py
+@@ -0,0 +1,19 @@
++import unittest
++
++from sqlglot import exp, parse_one
++
++
++class TestClickHouseGroupConcat(unittest.TestCase):
++    def test_parametric_group_concat(self):
++        sql = "SELECT groupConcat(', ')(part_name) FROM system.parts"
++        expr = parse_one(sql, dialect="clickhouse")
++
++        group_concat = expr.selects[0]
++        self.assertIsInstance(group_concat, exp.GroupConcat)
++        self.assertEqual(group_concat.this.name, "part_name")
++        self.assertEqual(group_concat.args["separator"].name, ", ")
++        self.assertEqual(expr.sql(dialect="clickhouse"), sql)
++
++
++if __name__ == "__main__":
++    unittest.main()

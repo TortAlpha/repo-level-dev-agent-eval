@@ -1,0 +1,39 @@
+diff --git a/more_itertools/more.py b/more_itertools/more.py
+index 1986250..2f0b2b3 100755
+--- a/more_itertools/more.py
++++ b/more_itertools/more.py
+@@ -161,6 +161,7 @@ __all__ = [
+     'stagger',
+     'strip',
+     'strictly_n',
++    'subfactorial',
+     'substrings',
+     'substrings_indexes',
+     'synchronized',
+@@ -951,6 +952,26 @@ def derangements(iterable, r=None):
+     )
+ 
+ 
++def subfactorial(n):
++    """Return the number of derangements of *n* items (OEIS A000166).
++
++    For n >= 0, the subfactorial is the number of permutations of n elements
++    with no fixed points. It is also given by ``round(math.factorial(n) / e)``.
++    """
++    if not isinstance(n, int):
++        raise TypeError('n must be an integer')
++    if n < 0:
++        raise ValueError('n must be >= 0')
++    if n == 0:
++        return 1
++    if n == 1:
++        return 0
++    previous, current = 1, 0
++    for k in range(2, n + 1):
++        previous, current = current, (k - 1) * (current + previous)
++    return current
++
++
+ def intersperse(e, iterable, n=1):
+     """Intersperse filler element *e* among the items in *iterable*, leaving
+     *n* items between each filler element.

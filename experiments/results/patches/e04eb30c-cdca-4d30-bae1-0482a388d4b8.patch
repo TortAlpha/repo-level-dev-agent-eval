@@ -1,0 +1,225 @@
+diff --git a/openlibrary/plugins/openlibrary/lists.py b/openlibrary/plugins/openlibrary/lists.py
+index 29a39cbe8..d0efe03f5 100644
+--- a/openlibrary/plugins/openlibrary/lists.py
++++ b/openlibrary/plugins/openlibrary/lists.py
+@@ -35,41 +35,84 @@ class ListRecord:
+     seeds: list[SeedDict | str] = field(default_factory=list)
+ 
+     @staticmethod
+-    def normalize_input_seed(seed: SeedDict | str) -> SeedDict | str:
++    def normalize_input_seed(seed: SeedDict | str) -> SeedDict | str | None:
+         if isinstance(seed, str):
+             if seed.startswith('/subjects/'):
+                 return seed
+             else:
+                 return {'key': seed if seed.startswith('/') else olid_to_key(seed)}
+         else:
+-            if seed['key'].startswith('/subjects/'):
+-                return seed['key'].split('/', 2)[-1]
++            key = seed.get('key')
++            if not key:
++                return None
++            if key.startswith('/subjects/'):
++                return key.split('/', 2)[-1]
+             else:
+                 return seed
+ 
+     @staticmethod
+     def from_input():
+-        i = utils.unflatten(
+-            web.input(
+-                key=None,
+-                name='',
+-                description='',
+-                seeds=[],
+-            )
+-        )
++        # When a request body is present, process it exclusively and ignore the
++        # query string so conflicting URL parameters cannot overwrite or duplicate
++        # submitted form values.
++        body = web.input(_method='POST')
++        if body:
++            i = body
++        else:
++            i = web.input(_method='GET')
++
++        # Defaults may only fill keys that are absent and not ancestors of any
++        # nested/indexed keys present in the request body. Compute the ancestor
++        # keys of every nested entry (e.g. ``seeds--0--key`` -> ``seeds``,
++        # ``seeds--0``) so we don't inject a default that would clash with them.
++        ancestors: set[str] = set()
++        separator = '--'
++        for k in i:
++            if separator in k:
++                parts = k.split(separator)
++                for j in range(1, len(parts)):
++                    ancestors.add(separator.join(parts[:j]))
++
++        defaults = {
++            'key': None,
++            'name': '',
++            'description': '',
++            'seeds': [],
++        }
++        for k, v in defaults.items():
++            if k not in i and k not in ancestors:
++                i[k] = v
++
++        i = utils.unflatten(i)
++
++        # After unflattening, seeds may be a list, a single string/dict, or the
++        # empty default. Normalize to a list and ignore invalid/empty items.
++        raw_seeds = i.get('seeds', [])
++        if isinstance(raw_seeds, str):
++            raw_seeds = [raw_seeds]
++        elif not isinstance(raw_seeds, list):
++            raw_seeds = [raw_seeds] if raw_seeds else []
++
++        normalized_seeds: list[SeedDict | str] = []
++        for seed in raw_seeds:
++            if isinstance(seed, str):
++                for part in seed.split(','):
++                    part = part.strip()
++                    if not part:
++                        continue
++                    normalized = ListRecord.normalize_input_seed(part)
++                    if normalized and (
++                        isinstance(normalized, str) or normalized.get('key')
++                    ):
++                        normalized_seeds.append(normalized)
++            elif isinstance(seed, dict):
++                normalized = ListRecord.normalize_input_seed(seed)
++                if normalized and (
++                    isinstance(normalized, str) or normalized.get('key')
++                ):
++                    normalized_seeds.append(normalized)
++            # Invalid/empty items are ignored.
+ 
+-        normalized_seeds = [
+-            ListRecord.normalize_input_seed(seed)
+-            for seed_list in i.seeds
+-            for seed in (
+-                seed_list.split(',') if isinstance(seed_list, str) else [seed_list]
+-            )
+-        ]
+-        normalized_seeds = [
+-            seed
+-            for seed in normalized_seeds
+-            if seed and (isinstance(seed, str) or seed.get('key'))
+-        ]
+         return ListRecord(
+             key=i.key,
+             name=i.name,
+diff --git a/openlibrary/plugins/openlibrary/tests/test_lists_regression.py b/openlibrary/plugins/openlibrary/tests/test_lists_regression.py
+new file mode 100644
+index 000000000..963c1cc91
+--- /dev/null
++++ b/openlibrary/plugins/openlibrary/tests/test_lists_regression.py
+@@ -0,0 +1,84 @@
++import web
++
++from openlibrary.plugins.openlibrary import lists
++from openlibrary.plugins.upstream import utils
++
++
++def _patch_input(monkeypatch, post=None, get=None):
++    """Patch web.input so from_input sees the given POST/GET storages."""
++
++    def fake_input(*requireds, **defaults):
++        method = defaults.get("_method", "both").lower()
++        if method == "post":
++            data = web.storage(post or {})
++        elif method == "get":
++            data = web.storage(get or {})
++        else:
++            data = web.storage({})
++        # Apply defaults like storify would for missing keys
++        for k, v in defaults.items():
++            if k.startswith("_"):
++                continue
++            if k not in data:
++                data[k] = v
++        return data
++
++    monkeypatch.setattr(web, "input", fake_input)
++
++
++def test_from_input_ignores_query_when_body_present(monkeypatch):
++    _patch_input(
++        monkeypatch,
++        post={"name": "My List", "description": "desc", "seeds--0": "/books/OL1M"},
++        get={"name": "Query List", "seeds": "/books/OL2M"},
++    )
++    record = lists.ListRecord.from_input()
++    assert record.name == "My List"
++    assert record.description == "desc"
++    assert record.seeds == [{"key": "/books/OL1M"}]
++
++
++def test_from_input_does_not_inject_default_for_seeds_when_nested(monkeypatch):
++    _patch_input(
++        monkeypatch,
++        post={"name": "My List", "seeds--0--key": "/books/OL1M"},
++    )
++    record = lists.ListRecord.from_input()
++    assert record.name == "My List"
++    assert record.seeds == [{"key": "/books/OL1M"}]
++
++
++def test_from_input_falls_back_to_get_when_no_body(monkeypatch):
++    _patch_input(
++        monkeypatch,
++        post={},
++        get={"name": "Query List", "seeds": "/subjects/love"},
++    )
++    record = lists.ListRecord.from_input()
++    assert record.name == "Query List"
++    assert record.seeds == ["/subjects/love"]
++
++
++def test_from_input_ignores_empty_seeds(monkeypatch):
++    _patch_input(
++        monkeypatch,
++        post={"name": "My List", "seeds--0": "", "seeds--1": "/books/OL1M"},
++    )
++    record = lists.ListRecord.from_input()
++    assert record.seeds == [{"key": "/books/OL1M"}]
++
++
++def test_unflatten_last_simple_assignment_wins():
++    result = utils.unflatten(
++        utils.Storage({"seeds": "/books/OL1M", "seeds--0--key": "/books/OL2M"})
++    )
++    # The nested assignment must produce a list; the simple assignment must not
++    # block the nested reconstruction.
++    assert result["seeds"] == [{"key": "/books/OL2M"}]
++
++
++def test_unflatten_last_assignment_overrides_simple():
++    result = utils.unflatten(
++        utils.Storage({"seeds--0--key": "/books/OL1M", "seeds": "/books/OL2M"})
++    )
++    assert result["seeds"] == "/books/OL2M"
+diff --git a/openlibrary/plugins/upstream/utils.py b/openlibrary/plugins/upstream/utils.py
+index 38dc26dda..584010676 100644
+--- a/openlibrary/plugins/upstream/utils.py
++++ b/openlibrary/plugins/upstream/utils.py
+@@ -286,11 +286,14 @@ def unflatten(d: Storage, separator: str = "--") -> Storage:
+     def setvalue(data, k, v):
+         if '--' in k:
+             k, k2 = k.split(separator, 1)
+-            setvalue(data.setdefault(k, {}), k2, v)
++            # When a nested key is present, the parent must be a dict so
++            # later assignments to the same simple key can still win.
++            if k not in data or not isinstance(data[k], dict):
++                data[k] = {}
++            setvalue(data[k], k2, v)
+         else:
+-            # Don't overwrite if the key already exists
+-            if k not in data:
+-                data[k] = v
++            # The last assignment to a simple key must take precedence.
++            data[k] = v
+ 
+     def makelist(d):
+         """Convert d into a list if all the keys of d are integers."""

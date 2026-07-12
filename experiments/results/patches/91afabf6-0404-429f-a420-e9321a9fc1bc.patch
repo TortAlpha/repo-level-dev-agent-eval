@@ -1,0 +1,180 @@
+diff --git a/more_itertools/more.py b/more_itertools/more.py
+index 12b4942..256b26a 100755
+--- a/more_itertools/more.py
++++ b/more_itertools/more.py
+@@ -1,6 +1,7 @@
+ import math
+ 
+-from collections import Counter, defaultdict, deque
++from bisect import bisect_left, insort
++from collections import Counter, defaultdict, deque, namedtuple
+ from collections.abc import Sequence
+ from contextlib import suppress
+ from functools import cached_property, partial, wraps
+@@ -58,6 +59,7 @@ from .recipes import (
+ __all__ = [
+     'AbortThread',
+     'SequenceView',
++    'Stats',
+     'adjacent',
+     'all_unique',
+     'always_iterable',
+@@ -141,6 +143,7 @@ __all__ = [
+     'repeat_last',
+     'replace',
+     'rlocate',
++    'running_statistics',
+     'rstrip',
+     'run_length',
+     'sample',
+@@ -5441,3 +5444,56 @@ class _concurrent_tee:
+                     link[1] = [None, None]
+         value, self.link = link
+         return value
++
++
++Stats = namedtuple('Stats', ['size', 'minimum', 'median', 'maximum', 'mean'])
++
++
++def running_statistics(iterable, *, maxlen=None):
++    """Yield running statistics over an iterable.
++
++    After each element of *iterable* is consumed, yield a :class:`Stats`
++    namedtuple summarizing the values seen so far:
++
++        ``Stats(size, minimum, median, maximum, mean)``
++
++    When *maxlen* is a positive integer, every statistic is computed over a
++    sliding window of at most the last *maxlen* elements.
++
++        >>> it = running_statistics(iter([4, 3, 7]))
++        >>> next(it)
++        Stats(size=1, minimum=4, median=4, maximum=4, mean=4.0)
++        >>> next(it)
++        Stats(size=2, minimum=3, median=3.5, maximum=4, mean=3.5)
++        >>> next(it)  # doctest: +ELLIPSIS
++        Stats(size=3, minimum=3, median=4, maximum=7, mean=4.666...)
++
++    """
++    if maxlen is not None and maxlen < 0:
++        raise ValueError('maxlen must be non-negative')
++
++    data = deque(maxlen=maxlen) if maxlen is not None else []
++    sorted_data = []
++
++    for value in iterable:
++        if maxlen is not None and len(data) == maxlen:
++            old = data[0]
++            data.append(value)
++            # Remove the old value from the sorted window
++            i = bisect_left(sorted_data, old)
++            del sorted_data[i]
++            insort(sorted_data, value)
++        else:
++            data.append(value)
++            insort(sorted_data, value)
++
++        n = len(sorted_data)
++        minimum = sorted_data[0]
++        maximum = sorted_data[-1]
++        mean = fsum(sorted_data) / n
++        if n % 2 == 1:
++            median = sorted_data[n // 2]
++        else:
++            median = (sorted_data[n // 2 - 1] + sorted_data[n // 2]) / 2
++
++        yield Stats(n, minimum, median, maximum, mean)
+diff --git a/more_itertools/more.pyi b/more_itertools/more.pyi
+index a52643e..ee7e2c5 100644
+--- a/more_itertools/more.pyi
++++ b/more_itertools/more.pyi
+@@ -21,6 +21,7 @@ from typing import (
+     Callable,
+     Generic,
+     Literal,
++    NamedTuple,
+     TypeVar,
+     overload,
+     type_check_only,
+@@ -30,6 +31,7 @@ from typing_extensions import Protocol
+ __all__ = [
+     'AbortThread',
+     'SequenceView',
++    'Stats',
+     'adjacent',
+     'all_unique',
+     'always_iterable',
+@@ -977,3 +979,14 @@ def concurrent_tee(
+ def synchronized(
+     func: Callable[..., Iterator[_T]],
+ ) -> Callable[..., Iterator[_T]]: ...
++
++class Stats(NamedTuple):
++    size: int
++    minimum: float
++    median: float
++    maximum: float
++    mean: float
++
++def running_statistics(
++    iterable: Iterable[float], *, maxlen: int | None = None
++) -> Iterator[Stats]: ...
+diff --git a/tests/test_more.py b/tests/test_more.py
+index 2e0cc06..9f5080f 100644
+--- a/tests/test_more.py
++++ b/tests/test_more.py
+@@ -6646,3 +6646,54 @@ class TestConcurrentTee(TestCase):
+         with self.assertRaises(ValueError):
+             non_concurrent_source = producer(limit)
+             mi.concurrent_tee(non_concurrent_source, n=-1)  # Negative n
++
++
++class RunningStatisticsTests(TestCase):
++    def test_unbounded(self):
++        it = mi.running_statistics(iter([4, 3, 7]))
++        self.assertEqual(
++            next(it), mi.Stats(size=1, minimum=4, median=4, maximum=4, mean=4.0)
++        )
++        self.assertEqual(
++            next(it), mi.Stats(size=2, minimum=3, median=3.5, maximum=4, mean=3.5)
++        )
++        self.assertEqual(
++            next(it),
++            mi.Stats(size=3, minimum=3, median=4, maximum=7, mean=14 / 3),
++        )
++
++    def test_empty(self):
++        self.assertEqual(list(mi.running_statistics(iter([]))), [])
++
++    def test_maxlen(self):
++        # Sliding window of the last 2 elements
++        it = mi.running_statistics(iter([4, 3, 7, 1]), maxlen=2)
++        self.assertEqual(
++            next(it), mi.Stats(size=1, minimum=4, median=4, maximum=4, mean=4.0)
++        )
++        self.assertEqual(
++            next(it), mi.Stats(size=2, minimum=3, median=3.5, maximum=4, mean=3.5)
++        )
++        self.assertEqual(
++            next(it), mi.Stats(size=2, minimum=3, median=5.0, maximum=7, mean=5.0)
++        )
++        self.assertEqual(
++            next(it), mi.Stats(size=2, minimum=1, median=4.0, maximum=7, mean=4.0)
++        )
++
++    def test_maxlen_one(self):
++        it = mi.running_statistics(iter([4, 3, 7]), maxlen=1)
++        self.assertEqual(
++            next(it), mi.Stats(size=1, minimum=4, median=4, maximum=4, mean=4.0)
++        )
++        self.assertEqual(
++            next(it), mi.Stats(size=1, minimum=3, median=3, maximum=3, mean=3.0)
++        )
++        self.assertEqual(
++            next(it), mi.Stats(size=1, minimum=7, median=7, maximum=7, mean=7.0)
++        )
++
++    def test_negative_maxlen(self):
++        with self.assertRaises(ValueError):
++            list(mi.running_statistics(iter([1]), maxlen=-1))
++

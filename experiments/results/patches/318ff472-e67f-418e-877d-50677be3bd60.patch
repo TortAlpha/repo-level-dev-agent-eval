@@ -1,0 +1,14 @@
+diff --git a/parse/__init__.py b/parse/__init__.py
+index 8922db3..5fe6c3f 100644
+--- a/parse/__init__.py
++++ b/parse/__init__.py
+@@ -736,6 +736,9 @@ class Parser(object):
+             s = r"\d*\.\d+[eE][-+]?\d+|nan|NAN|[-+]?inf|[-+]?INF"
+             conv[group] = convert_first(float)
+         elif type == "g":
++            s = r"\d+|\d+\.\d+([eE][-+]?\d+)?|nan|NAN|[-+]?inf|[-+]?INF"
++            self._group_index += 2
++            conv[group] = convert_first(float)
+             s = r"\d+(\.\d+)?([eE][-+]?\d+)?|nan|NAN|[-+]?inf|[-+]?INF"
+             self._group_index += 2
+             conv[group] = convert_first(float)

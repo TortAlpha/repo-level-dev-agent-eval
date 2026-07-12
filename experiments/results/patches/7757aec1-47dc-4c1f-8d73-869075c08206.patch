@@ -1,0 +1,14 @@
+diff --git a/markdown/extensions/footnotes.py b/markdown/extensions/footnotes.py
+index 30c0811..81e04d7 100644
+--- a/markdown/extensions/footnotes.py
++++ b/markdown/extensions/footnotes.py
+@@ -183,7 +183,8 @@ class FootnoteExtension(Extension):
+         # Backward compatibility with old '%d' placeholder
+         backlink_title = self.getConfig("BACKLINK_TITLE").replace("%d", "{}")
+ 
+-        for index, id in enumerate(self.footnotes.keys(), start=1):
++        reference_order = list(self.footnotes.keys())
++        for index, id in enumerate(reference_order, start=1):
+             li = etree.SubElement(ol, "li")
+             li.set("id", self.makeFootnoteId(id))
+             # Parse footnote with surrogate parent as `li` cannot be used.

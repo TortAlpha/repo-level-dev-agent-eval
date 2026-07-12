@@ -1,0 +1,45 @@
+diff --git a/sqlparse/engine/grouping.py b/sqlparse/engine/grouping.py
+index 926a3c1..63946cd 100644
+--- a/sqlparse/engine/grouping.py
++++ b/sqlparse/engine/grouping.py
+@@ -371,8 +371,10 @@ def group_functions(tlist):
+     while token:
+         nidx, next_ = tlist.token_next(tidx)
+         if isinstance(next_, sql.Parenthesis):
++            # Check if there's an OVER clause after the parenthesis
+             over_idx, over = tlist.token_next(nidx)
+             if over and isinstance(over, sql.Over):
++                # If we found an OVER clause, include it in the function grouping
+                 eidx = over_idx
+             else:
+                 eidx = nidx
+diff --git a/sqlparse/sql.py b/sqlparse/sql.py
+index def0679..c2c577c 100644
+--- a/sqlparse/sql.py
++++ b/sqlparse/sql.py
+@@ -633,6 +633,25 @@ class Function(NameAliasMixin, TokenList):
+                 result.append(token)
+         return result
+ 
++    def get_window(self):
++        """Return the window definition for this function.
++
++        Returns:
++            - The window identifier (as a token) for named windows (e.g., OVER win1)
++            - The parenthesized window definition (as a token) for inline windows (e.g., OVER (PARTITION BY c1))
++            - None if no OVER clause is present
++        """
++        if len(self.tokens) < 2:
++            return None
++        
++        # Look for OVER keyword in the tokens
++        for i, token in enumerate(self.tokens):
++            if token.match(T.Keyword, 'OVER'):
++                # Return the token after OVER (which is either a name or a parenthesis)
++                if i + 1 < len(self.tokens):
++                    return self.tokens[i + 1]
++        return None
++
+ 
+ class Begin(TokenList):
+     """A BEGIN/END block."""

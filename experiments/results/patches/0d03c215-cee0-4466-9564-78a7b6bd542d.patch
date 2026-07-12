@@ -1,0 +1,62 @@
+diff --git a/src/dotenv/parser.py b/src/dotenv/parser.py
+index eb100b4..58d3f49 100644
+--- a/src/dotenv/parser.py
++++ b/src/dotenv/parser.py
+@@ -69,6 +69,8 @@ class Error(Exception):
+ class Reader:
+     def __init__(self, stream: IO[str]) -> None:
+         self.string = stream.read()
++        if self.string.startswith("\ufeff"):
++            self.string = self.string[1:]
+         self.position = Position.start()
+         self.mark = Position.start()
+ 
+diff --git a/tests/test_bom.py b/tests/test_bom.py
+new file mode 100644
+index 0000000..90242f9
+--- /dev/null
++++ b/tests/test_bom.py
+@@ -0,0 +1,43 @@
++import io
++
++from dotenv.parser import parse_stream
++
++
++def test_parse_stream_strips_leading_bom():
++    content = "\ufeffFIRST=value1\nSECOND=value2\n"
++    result = list(parse_stream(io.StringIO(content)))
++
++    assert result[0].key == "FIRST"
++    assert result[0].value == "value1"
++    assert result[0].original.string == "FIRST=value1\n"
++    assert result[0].original.line == 1
++
++    assert result[1].key == "SECOND"
++    assert result[1].value == "value2"
++    assert result[1].original.string == "SECOND=value2\n"
++    assert result[1].original.line == 2
++
++
++def test_parse_stream_preserves_bom_not_at_start():
++    content = "FIRST=\ufeffvalue1\n"
++    result = list(parse_stream(io.StringIO(content)))
++
++    assert result[0].key == "FIRST"
++    assert result[0].value == "\ufeffvalue1"
++    assert result[0].original.string == "FIRST=\ufeffvalue1\n"
++    assert result[0].original.line == 1
++
++
++def test_parse_stream_no_bom_unchanged():
++    content = "FIRST=value1\nSECOND=value2\n"
++    result = list(parse_stream(io.StringIO(content)))
++
++    assert result[0].key == "FIRST"
++    assert result[0].value == "value1"
++    assert result[0].original.string == "FIRST=value1\n"
++    assert result[0].original.line == 1
++
++    assert result[1].key == "SECOND"
++    assert result[1].value == "value2"
++    assert result[1].original.string == "SECOND=value2\n"
++    assert result[1].original.line == 2

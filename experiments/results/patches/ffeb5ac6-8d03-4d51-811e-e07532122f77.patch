@@ -1,0 +1,95 @@
+diff --git a/sqlparse/sql.py b/sqlparse/sql.py
+index def0679..6e86bd8 100644
+--- a/sqlparse/sql.py
++++ b/sqlparse/sql.py
+@@ -623,7 +623,9 @@ class Function(NameAliasMixin, TokenList):
+ 
+     def get_parameters(self):
+         """Return a list of parameters."""
+-        parenthesis = self.tokens[-1]
++        _, parenthesis = self.token_next_by(i=Parenthesis)
++        if parenthesis is None:
++            return []
+         result = []
+         for token in parenthesis.tokens:
+             if isinstance(token, IdentifierList):
+@@ -633,6 +635,23 @@ class Function(NameAliasMixin, TokenList):
+                 result.append(token)
+         return result
+ 
++    def get_window(self):
++        """Return the window of the function if it has an OVER clause.
++
++        For a named window (``foo(5) OVER win1``) the window identifier is
++        returned. For an inline window (``foo(5) OVER (PARTITION BY c1)``) the
++        parenthesised window definition is returned. ``None`` is returned when
++        the function has no OVER clause.
++        """
++        _, over = self.token_next_by(i=Over)
++        if over is None:
++            return None
++        idx, _ = over.token_next_by(m=Over.M_OPEN)
++        if idx is None:
++            return None
++        _, window = over.token_next(idx)
++        return window
++
+ 
+ class Begin(TokenList):
+     """A BEGIN/END block."""
+diff --git a/tests/test_window.py b/tests/test_window.py
+new file mode 100644
+index 0000000..3c19b26
+--- /dev/null
++++ b/tests/test_window.py
+@@ -0,0 +1,50 @@
++"""Tests for Function.get_window() and OVER clause handling."""
++
++import sqlparse
++from sqlparse.sql import Function, Identifier, Parenthesis
++
++
++def _find_function(token):
++    """Recursively find the first Function token in a token tree."""
++    if isinstance(token, Function):
++        return token
++    if token.is_group:
++        for child in token.tokens:
++            found = _find_function(child)
++            if found is not None:
++                return found
++    return None
++
++
++def _parse_function(sql):
++    parsed = sqlparse.parse(sql)[0]
++    func = _find_function(parsed)
++    assert func is not None, 'No Function found in: %r' % sql
++    return func
++
++
++def test_get_window_without_over():
++    func = _parse_function('foo(5)')
++    assert func.get_window() is None
++    params = func.get_parameters()
++    assert len(params) == 1
++
++
++def test_get_window_named_window():
++    func = _parse_function('foo(5) OVER win1')
++    window = func.get_window()
++    assert window is not None
++    assert isinstance(window, Identifier)
++    assert str(window) == 'win1'
++    params = func.get_parameters()
++    assert len(params) == 1
++
++
++def test_get_window_inline_window():
++    func = _parse_function('foo(5) OVER (PARTITION BY c1)')
++    window = func.get_window()
++    assert window is not None
++    assert isinstance(window, Parenthesis)
++    assert str(window) == '(PARTITION BY c1)'
++    params = func.get_parameters()
++    assert len(params) == 1

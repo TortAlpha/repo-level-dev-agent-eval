@@ -1,0 +1,13 @@
+diff --git a/parse.py b/parse.py
+index 8f73fb5..75938a3 100644
+--- a/parse.py
++++ b/parse.py
+@@ -615,7 +615,7 @@ class Parser(object):
+         format = extract_format(format, self._extra_types)
+ 
+         # figure type conversions, if any
+-        type = format["type"]
++        type = format.get("type")
+         is_numeric = type and type in "n%fegdobx"
+         if type in self._extra_types:
+             type_converter = self._extra_types[type]

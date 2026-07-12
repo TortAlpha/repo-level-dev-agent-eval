@@ -1,0 +1,26 @@
+diff --git a/tests/test_url.py b/tests/test_url.py
+index 65d6b22..c45c7e9 100644
+--- a/tests/test_url.py
++++ b/tests/test_url.py
+@@ -250,6 +250,8 @@ SAFE_URL_URL_CASES = (
+     ("https://[2402:4e00:40:40::2:3b6]:443", "https://[2402:4e00:40:40::2:3b6]:443"),
+     ("http://[::1]", "http://[::1]"),
+     ("http://[::1]:8080/path?q=1", "http://[::1]:8080/path?q=1"),
++    ("http://[::1]:8080/path?q=1#frag", "http://[::1]:8080/path?q=1#frag"),
++    ("http://[::1]/path?q=1#frag", "http://[::1]/path?q=1#frag"),
+     # checknetloc, the most of the cases are copied from
+     # https://github.com/python/cpython/blob/main/Lib/test/test_urlparse.py
+     ("http://[v6a.ip]", "http://v6a.ip"),
+diff --git a/w3lib/_url.py b/w3lib/_url.py
+index 0fc540d..c81ee69 100644
+--- a/w3lib/_url.py
++++ b/w3lib/_url.py
+@@ -658,7 +658,7 @@ def _urlsplit(  # pylint: disable=too-many-locals,too-many-statements
+             open_br_pos = idx
+         elif char == "]" and closing_br_pos == -1:
+             closing_br_pos = idx
+-        if slash_pos != question_pos != hash_pos != open_br_pos != closing_br_pos != -1:
++        if -1 not in (slash_pos, question_pos, hash_pos, open_br_pos, closing_br_pos):
+             break
+ 
+     if url[:2] == "//":

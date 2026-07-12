@@ -1,0 +1,45 @@
+diff --git a/sqlparse/sql.py b/sqlparse/sql.py
+index def0679..0b5af2f 100644
+--- a/sqlparse/sql.py
++++ b/sqlparse/sql.py
+@@ -623,16 +623,36 @@ class Function(NameAliasMixin, TokenList):
+ 
+     def get_parameters(self):
+         """Return a list of parameters."""
+-        parenthesis = self.tokens[-1]
++        parenthesis = self.token_next_by(i=Parenthesis)[1]
+         result = []
+         for token in parenthesis.tokens:
+             if isinstance(token, IdentifierList):
+-                return token.get_identifiers()
+-            elif imt(token, i=(Function, Identifier, TypedLiteral),
+-                     t=T.Literal):
++                result.extend(token.get_identifiers())
++            elif isinstance(token, Identifier) or isinstance(token, Function):
++                result.append(token)
++            elif isinstance(token, Literal) or isinstance(token, Operation):
+                 result.append(token)
+         return result
+ 
++    def get_window(self):
++        """Return the window of the function if an OVER clause is present.
++
++        Returns the window identifier for a named window (e.g.
++        ``foo(5) OVER win1``), the parenthesised window definition for an
++        inline window (e.g. ``foo(5) OVER (PARTITION BY c1)``) or ``None``
++        when the function has no OVER clause.
++        """
++        over = self.token_next_by(i=Over)[1]
++        if over is None:
++            return None
++        for token in over.tokens:
++            if token.match(T.Keyword, 'OVER'):
++                continue
++            if token.is_whitespace:
++                continue
++            return token
++        return None
++
+ 
+ class Begin(TokenList):
+     """A BEGIN/END block."""

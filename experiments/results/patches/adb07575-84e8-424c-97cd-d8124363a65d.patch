@@ -1,0 +1,12 @@
+diff --git a/markdown/extensions/footnotes.py b/markdown/extensions/footnotes.py
+index 30c0811..97bd2ee 100644
+--- a/markdown/extensions/footnotes.py
++++ b/markdown/extensions/footnotes.py
+@@ -33,6 +33,7 @@ import xml.etree.ElementTree as etree
+ FN_BACKLINK_TEXT = util.STX + "zz1337820767766393qq" + util.ETX
+ NBSP_PLACEHOLDER = util.STX + "qq3936677670287331zz" + util.ETX
+ RE_REF_ID = re.compile(r'(fnref)(\d+)')
++FOOTNOTE_RE = re.compile(r'\[\^([^\]]*)\]')
+ 
+ 
+ class FootnoteExtension(Extension):

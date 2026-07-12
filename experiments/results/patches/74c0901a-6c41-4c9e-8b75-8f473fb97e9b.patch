@@ -1,0 +1,9 @@
+diff --git a/reproduce_subfactorial.py b/reproduce_subfactorial.py
+new file mode 100644
+index 0000000..086d47a
+--- /dev/null
++++ b/reproduce_subfactorial.py
+@@ -0,0 +1,3 @@
++from more_itertools import subfactorial
++
++print(subfactorial(5))

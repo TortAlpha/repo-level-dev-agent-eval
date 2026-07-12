@@ -1,0 +1,106 @@
+diff --git a/openlibrary/core/wikidata.py b/openlibrary/core/wikidata.py
+index c20e101b7..20bbcf5cf 100644
+--- a/openlibrary/core/wikidata.py
++++ b/openlibrary/core/wikidata.py
+@@ -40,6 +40,24 @@ class WikidataEntity:
+         """If a description isn't available in the requested language default to English"""
+         return self.descriptions.get(language) or self.descriptions.get('en')
+ 
++    def get_statement_values(self, property_id: str) -> list[str]:
++        """
++        Retrieve all string values associated with a given property from the
++        entity's statements. Scans the list of statement objects for the requested
++        property, extracts the nested content field when present, preserves the
++        original order, and skips any malformed or invalid entries. If the
++        property is missing or no valid values exist, returns an empty list.
++        """
++        values: list[str] = []
++        for statement in self.statements.get(property_id, []):
++            try:
++                content = statement['value']['content']
++            except (TypeError, KeyError):
++                continue
++            if isinstance(content, str) and content:
++                values.append(content)
++        return values
++
+     def get_wikipedia_link(self, language: str = 'en') -> tuple[str, str] | None:
+         """
+         Get the Wikipedia URL and language for a given language code.
+diff --git a/openlibrary/tests/core/test_wikidata_statement_values.py b/openlibrary/tests/core/test_wikidata_statement_values.py
+new file mode 100644
+index 000000000..cc8b3cd8b
+--- /dev/null
++++ b/openlibrary/tests/core/test_wikidata_statement_values.py
+@@ -0,0 +1,71 @@
++from datetime import datetime
++
++from openlibrary.core import wikidata
++
++
++def make_entity() -> wikidata.WikidataEntity:
++    return wikidata.WikidataEntity.from_dict(
++        {
++            'id': 'Q42',
++            'type': 'str',
++            'labels': {'en': ''},
++            'descriptions': {'en': ''},
++            'aliases': {'en': ['']},
++            'statements': {},
++            'sitelinks': {},
++        },
++        datetime.now(),
++    )
++
++
++def test_get_statement_values_multiple_preserve_order() -> None:
++    entity = make_entity()
++    entity.statements = {
++        'P31': [
++            {'value': {'content': 'Q5'}},
++            {'value': {'content': 'Q12345'}},
++        ]
++    }
++    assert entity.get_statement_values('P31') == ['Q5', 'Q12345']
++
++
++def test_get_statement_values_single() -> None:
++    entity = make_entity()
++    entity.statements = {'P569': [{'value': {'content': '1952-03-11'}}]}
++    assert entity.get_statement_values('P569') == ['1952-03-11']
++
++
++def test_get_statement_values_skips_invalid_entries() -> None:
++    entity = make_entity()
++    entity.statements = {
++        'P19': [
++            {'value': {'content': 'London'}},
++            {'value': {'content': ''}},
++            {'value': {}},
++            {},
++            {'value': {'content': 'Paris'}},
++            {'value': {'content': 12345}},
++            {'value': {'content': None}},
++            {'value': None},
++            None,
++        ]
++    }
++    assert entity.get_statement_values('P19') == ['London', 'Paris']
++
++
++def test_get_statement_values_empty_statement_list() -> None:
++    entity = make_entity()
++    entity.statements = {'P123': []}
++    assert entity.get_statement_values('P123') == []
++
++
++def test_get_statement_values_missing_property() -> None:
++    entity = make_entity()
++    entity.statements = {'P31': [{'value': {'content': 'Q5'}}]}
++    assert entity.get_statement_values('P999') == []
++
++
++def test_get_statement_values_no_statements() -> None:
++    entity = make_entity()
++    entity.statements = {}
++    assert entity.get_statement_values('P31') == []

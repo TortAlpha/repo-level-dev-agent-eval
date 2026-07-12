@@ -1,0 +1,211 @@
+diff --git a/qutebrowser/components/hostblock.py b/qutebrowser/components/hostblock.py
+index 8a0174584..9e2862057 100644
+--- a/qutebrowser/components/hostblock.py
++++ b/qutebrowser/components/hostblock.py
+@@ -37,7 +37,7 @@ from qutebrowser.api import (
+     qtutils,
+ )
+ from qutebrowser.components.utils import blockutils
+-from qutebrowser.utils import version  # FIXME: Move needed parts into api namespace?
++from qutebrowser.utils import urlutils, version  # FIXME: Move needed parts into api namespace?
+ 
+ 
+ logger = logging.getLogger("network")
+@@ -124,10 +124,14 @@ class HostBlocker:
+         if not config.get("content.blocking.enabled", url=first_party_url):
+             return False
+ 
+-        host = request_url.host()
+-        return (
+-            host in self._blocked_hosts or host in self._config_blocked_hosts
+-        ) and not blockutils.is_whitelisted_url(request_url)
++        if blockutils.is_whitelisted_url(request_url):
++            return False
++
++        host = request_url.host().rstrip(".")
++        for widened in urlutils.widened_hostnames(host):
++            if widened in self._blocked_hosts or widened in self._config_blocked_hosts:
++                return True
++        return False
+ 
+     def filter_request(self, info: interceptor.Request) -> None:
+         """Block the given request if necessary."""
+diff --git a/qutebrowser/config/configutils.py b/qutebrowser/config/configutils.py
+index d619eb21f..22247aa20 100644
+--- a/qutebrowser/config/configutils.py
++++ b/qutebrowser/config/configutils.py
+@@ -32,7 +32,7 @@ from PyQt5.QtCore import QUrl
+ from PyQt5.QtGui import QFontDatabase
+ from PyQt5.QtWidgets import QApplication
+ 
+-from qutebrowser.utils import utils, urlmatch, usertypes, qtutils
++from qutebrowser.utils import utils, urlmatch, usertypes, qtutils, urlutils
+ from qutebrowser.config import configexc
+ 
+ if TYPE_CHECKING:
+@@ -43,9 +43,7 @@ def _widened_hostnames(hostname: str) -> Iterable[str]:
+     """A generator for widening string hostnames.
+ 
+     Ex: a.c.foo -> [a.c.foo, c.foo, foo]"""
+-    while hostname:
+-        yield hostname
+-        hostname = hostname.partition(".")[-1]
++    yield from urlutils.widened_hostnames(hostname)
+ 
+ 
+ class ScopedValue:
+diff --git a/qutebrowser/utils/urlutils.py b/qutebrowser/utils/urlutils.py
+index 045981680..42c5e7342 100644
+--- a/qutebrowser/utils/urlutils.py
++++ b/qutebrowser/utils/urlutils.py
+@@ -26,7 +26,7 @@ import ipaddress
+ import posixpath
+ import urllib.parse
+ import mimetypes
+-from typing import Optional, Tuple, Union
++from typing import Iterable, Optional, Tuple, Union
+ 
+ from PyQt5.QtCore import QUrl
+ from PyQt5.QtNetwork import QHostInfo, QHostAddress, QNetworkProxy
+@@ -504,6 +504,28 @@ def same_domain(url1: QUrl, url2: QUrl) -> bool:
+     return domain1 == domain2
+ 
+ 
++def widened_hostnames(hostname: str) -> Iterable[str]:
++    """Generate parent-domain variants of a hostname.
++
++    Successively removes the leftmost label from the hostname, yielding the
++    original host and each parent domain.
++
++    Examples:
++        a.b.c -> ["a.b.c", "b.c", "c"]
++        foobarbaz -> ["foobarbaz"]
++        "" -> []
++        ".c" -> [".c", "c"]
++        "c." -> ["c."]
++        ".c." -> [".c.", "c."]
++        None -> []
++    """
++    if hostname is None:
++        return
++    while hostname:
++        yield hostname
++        hostname = hostname.partition(".")[-1]
++
++
+ def encoded_url(url: QUrl) -> str:
+     """Return the fully encoded url as string.
+ 
+diff --git a/tests/unit/components/test_hostblock_subdomain.py b/tests/unit/components/test_hostblock_subdomain.py
+new file mode 100644
+index 000000000..c914eb02a
+--- /dev/null
++++ b/tests/unit/components/test_hostblock_subdomain.py
+@@ -0,0 +1,67 @@
++# vim: ft=python fileencoding=utf-8 sts=4 sw=4 et:
++# Copyright 2025 qutebrowser contributors
++#
++# This file is part of qutebrowser.
++#
++# qutebrowser is free software: you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation, either version 3 of the License, or
++# (at your option) any later version.
++#
++# qutebrowser is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with qutebrowser.  If not, see <https://www.gnu.org/licenses/>.
++
++import pytest
++
++from PyQt5.QtCore import QUrl
++
++from qutebrowser.components import hostblock
++from qutebrowser.utils import urlmatch
++
++
++pytestmark = pytest.mark.usefixtures("qapp")
++
++
++@pytest.fixture
++def host_blocker(config_tmpdir, data_tmpdir, download_stub, config_stub):
++    config_stub.val.content.blocking.hosts.lists = []
++    config_stub.val.content.blocking.enabled = True
++    config_stub.val.content.blocking.method = "hosts"
++    config_stub.val.content.blocking.whitelist = None
++    return hostblock.HostBlocker(config_dir=config_tmpdir, data_dir=data_tmpdir)
++
++
++def test_subdomain_blocked(host_blocker):
++    host_blocker._blocked_hosts.add("example.com")
++
++    assert host_blocker._is_blocked(QUrl("https://example.com/"))
++    assert host_blocker._is_blocked(QUrl("https://sub.example.com/"))
++    assert host_blocker._is_blocked(QUrl("https://a.b.example.com/"))
++
++
++def test_trailing_dot_blocked(host_blocker):
++    host_blocker._blocked_hosts.add("example.com")
++    assert host_blocker._is_blocked(QUrl("https://example.com./"))
++
++
++def test_config_blocked_subdomain(host_blocker):
++    host_blocker._config_blocked_hosts.add("example.com")
++    assert host_blocker._is_blocked(QUrl("https://sub.example.com/"))
++
++
++def test_whitelist_overrides_subdomain(config_stub, host_blocker):
++    config_stub.val.content.blocking.whitelist = ["https://sub.example.com/"]
++    host_blocker._blocked_hosts.add("example.com")
++    assert not host_blocker._is_blocked(QUrl("https://sub.example.com/"))
++    assert host_blocker._is_blocked(QUrl("https://a.b.example.com/"))
++
++
++def test_no_parent_match(host_blocker):
++    host_blocker._blocked_hosts.add("example.com")
++    assert not host_blocker._is_blocked(QUrl("https://example.org/"))
++    assert not host_blocker._is_blocked(QUrl("https://notexample.com/"))
+diff --git a/tests/unit/utils/test_widened_hostnames.py b/tests/unit/utils/test_widened_hostnames.py
+new file mode 100644
+index 000000000..9abfbbe20
+--- /dev/null
++++ b/tests/unit/utils/test_widened_hostnames.py
+@@ -0,0 +1,34 @@
++# vim: ft=python fileencoding=utf-8 sts=4 sw=4 et:
++# Copyright 2025 qutebrowser contributors
++#
++# This file is part of qutebrowser.
++#
++# qutebrowser is free software: you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation, either version 3 of the License, or
++# (at your option) any later version.
++#
++# qutebrowser is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with qutebrowser.  If not, see <https://www.gnu.org/licenses/>.
++
++import pytest
++
++from qutebrowser.utils import urlutils
++
++
++@pytest.mark.parametrize('hostname, expected', [
++    ('a.b.c', ['a.b.c', 'b.c', 'c']),
++    ('foobarbaz', ['foobarbaz']),
++    ('', []),
++    ('.c', ['.c', 'c']),
++    ('c.', ['c.']),
++    ('.c.', ['.c.', 'c.']),
++    (None, []),
++])
++def test_widened_hostnames(hostname, expected):
++    assert list(urlutils.widened_hostnames(hostname)) == expected

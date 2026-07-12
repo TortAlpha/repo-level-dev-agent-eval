@@ -1,0 +1,82 @@
+diff --git a/sqlglot/generators/clickhouse.py b/sqlglot/generators/clickhouse.py
+index eef1a97a..111fae22 100644
+--- a/sqlglot/generators/clickhouse.py
++++ b/sqlglot/generators/clickhouse.py
+@@ -445,6 +445,12 @@ class ClickHouseGenerator(generator.Generator):
+ 
+         return super().cast_sql(expression, safe_prefix=safe_prefix)
+ 
++    def groupconcat_sql(self, expression: exp.GroupConcat) -> str:
++        separator = expression.args.get("separator")
++        if separator:
++            return f"groupConcat({self.sql(separator)})({self.sql(expression, 'this')})"
++        return self.function_fallback_sql(expression)
++
+     def trycast_sql(self, expression: exp.TryCast) -> str:
+         dtype = expression.to
+         if not dtype.is_type(*self.NON_NULLABLE_TYPES, check_nullable=True):
+diff --git a/sqlglot/parsers/clickhouse.py b/sqlglot/parsers/clickhouse.py
+index 592ecc70..20b9887a 100644
+--- a/sqlglot/parsers/clickhouse.py
++++ b/sqlglot/parsers/clickhouse.py
+@@ -137,6 +137,7 @@ AGG_FUNCTIONS = {
+     "groupBitmap",
+     "groupBitmapAnd",
+     "groupBitmapOr",
++    "groupConcat",
+     "groupBitmapXor",
+     "sumWithOverflow",
+     "sumMap",
+@@ -368,6 +369,7 @@ class ClickHouseParser(parser.Parser):
+         "TUPLE": lambda self: exp.Struct.from_arg_list(self._parse_function_args(alias=True)),
+         "AND": lambda self: exp.and_(*self._parse_function_args(alias=False)),
+         "OR": lambda self: exp.or_(*self._parse_function_args(alias=False)),
++        "GROUPCONCAT": lambda self: self._parse_group_concat(),
+     }
+ 
+     PROPERTY_PARSERS = {
+@@ -736,6 +738,20 @@ class ClickHouseParser(parser.Parser):
+             return self.expression(exp.Quantile(this=params[0], quantile=this))
+         return self.expression(exp.Quantile(this=this, quantile=exp.Literal.number(0.5)))
+ 
++    def _parse_group_concat(self) -> exp.GroupConcat:
++        # Parse groupConcat(separator)(column)
++        # The opening '(' has already been consumed by _parse_function_call
++        # Parse the separator expression directly
++        separator = self._parse_expression()
++        # Consume the closing ')'
++        self._match_r_paren()
++        # Then parse the column argument in the second ()
++        params = self._parse_func_params()
++        if params:
++            return self.expression(exp.GroupConcat, this=params[0], separator=separator)
++        # Fallback if no params (shouldn't happen with valid syntax)
++        return self.expression(exp.GroupConcat, this=separator)
++
+     def _parse_wrapped_id_vars(self, optional: bool = False) -> list[exp.Expr]:
+         return super()._parse_wrapped_id_vars(optional=True)
+ 
+diff --git a/tests/dialects/test_groupconcat_param.py b/tests/dialects/test_groupconcat_param.py
+new file mode 100644
+index 00000000..0f0d8999
+--- /dev/null
++++ b/tests/dialects/test_groupconcat_param.py
+@@ -0,0 +1,18 @@
++import sqlglot
++from sqlglot import exp
++
++
++def test_clickhouse_parametric_group_concat():
++    sql = "SELECT groupConcat(', ')(part_name) FROM system.parts"
++    parsed = sqlglot.parse_one(sql, read="clickhouse")
++
++    gc = parsed.find(exp.GroupConcat)
++    assert gc is not None, "expected a GroupConcat expression"
++    assert gc.this is not None, "GroupConcat.this is None"
++    assert gc.this.name == "part_name", f"this.name={gc.this.name!r}"
++    sep = gc.args.get("separator")
++    assert sep is not None, "separator arg is None"
++    assert sep.name == ", ", f"separator.name={sep.name!r}"
++
++    out = parsed.sql(dialect="clickhouse")
++    assert out == sql, f"round-trip failed: {out!r} != {sql!r}"

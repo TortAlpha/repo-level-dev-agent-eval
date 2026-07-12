@@ -1,0 +1,108 @@
+diff --git a/src/pluggy/_hooks.py b/src/pluggy/_hooks.py
+index 7fde78c..7604ff3 100644
+--- a/src/pluggy/_hooks.py
++++ b/src/pluggy/_hooks.py
+@@ -440,11 +440,15 @@ class HookCaller:
+         return self._call_history is not None
+ 
+     def _remove_plugin(self, plugin: _Plugin) -> None:
+-        for i, method in enumerate(self._hookimpls):
+-            if method.plugin == plugin:
++        original_len = len(self._hookimpls)
++        i = 0
++        while i < len(self._hookimpls):
++            if self._hookimpls[i].plugin == plugin:
+                 del self._hookimpls[i]
+-                return
+-        raise ValueError(f"plugin {plugin!r} not found")
++                continue
++            i += 1
++        if len(self._hookimpls) == original_len:
++            raise ValueError(f"plugin {plugin!r} not found")
+ 
+     def get_hookimpls(self) -> list[HookImpl]:
+         """Get all registered hook implementations for this hook."""
+diff --git a/src/pluggy/_manager.py b/src/pluggy/_manager.py
+index 1b994f2..5a149ee 100644
+--- a/src/pluggy/_manager.py
++++ b/src/pluggy/_manager.py
+@@ -440,11 +440,16 @@ class PluginManager:
+         """
+         if self.get_name(plugin) is None:
+             return None
+-        hookcallers = []
++        hookcallers: list[HookCaller] = []
++        seen_hookcallers: set[HookCaller] = set()
+         for hookcaller in self.hook.__dict__.values():
+             for hookimpl in hookcaller.get_hookimpls():
+                 if hookimpl.plugin is plugin:
++                    if hookcaller in seen_hookcallers:
++                        break
++                    seen_hookcallers.add(hookcaller)
+                     hookcallers.append(hookcaller)
++                    break
+         return hookcallers
+ 
+     def add_hookcall_monitoring(
+diff --git a/testing/test_pluginmanager.py b/testing/test_pluginmanager.py
+index f80b1b5..05e65df 100644
+--- a/testing/test_pluginmanager.py
++++ b/testing/test_pluginmanager.py
+@@ -575,6 +575,57 @@ def test_get_hookcallers(pm: PluginManager) -> None:
+     assert pm.get_hookcallers(object()) is None
+ 
+ 
++def test_unregister_plugin_with_multiple_hookimpls(pm: PluginManager) -> None:
++    class Hooks:
++        @hookspec
++        def he_multiimpl(self, value: int) -> int:
++            return value
++
++    pm.add_hookspecs(Hooks)
++
++    class Plugin:
++        @hookimpl
++        def he_multiimpl(self, value: int) -> int:
++            return value + 1
++
++        @hookimpl(specname="he_multiimpl")
++        def he_multiimpl_alias(self, value: int) -> int:
++            return value + 2
++
++    plugin = Plugin()
++    pm.register(plugin)
++    assert len(pm.hook.he_multiimpl.get_hookimpls()) == 2
++
++    pm.unregister(plugin)
++    assert pm.hook.he_multiimpl.get_hookimpls() == []
++    assert pm.get_hookcallers(plugin) is None
++
++
++def test_get_hookcallers_dedups_multiple_impls(pm: PluginManager) -> None:
++    class Hooks:
++        @hookspec
++        def he_multiimpl(self, value: int) -> int:
++            return value
++
++    pm.add_hookspecs(Hooks)
++
++    class Plugin:
++        @hookimpl
++        def he_multiimpl(self, value: int) -> int:
++            return value + 1
++
++        @hookimpl(specname="he_multiimpl")
++        def he_multiimpl_alias(self, value: int) -> int:
++            return value + 2
++
++    plugin = Plugin()
++    pm.register(plugin)
++
++    hookcallers = pm.get_hookcallers(plugin)
++    assert hookcallers is not None
++    assert hookcallers == [pm.hook.he_multiimpl]
++
++
+ def test_add_hookspecs_nohooks(pm: PluginManager) -> None:
+     class NoHooks:
+         pass

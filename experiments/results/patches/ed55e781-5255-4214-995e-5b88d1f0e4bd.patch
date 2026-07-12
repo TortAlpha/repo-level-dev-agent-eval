@@ -1,0 +1,12 @@
+diff --git a/sqlparse/keywords.py b/sqlparse/keywords.py
+index cd17d63..f67d0d8 100644
+--- a/sqlparse/keywords.py
++++ b/sqlparse/keywords.py
+@@ -90,6 +90,7 @@ SQL_REGEX = {
+          tokens.Keyword),
+         (r"(AT|WITH')\s+TIME\s+ZONE\s+'[^']+'", tokens.Keyword.TZCast),
+         (r'(NOT\s+)?(LIKE|ILIKE|RLIKE)\b', tokens.Operator.Comparison),
++        (r'\bDIV\b', tokens.Operator),
+         (r'[0-9_A-ZÀ-Ü][_$#\w]*', is_keyword),
+         (r'[;:()\[\],\.]', tokens.Punctuation),
+         (r'[<>=~!]+', tokens.Operator.Comparison),

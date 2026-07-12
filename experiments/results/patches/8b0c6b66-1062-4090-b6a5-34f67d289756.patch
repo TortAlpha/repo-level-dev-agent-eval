@@ -1,0 +1,43 @@
+diff --git a/sqlparse/engine/grouping.py b/sqlparse/engine/grouping.py
+index d250e18..86d9394 100644
+--- a/sqlparse/engine/grouping.py
++++ b/sqlparse/engine/grouping.py
+@@ -343,11 +343,11 @@ def group_functions(tlist):
+     has_table = False
+     has_as = False
+     for tmp_token in tlist.tokens:
+-        if tmp_token.value == 'CREATE':
++        if tmp_token.value.upper() == 'CREATE':
+             has_create = True
+-        if tmp_token.value == 'TABLE':
++        if tmp_token.value.upper() == 'TABLE':
+             has_table = True
+-        if tmp_token.value == 'AS':
++        if tmp_token.value.upper() == 'AS':
+             has_as = True
+     if has_create and has_table and not has_as:
+         return
+diff --git a/tests/test_grouping.py b/tests/test_grouping.py
+index 8c034f9..33ac0f4 100644
+--- a/tests/test_grouping.py
++++ b/tests/test_grouping.py
+@@ -329,6 +329,19 @@ def test_grouping_alias_ctas():
+     assert p.tokens[10].get_alias() == 'col1'
+     assert isinstance(p.tokens[10].tokens[0], sql.Function)
+ 
++
++@pytest.mark.parametrize('stmt', [
++    'create table foo (id integer, name text)',
++    'Create Table foo (id integer, name text)',
++])
++def test_grouping_create_table_case_insensitive(stmt):
++    # see issue642
++    expected = sqlparse.parse('CREATE TABLE foo (id integer, name text)')[0]
++    actual = sqlparse.parse(stmt)[0]
++    assert [type(t).__name__ for t in actual.tokens] == [
++        type(t).__name__ for t in expected.tokens]
++    assert str(actual) == stmt
++
+ def test_grouping_subquery_no_parens():
+     # Not totally sure if this is the right approach...
+     # When a THEN clause contains a subquery w/o parenthesis around it *and*

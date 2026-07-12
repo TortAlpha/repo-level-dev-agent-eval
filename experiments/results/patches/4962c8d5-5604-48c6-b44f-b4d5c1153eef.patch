@@ -1,0 +1,13 @@
+diff --git a/tests/test_parse.py b/tests/test_parse.py
+index 84071c6..8c52c04 100644
+--- a/tests/test_parse.py
++++ b/tests/test_parse.py
+@@ -6,7 +6,7 @@ See the end of the source file for the license of use.
+ """
+ 
+ import unittest
+-from datetime import datetime, time
++from datetime import date, datetime, time
+ from decimal import Decimal
+ import pickle
+ import re

@@ -1,0 +1,15 @@
+diff --git a/src/cachetools/_cachedmethod.py b/src/cachetools/_cachedmethod.py
+index cdf63d4..e14a7b9 100644
+--- a/src/cachetools/_cachedmethod.py
++++ b/src/cachetools/_cachedmethod.py
+@@ -78,6 +78,10 @@ class _DescriptorBase:
+     def __get__(self, obj, objtype=None):
+         wrapper = self.Wrapper(obj)
+         if self.__attrname is not None:
++            if obj is None:
++                # class access (e.g. introspection by `unittest.mock` autospec):
++                # there is no instance to cache the wrapper on, so return it as is
++                return wrapper
+             # replace descriptor instance with wrapper in instance dict
+             try:
+                 # In case of a race condition where another thread already replaced

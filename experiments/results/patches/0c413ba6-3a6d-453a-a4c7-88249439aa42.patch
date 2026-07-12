@@ -1,0 +1,12 @@
+diff --git a/more_itertools/more.py b/more_itertools/more.py
+index 12b4942..8b0bef2 100755
+--- a/more_itertools/more.py
++++ b/more_itertools/more.py
+@@ -29,6 +29,7 @@ from random import random, randrange, shuffle, uniform
+ from operator import (
+     attrgetter,
+     getitem,
++    index,
+     is_not,
+     itemgetter,
+     lt,

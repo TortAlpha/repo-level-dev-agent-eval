@@ -1,0 +1,101 @@
+diff --git a/src/pluggy/_hooks.py b/src/pluggy/_hooks.py
+index 7fde78c..af71c93 100644
+--- a/src/pluggy/_hooks.py
++++ b/src/pluggy/_hooks.py
+@@ -440,11 +440,12 @@ class HookCaller:
+         return self._call_history is not None
+ 
+     def _remove_plugin(self, plugin: _Plugin) -> None:
+-        for i, method in enumerate(self._hookimpls):
+-            if method.plugin == plugin:
+-                del self._hookimpls[i]
+-                return
+-        raise ValueError(f"plugin {plugin!r} not found")
++        hookimpls = [
++            method for method in self._hookimpls if method.plugin != plugin
++        ]
++        if len(hookimpls) == len(self._hookimpls):
++            raise ValueError(f"plugin {plugin!r} not found")
++        self._hookimpls = hookimpls
+ 
+     def get_hookimpls(self) -> list[HookImpl]:
+         """Get all registered hook implementations for this hook."""
+diff --git a/src/pluggy/_manager.py b/src/pluggy/_manager.py
+index 1b994f2..60cbe04 100644
+--- a/src/pluggy/_manager.py
++++ b/src/pluggy/_manager.py
+@@ -440,11 +440,14 @@ class PluginManager:
+         """
+         if self.get_name(plugin) is None:
+             return None
+-        hookcallers = []
++        hookcallers: list[HookCaller] = []
+         for hookcaller in self.hook.__dict__.values():
++            if hookcaller in hookcallers:
++                continue
+             for hookimpl in hookcaller.get_hookimpls():
+                 if hookimpl.plugin is plugin:
+                     hookcallers.append(hookcaller)
++                    break
+         return hookcallers
+ 
+     def add_hookcall_monitoring(
+diff --git a/testing/test_pluginmanager.py b/testing/test_pluginmanager.py
+index f80b1b5..e00b01c 100644
+--- a/testing/test_pluginmanager.py
++++ b/testing/test_pluginmanager.py
+@@ -575,6 +575,54 @@ def test_get_hookcallers(pm: PluginManager) -> None:
+     assert pm.get_hookcallers(object()) is None
+ 
+ 
++def test_unregister_removes_all_implementations_on_same_hook(pm: PluginManager) -> None:
++    class Hooks:
++        @hookspec
++        def he_method(self): ...
++
++    pm.add_hookspecs(Hooks)
++
++    class Plugin:
++        @hookimpl
++        def he_method(self): ...
++
++        @hookimpl(specname="he_method")
++        def other_method(self): ...
++
++    plugin = Plugin()
++    pm.register(plugin)
++
++    hookcaller = pm.hook.he_method
++    assert len(hookcaller.get_hookimpls()) == 2
++
++    pm.unregister(plugin)
++    assert len(hookcaller.get_hookimpls()) == 0
++
++
++def test_get_hookcallers_no_duplicates_for_multiple_implementations(
++    pm: PluginManager,
++) -> None:
++    class Hooks:
++        @hookspec
++        def he_method(self): ...
++
++    pm.add_hookspecs(Hooks)
++
++    class Plugin:
++        @hookimpl
++        def he_method(self): ...
++
++        @hookimpl(specname="he_method")
++        def other_method(self): ...
++
++    plugin = Plugin()
++    pm.register(plugin)
++
++    hookcallers = pm.get_hookcallers(plugin)
++    assert hookcallers is not None
++    assert len(hookcallers) == 1
++
++
+ def test_add_hookspecs_nohooks(pm: PluginManager) -> None:
+     class NoHooks:
+         pass

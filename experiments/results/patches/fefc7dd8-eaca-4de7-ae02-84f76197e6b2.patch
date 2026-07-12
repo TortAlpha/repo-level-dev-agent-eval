@@ -1,0 +1,82 @@
+diff --git a/qutebrowser/config/configfiles.py b/qutebrowser/config/configfiles.py
+index 542e66eea..9ed89e9ef 100644
+--- a/qutebrowser/config/configfiles.py
++++ b/qutebrowser/config/configfiles.py
+@@ -27,6 +27,7 @@ import textwrap
+ import traceback
+ import configparser
+ import contextlib
++import enum
+ import re
+ from typing import (TYPE_CHECKING, Any, Dict, Iterable, Iterator, List, Mapping,
+                     MutableMapping, Optional, cast)
+@@ -51,6 +52,52 @@ state = cast('StateConfig', None)
+ _SettingsType = Dict[str, Dict[str, Any]]
+ 
+ 
++class VersionChange(enum.Enum):
++
++    """Represents the type of version change when comparing two versions."""
++
++    unknown = 0
++    equal = 1
++    downgrade = 2
++    patch = 3
++    minor = 4
++    major = 5
++
++    def matches_filter(self, filterstr: str) -> bool:
++        """Whether this version change matches the given changelog filter.
++
++        The filter is a comma-separated list of version change types, or
++        'major'/'minor'/'patch'/'none'/'all'. 'major' matches major, minor and
++        patch; 'minor' matches minor and patch; 'patch' matches only patch.
++        """
++        if filterstr == 'all':
++            return self not in (VersionChange.equal, VersionChange.unknown)
++        if filterstr == 'none':
++            return False
++        filters = [f.strip() for f in filterstr.split(',')]
++        for filt in filters:
++            if filt == 'major':
++                if self in (VersionChange.major, VersionChange.minor,
++                            VersionChange.patch):
++                    return True
++            elif filt == 'minor':
++                if self in (VersionChange.minor, VersionChange.patch):
++                    return True
++            elif filt == 'patch':
++                if self == VersionChange.patch:
++                    return True
++            elif filt == 'downgrade':
++                if self == VersionChange.downgrade:
++                    return True
++            elif filt == 'equal':
++                if self == VersionChange.equal:
++                    return True
++            elif filt == 'unknown':
++                if self == VersionChange.unknown:
++                    return True
++        return False
++
++
+ class StateConfig(configparser.ConfigParser):
+ 
+     """The "state" file saving various application state."""
+@@ -64,15 +111,7 @@ class StateConfig(configparser.ConfigParser):
+         # We handle this here, so we can avoid setting qt_version_changed if
+         # the config is brand new, but can still set it when qt_version wasn't
+         # there before...
+-        if 'general' in self:
+-            old_qt_version = self['general'].get('qt_version', None)
+-            old_qutebrowser_version = self['general'].get('version', None)
+-            self.qt_version_changed = old_qt_version != qt_version
+-            self.qutebrowser_version_changed = (
+-                old_qutebrowser_version != qutebrowser.__version__)
+-        else:
+-            self.qt_version_changed = False
+-            self.qutebrowser_version_changed = False
++        self._set_changed_attributes(qt_version)
+ 
+         for sect in ['general', 'geometry', 'inspector']:
+             try:

@@ -1,0 +1,75 @@
+diff --git a/more_itertools/recipes.py b/more_itertools/recipes.py
+index 9f46be3..52a79f5 100644
+--- a/more_itertools/recipes.py
++++ b/more_itertools/recipes.py
+@@ -1408,6 +1408,70 @@ def running_median(iterable, *, maxlen=None):
+     return _running_median_minheap_and_maxheap(iterator)  # pragma: no cover
+ 
+ 
++def _running_extreme(iterator, *, maxlen, extreme_compare):
++    if maxlen is None:
++        extreme_value = None
++        has_extreme = False
++        for value in iterator:
++            if not has_extreme or extreme_compare(value, extreme_value):
++                extreme_value = value
++                has_extreme = True
++            yield extreme_value
++        return
++
++    maxlen = index(maxlen)
++    if maxlen <= 0:
++        raise ValueError('Window size should be positive')
++
++    window = deque()
++    candidates = deque()
++
++    for value in iterator:
++        window.append(value)
++        while candidates and extreme_compare(value, candidates[-1]):
++            candidates.pop()
++        candidates.append(value)
++
++        if len(window) > maxlen:
++            expired = window.popleft()
++            if candidates and candidates[0] == expired:
++                candidates.popleft()
++
++        yield candidates[0]
++
++
++def running_min(iterable, *, maxlen=None):
++    """Yield the running minimum of *iterable*.
++
++    With the default of *maxlen=None*, the function yields the minimum
++    value seen so far.  When *maxlen* is provided, the minimum is taken over
++    a sliding window of the last *maxlen* values.  The window size must be
++    positive when provided.
++
++    >>> list(running_min([8.5, 9.5, 7.5, 6.5]))
++    [8.5, 8.5, 7.5, 6.5]
++    >>> list(running_min([5, 2, 4, 2], maxlen=3))
++    [5, 2, 2, 2]
++    """
++    return _running_extreme(iter(iterable), maxlen=maxlen, extreme_compare=lt)
++
++
++def running_max(iterable, *, maxlen=None):
++    """Yield the running maximum of *iterable*.
++
++    With the default of *maxlen=None*, the function yields the maximum
++    value seen so far.  When *maxlen* is provided, the maximum is taken over
++    a sliding window of the last *maxlen* values.  The window size must be
++    positive when provided.
++
++    >>> list(running_max([8.5, 9.5, 7.5, 6.5]))
++    [8.5, 9.5, 9.5, 9.5]
++    >>> list(running_max([5, 2, 4, 2], maxlen=3))
++    [5, 5, 5, 4]
++    """
++    return _running_extreme(iter(iterable), maxlen=maxlen, extreme_compare=gt)
++
++
+ def running_mean(iterable):
+     """Yield the average of all values seen so far.
+ 

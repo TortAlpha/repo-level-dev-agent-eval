@@ -1,0 +1,19 @@
+diff --git a/sqlglot/expressions/core.py b/sqlglot/expressions/core.py
+index 6cb0ee81..fd1d2e3f 100644
+--- a/sqlglot/expressions/core.py
++++ b/sqlglot/expressions/core.py
+@@ -728,6 +728,14 @@ class Expression(Expr):
+         """
+         return deepcopy(self)
+ 
++    def pipe(self, func: t.Callable[..., T], *args: t.Any, **kwargs: t.Any) -> T:
++        """Passes the expression to ``func`` as the first argument."""
++        return func(self, *args, **kwargs)
++
++    def apply(self, func: t.Callable[..., T], *args: t.Any, **kwargs: t.Any) -> T:
++        """Passes the expression to ``func`` as the last argument."""
++        return func(*args, self, **kwargs)
++
+     def add_comments(self, comments: t.Optional[t.List[str]] = None, prepend: bool = False) -> None:
+         if self.comments is None:
+             self.comments = []

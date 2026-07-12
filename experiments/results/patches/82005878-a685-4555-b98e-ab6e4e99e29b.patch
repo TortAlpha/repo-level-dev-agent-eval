@@ -1,0 +1,19 @@
+diff --git a/sqlparse/engine/grouping.py b/sqlparse/engine/grouping.py
+index d250e18..79d83d2 100644
+--- a/sqlparse/engine/grouping.py
++++ b/sqlparse/engine/grouping.py
+@@ -343,11 +343,11 @@ def group_functions(tlist):
+     has_table = False
+     has_as = False
+     for tmp_token in tlist.tokens:
+-        if tmp_token.value == 'CREATE':
++        if tmp_token.normalized == 'CREATE':
+             has_create = True
+-        if tmp_token.value == 'TABLE':
++        if tmp_token.normalized == 'TABLE':
+             has_table = True
+-        if tmp_token.value == 'AS':
++        if tmp_token.normalized == 'AS':
+             has_as = True
+     if has_create and has_table and not has_as:
+         return

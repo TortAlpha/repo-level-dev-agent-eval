@@ -1,0 +1,175 @@
+diff --git a/sqlparse/sql.py b/sqlparse/sql.py
+index def0679..81cbc41 100644
+--- a/sqlparse/sql.py
++++ b/sqlparse/sql.py
+@@ -623,7 +623,16 @@ class Function(NameAliasMixin, TokenList):
+ 
+     def get_parameters(self):
+         """Return a list of parameters."""
+-        parenthesis = self.tokens[-1]
++        # Find the parenthesis - it should be the first Parenthesis token
++        parenthesis = None
++        for token in self.tokens:
++            if isinstance(token, Parenthesis):
++                parenthesis = token
++                break
++        
++        if parenthesis is None:
++            return []
++            
+         result = []
+         for token in parenthesis.tokens:
+             if isinstance(token, IdentifierList):
+@@ -633,6 +642,23 @@ class Function(NameAliasMixin, TokenList):
+                 result.append(token)
+         return result
+ 
++    def get_window(self):
++        """Return the window of the function.
++        
++        Returns:
++        - For a named window (foo(5) OVER win1), the window identifier
++        - For an inline window (foo(5) OVER (PARTITION BY c1)), the parenthesised window definition
++        - None when the function has no OVER clause
++        """
++        # Look for an Over clause in the function tokens
++        for token in self.tokens:
++            if isinstance(token, Over):
++                # Find the content after OVER keyword
++                for over_token in token.tokens:
++                    if isinstance(over_token, (Identifier, Parenthesis)):
++                        return over_token
++        return None
++
+ 
+ class Begin(TokenList):
+     """A BEGIN/END block."""
+diff --git a/tests/test_window_functions.py b/tests/test_window_functions.py
+new file mode 100644
+index 0000000..15c47bf
+--- /dev/null
++++ b/tests/test_window_functions.py
+@@ -0,0 +1,123 @@
++import pytest
++import sqlparse
++from sqlparse import sql
++
++
++def test_function_with_named_window():
++    """Test function with named window (foo(5) OVER win1)"""
++    parsed = sqlparse.parse('foo(5) OVER win1')[0]
++    assert len(parsed.tokens) == 1
++    func = parsed.tokens[0]
++    assert isinstance(func, sql.Function)
++    
++    # Test get_parameters() still works
++    params = func.get_parameters()
++    assert len(params) == 1
++    assert params[0].value == '5'
++    
++    # Test get_window() returns the window identifier
++    window = func.get_window()
++    assert window is not None
++    assert isinstance(window, sql.Identifier)
++    assert window.get_name() == 'win1'
++
++
++def test_function_with_inline_window():
++    """Test function with inline window (foo(5) OVER (PARTITION BY c1))"""
++    parsed = sqlparse.parse('foo(5) OVER (PARTITION BY c1)')[0]
++    assert len(parsed.tokens) == 1
++    func = parsed.tokens[0]
++    assert isinstance(func, sql.Function)
++    
++    # Test get_parameters() still works
++    params = func.get_parameters()
++    assert len(params) == 1
++    assert params[0].value == '5'
++    
++    # Test get_window() returns the parenthesised window definition
++    window = func.get_window()
++    assert window is not None
++    assert isinstance(window, sql.Parenthesis)
++    assert 'PARTITION BY c1' in str(window)
++
++
++def test_function_without_window():
++    """Test function without OVER clause"""
++    parsed = sqlparse.parse('foo(5)')[0]
++    assert len(parsed.tokens) == 1
++    func = parsed.tokens[0]
++    assert isinstance(func, sql.Function)
++    
++    # Test get_parameters() still works
++    params = func.get_parameters()
++    assert len(params) == 1
++    assert params[0].value == '5'
++    
++    # Test get_window() returns None
++    window = func.get_window()
++    assert window is None
++
++
++def test_function_with_multiple_parameters_and_window():
++    """Test function with multiple parameters and window"""
++    parsed = sqlparse.parse('SUM(a, b) OVER (ORDER BY c)')[0]
++    assert len(parsed.tokens) == 1
++    func = parsed.tokens[0]
++    assert isinstance(func, sql.Function)
++    
++    # Test get_parameters() still works with multiple params
++    params = list(func.get_parameters())
++    assert len(params) == 2
++    
++    # Test get_window() returns the window
++    window = func.get_window()
++    assert window is not None
++    assert isinstance(window, sql.Parenthesis)
++    assert 'ORDER BY c' in str(window)
++
++
++def test_complex_window_function():
++    """Test complex window function with ROWS clause"""
++    sql_text = 'ROW_NUMBER() OVER (PARTITION BY dept ORDER BY salary DESC ROWS UNBOUNDED PRECEDING)'
++    parsed = sqlparse.parse(sql_text)[0]
++    assert len(parsed.tokens) == 1
++    func = parsed.tokens[0]
++    assert isinstance(func, sql.Function)
++    
++    # Test get_parameters() - empty for ROW_NUMBER()
++    params = func.get_parameters()
++    assert len(params) == 0
++    
++    # Test get_window() returns the complex window definition
++    window = func.get_window()
++    assert window is not None
++    assert isinstance(window, sql.Parenthesis)
++    window_str = str(window)
++    assert 'PARTITION BY dept' in window_str
++    assert 'ORDER BY salary DESC' in window_str
++    assert 'ROWS UNBOUNDED PRECEDING' in window_str
++
++
++def test_window_function_in_select():
++    """Test window function within a SELECT statement"""
++    sql_text = 'SELECT id, SUM(amount) OVER (PARTITION BY category) FROM sales'
++    parsed = sqlparse.parse(sql_text)[0]
++    
++    # Find the function in the identifier list
++    func = None
++    for token in parsed.flatten():
++        if isinstance(token, sql.Function):
++            func = token
++            break
++    
++    assert func is not None
++    
++    # Test get_parameters()
++    params = func.get_parameters()
++    assert len(params) == 1
++    assert str(params[0]) == 'amount'
++    
++    # Test get_window()
++    window = func.get_window()
++    assert window is not None
++    assert 'PARTITION BY category' in str(window)
