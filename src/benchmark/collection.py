@@ -16,6 +16,7 @@ class HiddenTestSuite:
     name: str
     command: str
     required: bool
+    reuse_visible_result: bool = False
 
 
 @dataclass
@@ -36,6 +37,9 @@ class TaskSpec:
     base_commit: str
     task_status: str
     setup_commands: list[str]
+    # Optional per-task Docker image (e.g. SWE-bench Pro prebuilt envs);
+    # empty -> the configured default image.
+    docker_image: str
 
     @classmethod
     def from_row(cls, row: dict[str, str]) -> TaskSpec:
@@ -55,6 +59,7 @@ class TaskSpec:
             else Path(),
             base_commit=row.get("base_commit", ""),
             task_status=row.get("task_status", ""),
+            docker_image=row.get("docker_image", ""),
             # Per-task container setup (e.g. SETUPTOOLS_SCM_PRETEND_VERSION or
             # extra test deps), ';'-separated. Empty -> evaluator defaults.
             setup_commands=[
@@ -87,6 +92,19 @@ class TaskSpec:
                     required=True,
                 )
             )
+        elif self._uses_derived_visible_compat():
+            # Local PR tasks predate the semantic/compat split. Their full
+            # visible suite is already a validated regression oracle, so use
+            # its post-run result as an explicit compatibility requirement
+            # instead of inventing unreviewed hidden behavior.
+            suites.append(
+                HiddenTestSuite(
+                    "hidden_compat",
+                    self.visible_test_command,
+                    required=True,
+                    reuse_visible_result=True,
+                )
+            )
         if self.hidden_pr_parity_test_command:
             suites.append(
                 HiddenTestSuite(
@@ -100,6 +118,18 @@ class TaskSpec:
         if self.hidden_test_command:
             return [HiddenTestSuite("hidden", self.hidden_test_command, required=True)]
         return []
+
+    def _uses_derived_visible_compat(self) -> bool:
+        """Whether an older local PR task gets a compatibility baseline.
+
+        SWE-bench Pro already supplies an explicit fail-to-pass/pass-to-pass
+        division and must remain byte-for-byte as imported.
+        """
+        return (
+            self.task_status.startswith("pr_task_")
+            and not self.task_id.startswith("swepro_")
+            and bool(self.visible_test_command)
+        )
 
     def required_hidden_suites(self) -> list[HiddenTestSuite]:
         return [suite for suite in self.hidden_suites() if suite.required]

@@ -59,7 +59,11 @@ def clean_workspace_repo(repo_dir: Path, workspaces_dir: Path) -> None:
         raise ValueError(f"refusing to clean repo outside workspaces_dir: {repo}")
     for command in (
         ["git", "-C", str(repo), "reset", "--hard", "HEAD"],
-        ["git", "-C", str(repo), "clean", "-fdx"],
+        # -e: per-task test runners (SWE-bench Pro importer) live untracked
+        # and git-excluded in the checkout; the agent and the evaluator both
+        # invoke them, so cleanup must not sweep them away.
+        ["git", "-C", str(repo), "clean", "-fdx",
+         "-e", "run_tests.sh", "-e", "run_tests_checked.sh"],
     ):
         result = subprocess.run(
             command,

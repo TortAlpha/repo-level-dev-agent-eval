@@ -1,0 +1,128 @@
+{
+  "id": "final-v1",
+  "version": 1,
+  "frozen_at": "2026-07-12",
+  "primary_metric": "task_success",
+  "groups": {
+    "core_small": [
+      "h11_pr_181",
+      "humanize_pr_329",
+      "pluggy_pr_646",
+      "w3lib_pr_272",
+      "parse_pr_165",
+      "parse_pr_227",
+      "cachetools_pr_57d2e48",
+      "tinydb_pr_616",
+      "python_dotenv_pr_640",
+      "tenacity_pr_628",
+      "freezegun_pr_546",
+      "croniter_pr_235"
+    ],
+    "core_medium": [
+      "toolz_pr_603",
+      "markdown_pr_1606",
+      "markdown_pr_1546",
+      "sqlparse_pr_642",
+      "sqlparse_pr_749",
+      "sqlparse_pr_579",
+      "sqlparse_pr_746",
+      "sqlparse_pr_664",
+      "more_itertools_pr_1166",
+      "more_itertools_pr_1153",
+      "boltons_pr_403",
+      "pydash_pr_cdd84b4"
+    ],
+    "local_large": [
+      "sqlglot_pr_7660486c",
+      "sqlglot_pr_45931d44"
+    ],
+    "swepro_ansible": [
+      "swepro_ansible_11c1777d",
+      "swepro_ansible_a6e671db",
+      "swepro_ansible_9a21e247",
+      "swepro_ansible_d62496fe",
+      "swepro_ansible_77658704"
+    ],
+    "swepro_openlibrary": [
+      "swepro_openlibrary_2abe28b4",
+      "swepro_openlibrary_43f9e7e0",
+      "swepro_openlibrary_6afdb09d",
+      "swepro_openlibrary_9cd47f4d",
+      "swepro_openlibrary_7f7e53aa"
+    ],
+    "swepro_qutebrowser": [
+      "swepro_qutebrowser_50efac08",
+      "swepro_qutebrowser_54bcdc1e",
+      "swepro_qutebrowser_44e64199",
+      "swepro_qutebrowser_3e21c821",
+      "swepro_qutebrowser_36ade4bb"
+    ]
+  },
+  "matrices": {
+    "core-small": {
+      "groups": ["core_small"],
+      "agents": ["single", "single-decomposed", "multi-graph", "multi-orch-guarded"]
+    },
+    "core-medium": {
+      "groups": ["core_medium"],
+      "agents": ["single", "single-decomposed", "multi-graph", "multi-orch-guarded"]
+    },
+    "core-all": {
+      "groups": ["core_small", "core_medium"],
+      "agents": ["single", "single-decomposed", "multi-graph", "multi-orch-guarded"]
+    },
+    "local-large": {
+      "groups": ["local_large"],
+      "agents": ["single", "single-decomposed", "multi-graph", "multi-orch-guarded"]
+    },
+    "swepro-ansible": {
+      "groups": ["swepro_ansible"],
+      "agents": ["single", "single-decomposed", "multi-graph"]
+    },
+    "swepro-openlibrary": {
+      "groups": ["swepro_openlibrary"],
+      "agents": ["single", "single-decomposed", "multi-graph"]
+    },
+    "swepro-qutebrowser": {
+      "groups": ["swepro_qutebrowser"],
+      "agents": ["single", "single-decomposed", "multi-graph"]
+    },
+    "swepro-guarded-smoke": {
+      "tasks": [
+        "swepro_openlibrary_2abe28b4",
+        "swepro_ansible_11c1777d",
+        "swepro_qutebrowser_50efac08"
+      ],
+      "agents": ["multi-orch-guarded"]
+    }
+  },
+  "previously_exercised": [
+    "h11_pr_181",
+    "humanize_pr_329",
+    "pluggy_pr_646",
+    "w3lib_pr_272",
+    "parse_pr_165",
+    "parse_pr_227",
+    "cachetools_pr_57d2e48",
+    "tinydb_pr_616",
+    "python_dotenv_pr_640",
+    "toolz_pr_603",
+    "markdown_pr_1606",
+    "markdown_pr_1546",
+    "sqlparse_pr_642",
+    "sqlparse_pr_746",
+    "sqlparse_pr_664",
+    "more_itertools_pr_1166",
+    "more_itertools_pr_1153",
+    "boltons_pr_403",
+    "pydash_pr_cdd84b4",
+    "sqlglot_pr_7660486c",
+    "swepro_openlibrary_2abe28b4"
+  ],
+  "calibration_excluded": [
+    "sqlparse_pr_768",
+    "sqlglot_pr_ed58b9bd",
+    "more_itertools_pr_1135",
+    "more_itertools_pr_1135_stats"
+  ]
+}

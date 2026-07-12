@@ -329,7 +329,10 @@ Column meanings:
 - `hidden_semantic_test_command`: hidden tests that directly follow from
   `task.md`; these count toward task success.
 - `hidden_compat_test_command`: hidden tests for preserving existing behavior;
-  these count toward task success.
+  these count toward task success. For pre-existing local PR rows that leave
+  this empty, the evaluator derives the compatibility result from the
+  post-run visible suite. Do not apply that fallback to SWE-bench Pro rows:
+  preserve their imported F2P/P2P split.
 - `hidden_pr_parity_test_command`: hidden tests for exact upstream PR parity
   when the PR added behavior not stated in `task.md`; these are reported
   separately and do not count toward task success.

@@ -7,6 +7,7 @@ agent behavior), so setup/test spans do not pollute the project.
 from __future__ import annotations
 
 import shutil
+import subprocess
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -35,7 +36,92 @@ class EvalResult:
     hidden_pr_parity_passed: bool | None = None
     task_success: bool | None = None
     regressions: int | None = None
+    test_oracle_tampered: bool = False
     hidden_suite_results: dict[str, bool] = field(default_factory=dict)
+
+
+def task_success(
+    visible_passed: bool,
+    hidden_passed: bool,
+    regressions: int | None,
+    test_oracle_tampered: bool = False,
+) -> bool:
+    """Ground-truth success for a submitted patch.
+
+    A green exit code is insufficient when the agent deleted or renamed tests:
+    the before/after JUnit comparison must also retain every baseline pass.
+    ``None`` keeps ``--no-regression`` usable when the check was explicitly
+    disabled.
+    """
+    return (
+        visible_passed
+        and hidden_passed
+        and regressions in (None, 0)
+        and not test_oracle_tampered
+    )
+
+
+_TEST_DIR_NAMES = frozenset({"test", "tests", "testing"})
+
+
+def _is_test_oracle_path(path: str) -> bool:
+    candidate = Path(path)
+    directories = {part.lower() for part in candidate.parts[:-1]}
+    name = candidate.name.lower()
+    return (
+        bool(directories & _TEST_DIR_NAMES)
+        or name.startswith("test_")
+        or name == "conftest.py"
+    )
+
+
+def restore_test_oracle(repo: Path) -> list[str]:
+    """Restore tracked tests from HEAD before scoring and report tampering.
+
+    The agent patch has already been captured when this runs. Restoring here
+    makes the visible suite independent of attempts to delete, replace, or
+    weaken its tracked tests. New untracked regression-test files are kept.
+    """
+    tracked_result = subprocess.run(
+        ["git", "-C", str(repo), "ls-tree", "-r", "--name-only", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=60,
+    )
+    changed_result = subprocess.run(
+        ["git", "-C", str(repo), "diff", "--name-only", "HEAD", "--"],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=60,
+    )
+    if tracked_result.returncode != 0 or changed_result.returncode != 0:
+        return []
+
+    tracked_tests = {
+        path for path in tracked_result.stdout.splitlines()
+        if _is_test_oracle_path(path)
+    }
+    tampered = sorted(
+        path for path in changed_result.stdout.splitlines()
+        if path in tracked_tests
+    )
+    for start in range(0, len(tampered), 200):
+        chunk = tampered[start : start + 200]
+        restored = subprocess.run(
+            ["git", "-C", str(repo), "checkout", "HEAD", "--", *chunk],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=60,
+        )
+        if restored.returncode != 0:
+            raise RuntimeError(
+                "failed to restore protected visible tests:\n"
+                + restored.stderr[-1000:]
+            )
+    return tampered
 
 
 def _sandbox(repo: Path, image: str, network_disabled: bool, timeout: int) -> DockerSandbox:
@@ -46,6 +132,24 @@ def _sandbox(repo: Path, image: str, network_disabled: bool, timeout: int) -> Do
         shell_timeout_seconds=timeout,
         test_timeout_seconds=timeout,
     )
+
+
+def _setup_and_isolate(
+    sandbox: DockerSandbox,
+    setup_commands: list[str],
+    shell_timeout: int,
+    *,
+    isolate_after_setup: bool,
+) -> None:
+    for setup in setup_commands:
+        result = sandbox.run_shell(setup, shell_timeout)
+        if not result.success:
+            raise RuntimeError(
+                f"Benchmark environment setup failed ({setup}):\n"
+                f"{result.output[-1500:]}"
+            )
+    if isolate_after_setup:
+        sandbox.disable_network()
 
 
 def _parse_junit_passing(path: Path) -> set[str]:
@@ -109,13 +213,31 @@ def collect_visible_passing(
 ) -> set[str]:
     """Baseline for the regression metric: visible tests passing on the
     pristine repo, before the agent touches it."""
-    sandbox = _sandbox(repo, docker_image, network_disabled, test_timeout)
+    # Evaluator setup is infrastructure and may use the network. Tests run
+    # with the same post-setup isolation policy as the agent.
+    sandbox = _sandbox(
+        repo,
+        docker_image,
+        network_disabled and not setup_commands,
+        test_timeout,
+    )
     with tracing_context(enabled=False):
         try:
             sandbox.start()
-            for setup in setup_commands:
-                sandbox.run_shell(setup, shell_timeout)
-            _, passing, _ = _run_visible_junit(sandbox, repo, command, test_timeout)
+            _setup_and_isolate(
+                sandbox,
+                setup_commands,
+                shell_timeout,
+                isolate_after_setup=network_disabled,
+            )
+            passed, passing, output = _run_visible_junit(
+                sandbox, repo, command, test_timeout
+            )
+            if not passed:
+                raise RuntimeError(
+                    "Pristine visible benchmark tests failed before the agent:\n"
+                    + output[-2000:]
+                )
             return passing
         finally:
             sandbox.stop()
@@ -145,12 +267,28 @@ def evaluate_solution(
     hidden = task_ws / "hidden_tests"
     result = EvalResult()
 
-    sandbox = _sandbox(repo, docker_image, network_disabled, test_timeout)
+    tampered = restore_test_oracle(repo)
+    result.test_oracle_tampered = bool(tampered)
+    if tampered:
+        print("\n=== Test oracle tampering detected ===")
+        for path in tampered[:20]:
+            print(f"  - {path}")
+
+    sandbox = _sandbox(
+        repo,
+        docker_image,
+        network_disabled and not setup_commands,
+        test_timeout,
+    )
     with tracing_context(enabled=False):
         try:
             sandbox.start()
-            for setup in setup_commands:
-                sandbox.run_shell(setup, shell_timeout)
+            _setup_and_isolate(
+                sandbox,
+                setup_commands,
+                shell_timeout,
+                isolate_after_setup=network_disabled,
+            )
 
             visible_passed, after, visible_output = _run_visible_junit(
                 sandbox, repo, visible_command, test_timeout
@@ -175,16 +313,25 @@ def evaluate_solution(
 
                 required: list[bool] = []
                 for suite in hidden_suites:
-                    command = _repo_relative_hidden_command(suite.command)
-                    hidden_result = sandbox.run_shell(command, test_timeout)
-                    passed = hidden_result.success
+                    if suite.reuse_visible_result:
+                        passed = bool(result.visible_passed)
+                        output = (
+                            "Compatibility result reuses the post-run visible "
+                            "suite; this local PR task has no separately "
+                            "reviewed hidden compatibility fixture."
+                        )
+                    else:
+                        command = _repo_relative_hidden_command(suite.command)
+                        hidden_result = sandbox.run_shell(command, test_timeout)
+                        passed = hidden_result.success
+                        output = hidden_result.output
                     _set_hidden_result(result, suite.name, passed)
                     if suite.required:
                         required.append(passed)
                     verdict = "PASSED" if passed else "FAILED"
                     label = _hidden_suite_label(suite.name)
                     print(f"\n=== {label}: {verdict} ===")
-                    print(hidden_result.output[-2000:])
+                    print(output[-2000:])
 
                 if required:
                     result.hidden_passed = all(required)
@@ -192,7 +339,12 @@ def evaluate_solution(
                     print(f"\n=== Required hidden tests: {verdict} ===")
 
             if result.hidden_passed is not None:
-                result.task_success = bool(result.visible_passed) and result.hidden_passed
+                result.task_success = task_success(
+                    bool(result.visible_passed),
+                    result.hidden_passed,
+                    result.regressions,
+                    result.test_oracle_tampered,
+                )
         finally:
             sandbox.stop()
     return result

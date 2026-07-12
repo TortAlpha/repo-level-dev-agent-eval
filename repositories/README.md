@@ -44,7 +44,11 @@ Additional columns make the collection reproducible and easier to filter:
 - `hidden_semantic_test_command`: hidden tests that directly follow from the
   task description and count toward task success.
 - `hidden_compat_test_command`: hidden tests that check preserved behavior and
-  count toward task success.
+  count toward task success. For an older local PR row with this column empty,
+  the evaluator records the post-run `visible_test_command` as the required
+  compatibility result; this makes the split explicit without inventing
+  unreviewed hidden requirements. SWE-bench Pro rows are never given this
+  fallback because they already carry their imported F2P/P2P split.
 - `hidden_pr_parity_test_command`: hidden tests that check exact upstream PR
   parity but do not count toward task success.
 - `task_status`: current validation status.

@@ -87,6 +87,14 @@ def _copy_repo(src: Path, dest: Path) -> None:
     shutil.copytree(src, dest, symlinks=True, ignore=ignore)
 
 
+def _apply_reference_patch(repo: Path, patch_path: Path) -> None:
+    """Reference state = base + gold patch (SWE-bench-style rows without a
+    merge commit)."""
+    result = _run(["git", "-C", str(repo), "apply", "--whitespace=nowarn", str(patch_path)])
+    if result.returncode != 0:
+        raise RuntimeError(f"reference patch failed to apply:\n{result.stderr.strip()}")
+
+
 def _checkout_reference(repo: Path, merge_commit: str, repo_url: str) -> None:
     """Move a scratch checkout to the reference state, fetching if needed."""
     have = _run(["git", "-C", str(repo), "cat-file", "-e", f"{merge_commit}^{{commit}}"])
@@ -124,7 +132,7 @@ def _run_suites_in_sandbox(
     """Setup + optional visible run + hidden suites in one container."""
     sandbox = DockerSandbox(
         workdir=repo,
-        image=args.docker_image,
+        image=getattr(task, "docker_image", "") or args.docker_image,
         network_disabled=False,
         shell_timeout_seconds=args.shell_timeout,
         test_timeout_seconds=args.test_timeout,
@@ -138,15 +146,24 @@ def _run_suites_in_sandbox(
             result = sandbox.run_shell(setup, args.shell_timeout)
             if not result.success:
                 raise RuntimeError(f"setup failed ({setup}):\n{result.output[-1500:]}")
-        if visible:
+        reuse_visible = any(
+            suite.reuse_visible_result for suite in task.hidden_suites()
+        )
+        if visible or reuse_visible:
             run = sandbox.run_tests(task.visible_test_command)
             visible_passed = run.success
             if not run.success:
                 print(run.output[-1500:])
         _overlay_hidden(hidden, repo)
         for suite in task.hidden_suites():
+            if suite.reuse_visible_result:
+                suite_results[suite.name] = bool(visible_passed)
+                continue
             run = sandbox.run_tests(_repo_relative(suite.command))
             suite_results[suite.name] = run.success
+            if not run.success:
+                print(f"--- {suite.name} failed, output tail ---")
+                print(run.output[-4000:])
     finally:
         sandbox.stop()
     return visible_passed, suite_results
@@ -179,8 +196,13 @@ def validate_task(row: dict[str, str], args: argparse.Namespace) -> TaskVerdict:
 
         # Reference state: every hidden suite must pass.
         _copy_repo(task.repo_path, ref_repo)
-        _checkout_reference(ref_repo, row["merge_commit"], row.get("repo_url", ""))
-        print(f"[{task.task_id}] reference state ({row['merge_commit'][:12]}) ...")
+        reference_patch = task.repo_path.parent / "reference.patch"
+        if not row.get("merge_commit") and reference_patch.exists():
+            _apply_reference_patch(ref_repo, reference_patch.resolve())
+            print(f"[{task.task_id}] reference state (gold patch) ...")
+        else:
+            _checkout_reference(ref_repo, row["merge_commit"], row.get("repo_url", ""))
+            print(f"[{task.task_id}] reference state ({row['merge_commit'][:12]}) ...")
         _, ref_results = _run_suites_in_sandbox(ref_repo, hidden, task, args, visible=False)
 
         for suite in suites:
