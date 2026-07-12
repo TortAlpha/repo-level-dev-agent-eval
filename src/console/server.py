@@ -10,7 +10,7 @@ import sys
 import threading
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -24,14 +24,14 @@ from ..metrics.records import (
     DEFAULT_COLLECTION_PATH,
     DEFAULT_QUALITY_PATH,
     DEFAULT_RUNS_PATH,
-    attach_hidden_suite_fallbacks,
     RunRecord,
+    attach_hidden_suite_fallbacks,
     attach_quality,
     attach_sizes,
     attach_task_types,
+    load_hidden_suite_specs,
     load_quality,
     load_runs,
-    load_hidden_suite_specs,
     load_sizes,
     load_task_types,
 )
@@ -43,7 +43,15 @@ MAX_BODY_BYTES = 64_000
 MAX_LOG_TAIL_CHARS = 20_000
 MAX_PATCH_CHARS = 200_000
 PROVIDERS = {"local", "openrouter"}
-AGENTS = ("single", "swe-agent", "multi")
+AGENTS = (
+    "single",
+    "swe-agent",
+    "multi-graph",
+    "multi-orch",
+    "multi-orch-guided",
+    "multi-orch-guarded",
+    "multi-swe",
+)
 ACTION_TRANSPORTS = ("text_json", "tools", "auto")
 REASONING_EFFORTS = ("low", "medium", "high")
 # Suggested models for the launcher (free text still allowed).
@@ -188,9 +196,7 @@ class ConsoleHandler(BaseHTTPRequestHandler):
         try:
             if path == "/api/jobs":
                 payload = self._read_json()
-                self._send_json(
-                    self.server.jobs.start_job(payload), HTTPStatus.CREATED
-                )
+                self._send_json(self.server.jobs.start_job(payload), HTTPStatus.CREATED)
             elif path == "/api/sweeps":
                 payload = self._read_json()
                 self._send_json(
@@ -215,7 +221,9 @@ class ConsoleHandler(BaseHTTPRequestHandler):
     def _read_json(self) -> dict:
         length = int(self.headers.get("Content-Length") or "0")
         if length > MAX_BODY_BYTES:
-            raise ApiError("request body is too large", HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+            raise ApiError(
+                "request body is too large", HTTPStatus.REQUEST_ENTITY_TOO_LARGE
+            )
         body = self.rfile.read(length).decode("utf-8") if length else "{}"
         try:
             data = json.loads(body)
@@ -259,7 +267,10 @@ class ConsoleHandler(BaseHTTPRequestHandler):
 
         rel = unquote(raw_path).lstrip("/") or "index.html"
         candidate = (static_dir / rel).resolve()
-        if not candidate.is_relative_to(static_dir.resolve()) or not candidate.is_file():
+        if (
+            not candidate.is_relative_to(static_dir.resolve())
+            or not candidate.is_file()
+        ):
             candidate = static_dir / "index.html"
 
         content = candidate.read_bytes()
@@ -299,6 +310,9 @@ class JobStore:
     def list_jobs(self) -> list[dict]:
         with self._lock:
             jobs = [self._refresh(self._read_job(path)) for path in self._job_files()]
+        for job in jobs:
+            if job.get("status") == "running":
+                job["log_tail"] = tail(Path(job["log_path"]), MAX_LOG_TAIL_CHARS)
         return sorted(jobs, key=lambda item: item.get("started_at", ""), reverse=True)
 
     def get_job(self, job_id: str) -> dict:
@@ -309,32 +323,46 @@ class JobStore:
 
     def start_job(self, payload: dict) -> dict:
         command = self._command_from_payload(payload)
-        return self._spawn(command, {
-            "kind": "run",
-            "task_id": clean_required_str(payload.get("task_id"), "task_id"),
-            "provider": payload.get("provider") or "openrouter",
-            "model": clean_optional_str(payload.get("model")),
-            "agent": clean_optional_str(payload.get("agent")),
-            "action_transport": clean_optional_str(payload.get("action_transport")),
-            "reasoning_effort": clean_optional_str(payload.get("reasoning_effort")),
-            "session": clean_optional_str(payload.get("session")),
-            "dry_run": bool(payload.get("dry_run", False)),
-        })
+        return self._spawn(
+            command,
+            {
+                "kind": "run",
+                "task_id": clean_required_str(payload.get("task_id"), "task_id"),
+                "provider": payload.get("provider") or "openrouter",
+                "model": clean_optional_str(payload.get("model")),
+                "agent": clean_optional_str(payload.get("agent")),
+                "action_transport": clean_optional_str(payload.get("action_transport")),
+                "reasoning_effort": clean_optional_str(payload.get("reasoning_effort")),
+                "session": clean_optional_str(payload.get("session")),
+                "dry_run": bool(payload.get("dry_run", False)),
+            },
+        )
 
     def start_sweep(self, payload: dict) -> dict:
         """One job that sweeps tasks x models x agents into a session."""
         command = self._command_from_sweep(payload)
-        return self._spawn(command, {
-            "kind": "sweep",
-            "task_id": clean_optional_str(payload.get("tasks")) or "all",
-            "provider": payload.get("provider") or "openrouter",
-            "model": clean_optional_str(payload.get("models")),
-            "agent": clean_optional_str(payload.get("agents")) or "single",
-            "action_transport": clean_optional_str(payload.get("action_transport")),
-            "reasoning_effort": clean_optional_str(payload.get("reasoning_effort")),
-            "session": clean_optional_str(payload.get("session")),
-            "dry_run": False,
-        })
+        return self._spawn(
+            command,
+            {
+                "kind": "sweep",
+                "task_id": (
+                    clean_optional_str(payload.get("matrix"))
+                    or clean_optional_str(payload.get("tasks"))
+                    or "all"
+                ),
+                "provider": payload.get("provider") or "openrouter",
+                "model": clean_optional_str(payload.get("models")),
+                "agent": (
+                    clean_optional_str(payload.get("matrix"))
+                    or clean_optional_str(payload.get("agents"))
+                    or "single"
+                ),
+                "action_transport": clean_optional_str(payload.get("action_transport")),
+                "reasoning_effort": clean_optional_str(payload.get("reasoning_effort")),
+                "session": clean_optional_str(payload.get("session")),
+                "dry_run": False,
+            },
+        )
 
     def _spawn(self, command: list[str], meta: dict) -> dict:
         job_id = str(uuid.uuid4())
@@ -353,8 +381,11 @@ class JobStore:
         log_handle = log_path.open("w", encoding="utf-8")
         try:
             process = subprocess.Popen(
-                command, cwd=self.root, stdout=log_handle,
-                stderr=subprocess.STDOUT, text=True,
+                command,
+                cwd=self.root,
+                stdout=log_handle,
+                stderr=subprocess.STDOUT,
+                text=True,
                 # Own session/process group so Stop can kill the whole tree
                 # (a sweep spawns runner subprocesses that spawn containers).
                 start_new_session=True,
@@ -369,7 +400,9 @@ class JobStore:
             self._write_job(job)
 
         thread = threading.Thread(
-            target=self._wait_for_job, args=(job_id, process, log_handle), daemon=True,
+            target=self._wait_for_job,
+            args=(job_id, process, log_handle),
+            daemon=True,
         )
         thread.start()
         return self.get_job(job_id)
@@ -445,9 +478,22 @@ class JobStore:
                 raise ApiError(f"unsupported agent: {agent}", HTTPStatus.BAD_REQUEST)
             command.extend(["--agent", agent])
 
+        has_role_policy = bool(
+            payload.get("role_models") or payload.get("developer_escalation_model")
+        )
+        if has_role_policy and not (agent or "single").startswith("multi"):
+            raise ApiError(
+                "role model policy requires a multi-agent mode",
+                HTTPStatus.BAD_REQUEST,
+            )
+        append_model_policy_flags(command, payload)
+
         session = clean_optional_str(payload.get("session"))
         if session:
             command.extend(["--session", session])
+        campaign = clean_optional_str(payload.get("campaign"))
+        if campaign:
+            command.extend(["--campaign-id", campaign])
 
         transport = clean_optional_str(payload.get("action_transport"))
         if transport:
@@ -492,27 +538,50 @@ class JobStore:
         provider = clean_optional_str(payload.get("provider")) or "openrouter"
         if provider not in PROVIDERS:
             raise ApiError(f"unsupported provider: {provider}", HTTPStatus.BAD_REQUEST)
-        agents = clean_optional_str(payload.get("agents")) or "single"
-        for agent in _split_csv(agents):
-            if agent not in AGENTS:
-                raise ApiError(f"unsupported agent: {agent}", HTTPStatus.BAD_REQUEST)
-        tasks = clean_optional_str(payload.get("tasks")) or "all"
-        if tasks != "all":
+        matrix = clean_optional_str(payload.get("matrix"))
+        agents = clean_optional_str(payload.get("agents"))
+        if not matrix:
+            agents = agents or "single"
+            for agent in _split_csv(agents):
+                if agent not in AGENTS:
+                    raise ApiError(f"unsupported agent: {agent}", HTTPStatus.BAD_REQUEST)
+        task_set = clean_optional_str(payload.get("task_set"))
+        tasks = clean_optional_str(payload.get("tasks")) or (None if task_set else "all")
+        if tasks and tasks != "all":
             known = {task["task_id"] for task in load_tasks(self.root)}
             for task_id in _split_csv(tasks):
                 if task_id not in known:
-                    raise ApiError(f"unknown task_id: {task_id}", HTTPStatus.BAD_REQUEST)
+                    raise ApiError(
+                        f"unknown task_id: {task_id}", HTTPStatus.BAD_REQUEST
+                    )
 
         command = [
-            sys.executable, "-m", "src.benchmark.sweep",
-            "--provider", provider, "--tasks", tasks, "--agents", agents,
+            sys.executable,
+            "-m",
+            "src.benchmark.sweep",
+            "--provider",
+            provider,
         ]
+        if agents:
+            command.extend(["--agents", agents])
+        if task_set:
+            command.extend(["--task-set", task_set])
+            if matrix:
+                command.extend(["--matrix", matrix])
+            task_groups = clean_optional_str(payload.get("task_groups"))
+            if task_groups:
+                command.extend(["--task-groups", task_groups])
+        else:
+            command.extend(["--tasks", tasks or "all"])
         models = clean_optional_str(payload.get("models"))
         if models:
             command.extend(["--models", models])
         session = clean_optional_str(payload.get("session"))
         if session:
             command.extend(["--session", session])
+        campaign = clean_optional_str(payload.get("campaign"))
+        if campaign:
+            command.extend(["--campaign", campaign])
         transport = clean_optional_str(payload.get("action_transport"))
         if transport:
             if transport not in ACTION_TRANSPORTS:
@@ -530,10 +599,12 @@ class JobStore:
                     HTTPStatus.BAD_REQUEST,
                 )
             command.extend(["--reasoning-effort", effort])
+        append_model_policy_flags(command, payload)
         for key, flag, lower, upper in (
             ("max_steps", "--max-steps", 1, 200),
             ("max_iterations", "--max-iterations", 1, 50),
             ("concurrency", "--concurrency", 1, 8),
+            ("seed", "--seed", 0, 2_147_483_647),
         ):
             value = payload.get(key)
             if value not in (None, ""):
@@ -544,9 +615,18 @@ class JobStore:
             ("enable_review", "--enable-review"),
             ("no_network", "--no-network"),
             ("no_setup", "--no-setup"),
+            ("resume", "--resume"),
+            ("keep_workspaces", "--keep-workspaces"),
+            ("allow_dirty_harness", "--allow-dirty-harness"),
         ):
             if bool(payload.get(key, False)):
                 command.append(flag)
+        max_total_cost = payload.get("max_total_cost_usd")
+        if max_total_cost not in (None, ""):
+            command.extend([
+                "--max-total-cost-usd",
+                str(clean_float(max_total_cost, "max_total_cost_usd", 0.0)),
+            ])
         return command
 
     def _job_files(self) -> list[Path]:
@@ -653,21 +733,25 @@ def build_overview(root: Path) -> dict:
             "runs": len(records),
             "run_tasks": len({run.task_id for run in records}),
             "collection_tasks": len(tasks),
-            "verified_tasks": sum(1 for task in tasks if task["task_status"] == "pr_task_verified"),
-            "unverified_tasks": sum(1 for task in tasks if task["task_status"] != "pr_task_verified"),
+            "verified_tasks": sum(
+                1 for task in tasks if task["task_status"] == "pr_task_verified"
+            ),
+            "unverified_tasks": sum(
+                1 for task in tasks if task["task_status"] != "pr_task_verified"
+            ),
             "unknown_run_tasks": sorted(
-                {run.task_id for run in records}
-                - {task["task_id"] for task in tasks}
+                {run.task_id for run in records} - {task["task_id"] for task in tasks}
             ),
             "last_finished_at": max(
                 (run.finished_at for run in records if run.finished_at),
                 default=None,
             ),
         },
-        "sessions": serialize_sessions(records, runs),
+        "sessions": serialize_sessions(records, runs, load_active_jobs()),
         "metrics": {
             "overall": compute_metrics(records).as_dict() if records else None,
             "by_agent_mode": metric_groups(records, "agent_mode"),
+            "by_model_policy": metric_groups(records, "agent_policy"),
             "by_size": metric_groups(records, "size"),
             "by_task_type": metric_groups(records, "task_type"),
             "by_difficulty": metric_groups(records, "difficulty"),
@@ -684,28 +768,61 @@ def build_overview(root: Path) -> dict:
     }
 
 
-def serialize_sessions(records: list[RunRecord], runs: list[dict]) -> list[dict]:
+def load_active_jobs() -> list[dict]:
+    jobs: list[dict] = []
+    for path in JOBS_DIR.glob("*.json"):
+        try:
+            job = read_json(path)
+        except (OSError, json.JSONDecodeError):
+            continue
+        if isinstance(job, dict) and job.get("status") == "running":
+            jobs.append(job)
+    return jobs
+
+
+def serialize_sessions(
+    records: list[RunRecord], runs: list[dict], active_jobs: list[dict]
+) -> list[dict]:
     run_by_id = {run["run_id"]: run for run in runs}
+    record_groups = group_by(records, "session_id")
+    jobs_by_session: dict[str, list[dict]] = {}
+    for job in active_jobs:
+        session_id = str(job.get("session") or "default")
+        jobs_by_session.setdefault(session_id, []).append(job)
     rows = []
-    for session_id, group in group_by(records, "session_id").items():
+    for session_id in set(record_groups) | set(jobs_by_session):
+        group = record_groups.get(session_id, [])
+        session_jobs = jobs_by_session.get(session_id, [])
         session_runs = [
-            run_by_id[record.run_id]
-            for record in group
-            if record.run_id in run_by_id
+            run_by_id[record.run_id] for record in group if record.run_id in run_by_id
         ]
         finished = [record.finished_at for record in group if record.finished_at]
+        started = [
+            job.get("started_at") for job in session_jobs if job.get("started_at")
+        ]
+        agents = {record.agent_mode for record in group if record.agent_mode}
+        models = {record.model for record in group if record.model}
+        tasks = {record.task_id for record in group if record.task_id}
+        for job in session_jobs:
+            agents.update(_split_csv(str(job.get("agent") or "single")))
+            models.update(_split_csv(str(job.get("model") or "")))
+            task_ids = _split_csv(str(job.get("task_id") or ""))
+            tasks.update(task for task in task_ids if task != "all")
         rows.append(
             {
                 "session_id": session_id,
                 "runs": len(group),
-                "tasks": len({record.task_id for record in group}),
-                "agents": sorted({record.agent_mode for record in group if record.agent_mode}),
-                "models": sorted({record.model for record in group if record.model}),
+                "tasks": len(tasks),
+                "agents": sorted(agents),
+                "models": sorted(models),
+                "active_jobs": len(session_jobs),
+                "created_at": min([*started, *finished], default=None),
                 "first_finished_at": min(finished, default=None),
                 "last_finished_at": max(finished, default=None),
                 "metrics": compute_metrics(group).as_dict(),
                 "groups": {
                     "by_agent_mode": metric_groups(group, "agent_mode"),
+                    "by_model_policy": metric_groups(group, "agent_policy"),
                     "by_size": metric_groups(group, "size"),
                     "by_task_type": metric_groups(group, "task_type"),
                     "by_difficulty": metric_groups(group, "difficulty"),
@@ -720,7 +837,11 @@ def serialize_sessions(records: list[RunRecord], runs: list[dict]) -> list[dict]
                 "actions": aggregate_actions(group),
             }
         )
-    return sorted(rows, key=lambda row: row["last_finished_at"] or "", reverse=True)
+    return sorted(
+        rows,
+        key=lambda row: row["created_at"] or row["last_finished_at"] or "",
+        reverse=True,
+    )
 
 
 def load_run_detail(root: Path, run_id: str) -> dict:
@@ -775,7 +896,9 @@ def load_tasks(root: Path) -> list[dict]:
             "test_files",
         ):
             row[key] = to_int(row.get(key))
-        row["large_by_spec"] = bool(row.get("source_loc") and row["source_loc"] > 15_000)
+        row["large_by_spec"] = bool(
+            row.get("source_loc") and row["source_loc"] > 15_000
+        )
         row["difficulty_estimate"] = static_difficulty.get(row["task_id"])
     return rows
 
@@ -792,9 +915,20 @@ def serialize_run(
 ) -> dict:
     quality_rows = quality_rows if quality_rows is not None else load_quality_rows(root)
     quality_row = quality_rows.get(record.run_id, {})
-    cost = None
-    if record.input_tokens is not None and record.output_tokens is not None:
-        cost = estimate_cost(record.model, record.input_tokens, record.output_tokens)
+    estimated_cost = record.cost_usd
+    if (
+        estimated_cost is None
+        and record.input_tokens is not None
+        and record.output_tokens is not None
+    ):
+        estimated_cost = estimate_cost(record.model, record.input_tokens, record.output_tokens)
+    provider_cost_complete = bool(
+        record.provider_reported_cost_usd is not None
+        and record.provider_cost_calls is not None
+        and record.llm_calls is not None
+        and record.provider_cost_calls >= record.llm_calls
+    )
+    cost = record.provider_reported_cost_usd if provider_cost_complete else estimated_cost
     return {
         "task_id": record.task_id,
         "run_id": record.run_id,
@@ -820,16 +954,35 @@ def serialize_run(
         "llm_calls": record.llm_calls,
         "input_tokens": record.input_tokens,
         "output_tokens": record.output_tokens,
+        "cached_input_tokens": record.cached_input_tokens,
         "total_tokens": record.total_tokens,
         "cost_usd": cost,
+        "estimated_cost_usd": estimated_cost,
+        "provider_reported_cost_usd": record.provider_reported_cost_usd,
+        "provider_cost_complete": provider_cost_complete,
+        "model_policy": record.model_policy,
+        "role_usage": record.role_usage,
+        "role_transports": record.role_transports,
+        "role_steps": record.role_steps,
+        "developer_escalations": record.developer_escalations,
+        "max_cost_usd": record.max_cost_usd,
         "action_counts": record.action_counts,
         "regressions": record.regressions,
+        "test_oracle_tampered": record.test_oracle_tampered,
         "workspace": record.workspace,
         "task_type": record.task_type,
         "size": record.size,
         "difficulty": record.difficulty,
         "difficulty_estimate": record.difficulty_estimate,
         "quality_score": record.quality_score,
+        "task_set_id": record.task_set_id,
+        "campaign_id": record.campaign_id,
+        "experiment_fingerprint": record.experiment_fingerprint,
+        "docker_image": record.docker_image,
+        "docker_image_id": record.docker_image_id,
+        "agent_network_disabled_after_setup": (
+            record.agent_network_disabled_after_setup
+        ),
         "quality_rationale": quality_row.get("rationale"),
         "reviewer_model": quality_row.get("reviewer_model"),
     }
@@ -949,6 +1102,65 @@ def clean_int(value: object, key: str, lower: int, upper: int) -> int:
     return parsed
 
 
+def clean_float(value: object, key: str, lower: float) -> float:
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ApiError(f"{key} must be a number", HTTPStatus.BAD_REQUEST) from exc
+    if parsed <= lower:
+        raise ApiError(f"{key} must be > {lower}", HTTPStatus.BAD_REQUEST)
+    return parsed
+
+
+def append_model_policy_flags(command: list[str], payload: dict) -> None:
+    raw_role_models = payload.get("role_models") or []
+    if isinstance(raw_role_models, str):
+        role_models = _split_csv(raw_role_models)
+    elif isinstance(raw_role_models, list):
+        role_models = [
+            clean_required_str(item, "role_models") for item in raw_role_models
+        ]
+    else:
+        raise ApiError(
+            "role_models must be a list or CSV string", HTTPStatus.BAD_REQUEST
+        )
+    valid_roles = {"orchestrator", "planner", "developer", "tester", "reviewer"}
+    for override in role_models:
+        if "=" not in override:
+            raise ApiError(
+                "role model override must be ROLE=MODEL", HTTPStatus.BAD_REQUEST
+            )
+        role, model = (part.strip() for part in override.split("=", 1))
+        if role not in valid_roles or not model:
+            raise ApiError(
+                f"unsupported role model override: {override}",
+                HTTPStatus.BAD_REQUEST,
+            )
+        command.extend(["--role-model", f"{role}={model}"])
+
+    escalation = clean_optional_str(payload.get("developer_escalation_model"))
+    if escalation:
+        command.extend(["--developer-escalation-model", escalation])
+    for key, flag in (
+        (
+            "developer_escalate_after_no_edit_episodes",
+            "--developer-escalate-after-no-edit-episodes",
+        ),
+        (
+            "developer_escalate_after_failed_tests",
+            "--developer-escalate-after-failed-tests",
+        ),
+    ):
+        value = payload.get(key)
+        if value not in (None, ""):
+            command.extend([flag, str(clean_int(value, key, 1, 50))])
+    max_cost = payload.get("max_cost_usd")
+    if max_cost not in (None, ""):
+        command.extend(
+            ["--max-cost-usd", str(clean_float(max_cost, "max_cost_usd", 0.0))]
+        )
+
+
 def read_json(path: Path) -> object:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -968,7 +1180,7 @@ def to_int(value: object) -> int | None:
 
 
 def utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def content_type(path: Path) -> str:

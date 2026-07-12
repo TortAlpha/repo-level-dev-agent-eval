@@ -26,6 +26,7 @@ export interface MetricSet {
   mean_total_tokens: number | null;
   mean_cost_usd: number | null;
   total_cost_usd: number | null;
+  cost_per_success_usd: number | null;
   mean_quality_score: number | null;
 }
 
@@ -54,10 +55,28 @@ export interface RunRecord {
   llm_calls: number | null;
   input_tokens: number | null;
   output_tokens: number | null;
+  cached_input_tokens: number | null;
   total_tokens: number | null;
   cost_usd: number | null;
+  estimated_cost_usd: number | null;
+  provider_reported_cost_usd: number | null;
+  provider_cost_complete: boolean;
+  model_policy: {
+    type?: string;
+    base_model?: string;
+    roles?: Record<string, string>;
+    developer_escalation_model?: string | null;
+    developer_escalate_after_no_edit_episodes?: number;
+    developer_escalate_after_failed_tests?: number;
+  };
+  role_usage: Record<string, Record<string, Record<string, number>>>;
+  role_transports: Record<string, Record<string, string>>;
+  role_steps: Record<string, number>;
+  developer_escalations: number;
+  max_cost_usd: number | null;
   action_counts: Record<string, number>;
   regressions: number | null;
+  test_oracle_tampered: boolean | null;
   workspace: string | null;
   task_type: string | null;
   size: string | null;
@@ -66,6 +85,12 @@ export interface RunRecord {
   quality_score: number | null;
   quality_rationale: string | null;
   reviewer_model: string | null;
+  task_set_id: string | null;
+  campaign_id: string | null;
+  experiment_fingerprint: string | null;
+  docker_image: string | null;
+  docker_image_id: string | null;
+  agent_network_disabled_after_setup: boolean | null;
 }
 
 export interface TaskRecord {
@@ -108,6 +133,7 @@ export interface TaskDifficulty {
 
 export interface MetricGroups {
   by_agent_mode: Record<string, MetricSet>;
+  by_model_policy: Record<string, MetricSet>;
   by_size: Record<string, MetricSet>;
   by_task_type: Record<string, MetricSet>;
   by_difficulty: Record<string, MetricSet>;
@@ -131,6 +157,8 @@ export interface SessionOverview {
   tasks: number;
   agents: string[];
   models: string[];
+  active_jobs: number;
+  created_at: string | null;
   first_finished_at: string | null;
   last_finished_at: string | null;
   metrics: MetricSet;
@@ -197,6 +225,11 @@ export interface LaunchPayload {
   agent?: string;
   action_transport?: ActionTransport;
   reasoning_effort?: string;
+  role_models?: string[];
+  developer_escalation_model?: string;
+  developer_escalate_after_no_edit_episodes?: number;
+  developer_escalate_after_failed_tests?: number;
+  max_cost_usd?: number;
   session?: string;
   max_steps?: number;
   max_iterations?: number;
@@ -209,11 +242,21 @@ export interface LaunchPayload {
 }
 
 export interface SweepPayload {
-  tasks: string;   // comma-separated task_ids, or "all"
+  tasks?: string;   // comma-separated task_ids, or "all"
+  task_set?: string;
+  matrix?: string;
+  campaign?: string;
   models: string;  // comma-separated models ("" = provider default)
-  agents: string;  // comma-separated agents
+  agents?: string;  // comma-separated agents; manifest matrix can fix this
   action_transport?: ActionTransport;
   reasoning_effort?: string;
+  role_models?: string[];
+  developer_escalation_model?: string;
+  developer_escalate_after_no_edit_episodes?: number;
+  developer_escalate_after_failed_tests?: number;
+  max_cost_usd?: number;
+  max_total_cost_usd?: number;
+  resume?: boolean;
   session?: string;
   provider: "openrouter" | "local";
   concurrency?: number;  // parallel runs (1 = sequential)
