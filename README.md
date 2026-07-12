@@ -75,6 +75,9 @@ The role decomposition is treated as an experimental hypothesis. The project
 will also compare ablation variants to determine which roles improve results and
 which only add coordination cost.
 
+Role-specific models, adaptive developer escalation, and cost-capped comparison
+commands are documented in [docs/role_model_routing.md](docs/role_model_routing.md).
+
 Both approaches are evaluated under the same constraints:
 
 - same benchmark tasks;
