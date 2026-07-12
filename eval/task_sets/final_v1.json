@@ -61,39 +61,15 @@
   "matrices": {
     "core-small": {
       "groups": ["core_small"],
-      "agents": ["single", "single-decomposed", "multi-graph", "multi-orch-guarded"]
+      "agents": ["single", "multi-graph", "multi-orch-guarded"]
     },
     "core-medium": {
       "groups": ["core_medium"],
-      "agents": ["single", "single-decomposed", "multi-graph", "multi-orch-guarded"]
+      "agents": ["single", "multi-graph", "multi-orch-guarded"]
     },
     "core-all": {
       "groups": ["core_small", "core_medium"],
-      "agents": ["single", "single-decomposed", "multi-graph", "multi-orch-guarded"]
-    },
-    "local-large": {
-      "groups": ["local_large"],
-      "agents": ["single", "single-decomposed", "multi-graph", "multi-orch-guarded"]
-    },
-    "swepro-ansible": {
-      "groups": ["swepro_ansible"],
-      "agents": ["single", "single-decomposed", "multi-graph"]
-    },
-    "swepro-openlibrary": {
-      "groups": ["swepro_openlibrary"],
-      "agents": ["single", "single-decomposed", "multi-graph"]
-    },
-    "swepro-qutebrowser": {
-      "groups": ["swepro_qutebrowser"],
-      "agents": ["single", "single-decomposed", "multi-graph"]
-    },
-    "swepro-guarded-smoke": {
-      "tasks": [
-        "swepro_openlibrary_2abe28b4",
-        "swepro_ansible_11c1777d",
-        "swepro_qutebrowser_50efac08"
-      ],
-      "agents": ["multi-orch-guarded"]
+      "agents": ["single", "multi-graph", "multi-orch-guarded"]
     }
   },
   "previously_exercised": [

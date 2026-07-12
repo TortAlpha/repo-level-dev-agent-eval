@@ -115,9 +115,12 @@ Run every core task with the same GLM model, transport, evaluator, step limit,
 and iteration limit:
 
 - `single`
-- `single-decomposed`
 - `multi-graph`
 - `multi-orch-guarded`
+
+This is the primary 72-run comparison: 24 tasks times three architectures.
+`single` is the strengthened baseline, `multi-graph` is the deterministic
+role-based control, and `multi-orch-guarded` is the main candidate system.
 
 The scored `single` baseline uses the strong progress guard introduced after
 the exploratory Sonnet runs:
@@ -136,33 +139,17 @@ The earlier single configurations remain reproducible with
 their runs are ablations and must not be mixed into the final baseline
 aggregate.
 
-`single-decomposed` is a separately reported scored architecture/ablation, not
-part of the strengthened `single` aggregate. It uses the same model and execution tools,
-but requires a structured dependency graph. The model creates only
-`investigate` and `implement` units; the system appends compatibility and
-full-suite verification using the configured test command. Investigation
-checkpoints preserve up to four exact source windows for the next edit phase.
-Implementation requires a production edit plus a passing focused check on the
-same workspace revision. Verification failures can reopen implementation for
-a bounded repair cycle, and edits invalidate older revision certificates.
-Phase-specific action spaces force transitions by removing read-only tools
-instead of terminating the whole run. This isolates the value of decomposition
-from the value of adding more agents. Queue, implementation-research, reserve,
-and repair limits are reproducible through the decomposition CLI flags.
+`single-decomposed` remains reproducible, but is deferred to a separately
+reported small ablation after the primary core comparison. It must not be
+mixed into the primary core aggregate.
 
 ### SWE-bench Pro comparison
 
-Run all selected SWE-bench Pro tasks with:
-
-- `single` on shared GLM;
-- `multi-graph` on shared GLM.
-
-Run `multi-orch-guarded` on a representative subset after the three repository
-families pass smoke testing. Start with one smoke task per family:
-
-- `swepro_openlibrary_2abe28b4`
-- `swepro_ansible_11c1777d`
-- `swepro_qutebrowser_50efac08`
+SWE-bench Pro architecture coverage is deliberately deferred until the core
+comparison is complete. The selected tasks remain frozen, but no executable
+SWE matrix is present in the manifest yet. The next comparison may use
+`single` versus `multi-orch-guarded`; that decision must be recorded before
+any scored SWE runs begin.
 
 ### Role-model policy extension
 
@@ -201,20 +188,21 @@ architecture produced a patch.
 - Infrastructure/provider/evaluation failures are logged separately from
   `task_failed` and do not silently become benchmark failures.
 
-### Reproducible sweep blocks
+### Reproducible core sweep blocks
 
-The manifest fixes both task membership and architecture coverage. Use a new
-session for each block and the same model/transport/limits throughout:
+The current manifest fixes core task membership and architecture coverage.
+Use a new session for each block and the same model/transport/limits
+throughout. Both sessions share one campaign so their costs and final core
+report can be aggregated without rerunning tasks:
 
 ```text
 python -m src.benchmark.sweep --task-set final-v1 --matrix core-small --session final_v1_core_small --campaign final_v1_main --provider openrouter --models z-ai/glm-5.2 --max-total-cost-usd 50
 python -m src.benchmark.sweep --task-set final-v1 --matrix core-medium --session final_v1_core_medium --campaign final_v1_main --provider openrouter --models z-ai/glm-5.2 --max-total-cost-usd 50
-python -m src.benchmark.sweep --task-set final-v1 --matrix local-large --session final_v1_local_large --campaign final_v1_main --provider openrouter --models z-ai/glm-5.2 --max-total-cost-usd 50
-python -m src.benchmark.sweep --task-set final-v1 --matrix swepro-ansible --session final_v1_swepro_ansible --campaign final_v1_main --provider openrouter --models z-ai/glm-5.2 --max-total-cost-usd 50
-python -m src.benchmark.sweep --task-set final-v1 --matrix swepro-openlibrary --session final_v1_swepro_openlibrary --campaign final_v1_main --provider openrouter --models z-ai/glm-5.2 --max-total-cost-usd 50
-python -m src.benchmark.sweep --task-set final-v1 --matrix swepro-qutebrowser --session final_v1_swepro_qutebrowser --campaign final_v1_main --provider openrouter --models z-ai/glm-5.2 --max-total-cost-usd 50
-python -m src.benchmark.sweep --task-set final-v1 --matrix swepro-guarded-smoke --session final_v1_swepro_guarded_smoke --campaign final_v1_main --provider openrouter --models z-ai/glm-5.2 --max-total-cost-usd 50
 ```
+
+Do not run `core-all` after these two blocks: it contains the same 24 tasks and
+would duplicate all 72 scored combinations. Aggregate the two sessions by
+their shared campaign instead.
 
 Interrupted blocks resume with the identical command plus `--resume`. A final
 task-set sweep refuses a dirty harness; `--allow-dirty-harness` is reserved for

@@ -13,6 +13,7 @@ from langchain_core.language_models.fake_chat_models import FakeListChatModel
 from langchain_core.messages import AIMessage
 
 from src.agents.actions import action_tool_schemas
+from src.agents.decomposition import DecomposedSingleAgent
 from src.agents.model import LangChainModel
 from src.agents.sandbox import DockerSandbox
 from src.agents.state import State
@@ -42,8 +43,7 @@ class BenchmarkFairnessTests(unittest.TestCase):
         self.assertFalse(set(task_set.tasks()) & set(task_set.calibration_excluded))
         core_tasks, core_agents = task_set.matrix("core-all")
         self.assertEqual(len(core_tasks), 24)
-        self.assertEqual(len(core_agents), 4)
-        self.assertIn("single-decomposed", core_agents)
+        self.assertEqual(core_agents, ["single", "multi-graph", "multi-orch-guarded"])
         self.assertEqual(len(task_set.previously_exercised), 21)
         self.assertEqual(len(set(task_set.tasks()) - set(task_set.previously_exercised)), 20)
 
@@ -216,7 +216,8 @@ class BenchmarkFairnessTests(unittest.TestCase):
         self.assertIn("research guard:off", output)
 
     def test_decomposed_tool_schema_has_no_dangling_refs(self) -> None:
-        schemas = action_tool_schemas("decomposed_init")
+        space = DecomposedSingleAgent.model_fields["action_space"].default
+        schemas = action_tool_schemas(space)
         set_subtasks = next(
             item for item in schemas if item["function"]["name"] == "set_subtasks"
         )
