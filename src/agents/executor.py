@@ -18,8 +18,8 @@ from .actions import (
     RunShellAction,
     RunTestsAction,
     SearchAction,
-    SetSubtasksAction,
     SetPlanAction,
+    SetSubtasksAction,
     WriteFileAction,
 )
 from .sandbox import DockerSandbox
@@ -149,17 +149,17 @@ class ActionExecutor(BaseModel):
     def execute(self, state: State, action: AgentAction) -> State:
         """Execute an action, representing policy/input rejection in state.
 
-        Invalid model actions are expected control-flow, not infrastructure
-        failures. Keeping the rejection inside this traced boundary prevents
-        LangSmith from recording a noisy exception span while still feeding
-        the exact error back to the agent on its next step.
+        Syntactically valid actions can still violate role/sandbox policy.
+        Keeping that rejection inside this traced boundary prevents LangSmith
+        from recording a noisy exception span while still feeding the exact
+        policy error back to the agent on its next step.
         """
         try:
             return self._execute(state, action)
         except ValueError as exc:
             return (
                 state.with_error(str(exc))
-                .with_context(kind="invalid_action", text=f"error: {exc}")
+                .with_context(kind="policy_rejection", text=f"error: {exc}")
                 .advance_step()
             )
 

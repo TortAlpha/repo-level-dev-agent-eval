@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping, Sequence
+from copy import deepcopy
 from typing import Annotated, Any, Literal, TypeAlias
 
 from pydantic import BaseModel, Field, TypeAdapter, ValidationError
@@ -431,7 +432,8 @@ def _validate_action(data: dict[str, Any], space: str | None = None) -> AgentAct
 def _parameters_without_action(model_type: type[BaseModel]) -> dict[str, Any]:
     schema = model_type.model_json_schema()
     schema.pop("title", None)
-    schema.pop("$defs", None)
+    definitions = dict(schema.pop("$defs", None) or {})
+    schema = _inline_schema_refs(schema, definitions)
     properties = dict(schema.get("properties") or {})
     properties.pop("action", None)
     required = [
@@ -441,3 +443,26 @@ def _parameters_without_action(model_type: type[BaseModel]) -> dict[str, Any]:
     schema["properties"] = properties
     schema["required"] = required
     return schema
+
+
+def _inline_schema_refs(value: Any, definitions: Mapping[str, Any]) -> Any:
+    """Inline Pydantic-local refs so provider tool schemas are self-contained."""
+    if isinstance(value, list):
+        return [_inline_schema_refs(item, definitions) for item in value]
+    if not isinstance(value, dict):
+        return value
+    reference = value.get("$ref")
+    if isinstance(reference, str) and reference.startswith("#/$defs/"):
+        name = reference.removeprefix("#/$defs/")
+        if name not in definitions:
+            raise ValueError(f"Unknown local schema reference: {reference}")
+        resolved = _inline_schema_refs(deepcopy(definitions[name]), definitions)
+        siblings = {
+            key: _inline_schema_refs(item, definitions)
+            for key, item in value.items()
+            if key != "$ref"
+        }
+        return {**resolved, **siblings}
+    return {
+        key: _inline_schema_refs(item, definitions) for key, item in value.items()
+    }

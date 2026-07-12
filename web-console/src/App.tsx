@@ -59,6 +59,7 @@ const METRIC_HELP: Record<string, string> = {
   mean_regressions: "Average number of introduced regressions per run.",
   test_overfitting_rate: "Share of runs that passed visible tests but failed required hidden tests.",
   tool_use_validity_rate: "Share of valid executable actions among all attempted tool calls.",
+  policy_rejections_per_run: "Average syntactically valid actions rejected by sandbox or role policy per run.",
   hallucinated_refs_per_run: "Average number of references to nonexistent files or objects per run.",
   mean_iterations: "Average number of test invocations per run.",
   mean_steps: "Average number of agent actions per run.",

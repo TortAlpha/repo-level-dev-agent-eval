@@ -13,6 +13,7 @@ import json
 import subprocess
 import time
 import uuid
+from datetime import UTC, datetime
 from pathlib import Path
 
 from ..agents.model import LangChainModel
@@ -37,6 +38,55 @@ from .workspace import clean_workspace_repo, prepare_workspace, write_agent_patc
 
 TaskAgent = SingleAgent | SweAgentAdapter
 ROLE_NAMES = ("orchestrator", "planner", "developer", "tester", "reviewer")
+
+
+def agent_settings(agent: TaskAgent) -> dict:
+    """One capability-safe settings view for traces, metrics, and dry-runs.
+
+    Built-in agents expose guard/decomposition fields through ``SingleAgent``;
+    external adapters intentionally do not. Central defaults keep adapters from
+    breaking whenever a built-in-only setting is added.
+    """
+    return {
+        "context_window_tokens": agent.context_window_tokens,
+        "context_budget_tokens": getattr(agent, "context_budget_tokens", None),
+        "max_response_tokens": agent.max_response_tokens,
+        "action_transport": getattr(agent, "resolved_action_transport", "external"),
+        "max_cost_usd": getattr(agent, "max_cost_usd", None),
+        "research_guard_enabled": getattr(agent, "research_guard_enabled", False),
+        "research_warning_steps": getattr(agent, "research_warning_steps", 0),
+        "research_hard_limit": getattr(agent, "research_hard_limit", 0),
+        "post_plan_research_warning_steps": getattr(
+            agent, "post_plan_research_warning_steps", 0
+        ),
+        "post_plan_research_hard_limit": getattr(
+            agent, "post_plan_research_hard_limit", 0
+        ),
+        "compatibility_guard_enabled": getattr(
+            agent, "compatibility_guard_enabled", False
+        ),
+        "decomposition_enabled": getattr(agent, "decomposition_enabled", False),
+        "max_subtasks": getattr(agent, "max_subtasks", 0),
+        "decomposition_implementation_warning_steps": getattr(
+            agent, "decomposition_implementation_warning_steps", 0
+        ),
+        "decomposition_implementation_hard_limit": getattr(
+            agent, "decomposition_implementation_hard_limit", 0
+        ),
+        "decomposition_verification_step_reserve": getattr(
+            agent, "decomposition_verification_step_reserve", 0
+        ),
+        "max_repair_cycles": getattr(agent, "max_repair_cycles", 0),
+    }
+
+
+def agent_model_policy(agent: TaskAgent) -> dict:
+    if hasattr(agent, "model_policy_metadata"):
+        return agent.model_policy_metadata()
+    return {
+        "type": "external" if isinstance(agent, SweAgentAdapter) else "single",
+        "base_model": agent.model.model,
+    }
 
 
 def docker_image_id(image: str) -> str | None:
@@ -66,7 +116,14 @@ def record_infrastructure_failure(
         classification = "evaluation_error"
     elif any(
         marker in text
-        for marker in ("openrouter", "rate limit", "server_error", "bad gateway", "api")
+        for marker in (
+            "openrouter",
+            "provider",
+            "rate limit",
+            "server_error",
+            "bad gateway",
+            "api",
+        )
     ):
         classification = "provider_error"
     else:
@@ -474,13 +531,10 @@ def main() -> int:
     clean_workspace_repo(repo_dir, config.workspaces_dir)
 
     meta = load_task_meta(task.task_file_path)
-    action_transport = getattr(agent, "resolved_action_transport", "external")
+    runtime_settings = agent_settings(agent)
+    action_transport = runtime_settings["action_transport"]
     started = time.perf_counter()
-    model_policy = (
-        agent.model_policy_metadata()
-        if hasattr(agent, "model_policy_metadata")
-        else {"type": "single", "base_model": model.model}
-    )
+    model_policy = agent_model_policy(agent)
     try:
         final_state = agent.run(
             state,
@@ -494,12 +548,7 @@ def main() -> int:
                 settings={
                     "session_id": config.session_id,
                     "compaction_mode": config.compaction_mode,
-                    "context_window_tokens": agent.context_window_tokens,
-                    "context_budget_tokens": getattr(
-                        agent, "context_budget_tokens", None
-                    ),
-                    "max_response_tokens": agent.max_response_tokens,
-                    "action_transport": action_transport,
+                    **runtime_settings,
                     "reasoning_effort": config.reasoning_effort,
                     "max_steps": state.max_steps,
                     "max_iterations": state.max_iterations,
@@ -508,29 +557,6 @@ def main() -> int:
                     "size": task.size,
                     "task_type": task.task_type,
                     "model_policy": model_policy,
-                    "max_cost_usd": max_cost_usd,
-                    "research_guard_enabled": agent.research_guard_enabled,
-                    "research_warning_steps": agent.research_warning_steps,
-                    "research_hard_limit": agent.research_hard_limit,
-                    "post_plan_research_warning_steps": (
-                        agent.post_plan_research_warning_steps
-                    ),
-                    "post_plan_research_hard_limit": (
-                        agent.post_plan_research_hard_limit
-                    ),
-                    "compatibility_guard_enabled": agent.compatibility_guard_enabled,
-                    "decomposition_enabled": agent.decomposition_enabled,
-                    "max_subtasks": agent.max_subtasks,
-                    "decomposition_implementation_warning_steps": (
-                        agent.decomposition_implementation_warning_steps
-                    ),
-                    "decomposition_implementation_hard_limit": (
-                        agent.decomposition_implementation_hard_limit
-                    ),
-                    "decomposition_verification_step_reserve": (
-                        agent.decomposition_verification_step_reserve
-                    ),
-                    "max_repair_cycles": agent.max_repair_cycles,
                 },
             ),
         )
@@ -568,19 +594,23 @@ def main() -> int:
         metrics["no_action_retries"] = empty_retries
     metrics["model_policy"] = model_policy
     metrics["research_guard"] = {
-        "enabled": agent.research_guard_enabled,
-        "warning_steps": agent.research_warning_steps,
-        "hard_limit": agent.research_hard_limit,
-        "post_plan_warning_steps": agent.post_plan_research_warning_steps,
-        "post_plan_hard_limit": agent.post_plan_research_hard_limit,
+        "enabled": runtime_settings["research_guard_enabled"],
+        "warning_steps": runtime_settings["research_warning_steps"],
+        "hard_limit": runtime_settings["research_hard_limit"],
+        "post_plan_warning_steps": runtime_settings[
+            "post_plan_research_warning_steps"
+        ],
+        "post_plan_hard_limit": runtime_settings[
+            "post_plan_research_hard_limit"
+        ],
     }
     metrics["compatibility_guard"] = {
-        "enabled": agent.compatibility_guard_enabled,
+        "enabled": runtime_settings["compatibility_guard_enabled"],
         "passed": final_state.compatibility_check_passed,
         "command": final_state.last_compatibility_command,
     }
     metrics["decomposition"] = {
-        "enabled": agent.decomposition_enabled,
+        "enabled": runtime_settings["decomposition_enabled"],
         "subtask_count": len(final_state.subtasks),
         "completed": sum(
             item.status == "completed" for item in final_state.subtasks
@@ -746,16 +776,13 @@ def plan(
     task: TaskSpec,
     repo_dir: Path,
     test_command: str,
-    agent: SingleAgent,
+    agent: TaskAgent,
     args: argparse.Namespace,
 ) -> str:
     setup = "\n".join(f"    {c}" for c in agent.setup_commands) or "    (none)"
+    settings = agent_settings(agent)
     network = "disabled" if agent.docker_network_disabled else "enabled"
-    model_policy = (
-        agent.model_policy_metadata()
-        if hasattr(agent, "model_policy_metadata")
-        else {"type": "single", "base_model": agent.model.model}
-    )
+    model_policy = agent_model_policy(agent)
     hidden = (
         "\n".join(
             f"    {suite.name}{'' if suite.required else ' (optional)'}: {suite.command}"
@@ -764,11 +791,12 @@ def plan(
         or "    (none)"
     )
     decomposition_details = (
-        f"  decomp impl:   {agent.decomposition_implementation_warning_steps}/"
-        f"{agent.decomposition_implementation_hard_limit}, reserve "
-        f"{agent.decomposition_verification_step_reserve}, repairs "
-        f"{agent.max_repair_cycles}\n"
-        if agent.decomposition_enabled
+        "  decomp impl:   "
+        f"{settings['decomposition_implementation_warning_steps']}/"
+        f"{settings['decomposition_implementation_hard_limit']}, reserve "
+        f"{settings['decomposition_verification_step_reserve']}, repairs "
+        f"{settings['max_repair_cycles']}\n"
+        if settings["decomposition_enabled"]
         else ""
     )
     return (
@@ -781,13 +809,15 @@ def plan(
         f"  action ACI:    {getattr(agent, 'resolved_action_transport', 'external')}\n"
         f"  model policy:  {json.dumps(model_policy, ensure_ascii=False)}\n"
         f"  max cost USD:  {getattr(agent, 'max_cost_usd', None) or '(none)'}\n"
-        f"  research guard:{'on' if agent.research_guard_enabled else 'off'} "
-        f"({agent.research_warning_steps}/{agent.research_hard_limit}, "
-        f"post-plan {agent.post_plan_research_warning_steps}/"
-        f"{agent.post_plan_research_hard_limit})\n"
-        f"  compatibility: {'on' if agent.compatibility_guard_enabled else 'off'}\n"
-        f"  decomposition: {'on' if agent.decomposition_enabled else 'off'} "
-        f"(max {agent.max_subtasks})\n"
+        f"  research guard:{'on' if settings['research_guard_enabled'] else 'off'} "
+        f"({settings['research_warning_steps']}/{settings['research_hard_limit']}, "
+        f"post-plan {settings['post_plan_research_warning_steps']}/"
+        f"{settings['post_plan_research_hard_limit']})\n"
+        "  compatibility: "
+        f"{'on' if settings['compatibility_guard_enabled'] else 'off'}\n"
+        "  decomposition: "
+        f"{'on' if settings['decomposition_enabled'] else 'off'} "
+        f"(max {settings['max_subtasks']})\n"
         f"{decomposition_details}"
         f"  setup:\n{setup}\n"
         f"  hidden score:  {'on' if not args.no_score else 'off'}\n"

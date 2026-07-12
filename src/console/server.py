@@ -45,6 +45,7 @@ MAX_PATCH_CHARS = 200_000
 PROVIDERS = {"local", "openrouter"}
 AGENTS = (
     "single",
+    "single-decomposed",
     "swe-agent",
     "multi-graph",
     "multi-orch",
@@ -67,6 +68,26 @@ MODEL_PRESETS = (
 
 def _split_csv(value: str) -> list[str]:
     return [item.strip() for item in (value or "").split(",") if item.strip()]
+
+
+def _origin_allowed(origin: str | None, host: str | None) -> bool:
+    """Allow same-origin requests and explicitly configured dev frontends.
+
+    Requests without ``Origin`` remain available to local CLI clients. Browser
+    cross-origin POSTs always include it, including simple/no-cors requests.
+    """
+    if not origin:
+        return True
+    parsed = urlparse(origin)
+    normalized_origin = origin.rstrip("/").lower()
+    normalized_host = (host or "").lower()
+    if parsed.scheme in {"http", "https"} and parsed.netloc.lower() == normalized_host:
+        return True
+    configured = {
+        item.rstrip("/").lower()
+        for item in _split_csv(os.environ.get("CONSOLE_ALLOWED_ORIGINS", ""))
+    }
+    return normalized_origin in configured
 
 
 def _terminate_tree(process: subprocess.Popen) -> None:
@@ -143,7 +164,11 @@ class ConsoleHandler(BaseHTTPRequestHandler):
     server: ConsoleServer
 
     def do_OPTIONS(self) -> None:  # noqa: N802 - stdlib handler API
-        self._send_empty(HTTPStatus.NO_CONTENT)
+        try:
+            self._require_allowed_origin()
+            self._send_empty(HTTPStatus.NO_CONTENT)
+        except ApiError as exc:
+            self._send_json({"error": exc.message}, exc.status)
 
     def do_HEAD(self) -> None:  # noqa: N802 - stdlib handler API
         parsed = urlparse(self.path)
@@ -194,6 +219,7 @@ class ConsoleHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         path = parsed.path.rstrip("/") or "/"
         try:
+            self._require_allowed_origin()
             if path == "/api/jobs":
                 payload = self._read_json()
                 self._send_json(self.server.jobs.start_job(payload), HTTPStatus.CREATED)
@@ -232,6 +258,13 @@ class ConsoleHandler(BaseHTTPRequestHandler):
         if not isinstance(data, dict):
             raise ApiError("JSON body must be an object", HTTPStatus.BAD_REQUEST)
         return data
+
+    def _require_allowed_origin(self) -> None:
+        if not _origin_allowed(
+            self.headers.get("Origin"),
+            self.headers.get("Host"),
+        ):
+            raise ApiError("cross-origin request rejected", HTTPStatus.FORBIDDEN)
 
     def _send_empty(self, status: HTTPStatus) -> None:
         self.send_response(status)
@@ -283,9 +316,12 @@ class ConsoleHandler(BaseHTTPRequestHandler):
             self.wfile.write(content)
 
     def _cors(self) -> None:
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        origin = self.headers.get("Origin")
+        if origin and _origin_allowed(origin, self.headers.get("Host")):
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
+            self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+            self.send_header("Access-Control-Allow-Headers", "Content-Type")
 
 
 class ApiError(Exception):

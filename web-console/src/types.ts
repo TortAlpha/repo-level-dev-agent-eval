@@ -18,6 +18,7 @@ export interface MetricSet {
   mean_regressions: number | null;
   test_overfitting_rate: number | null;
   tool_use_validity_rate: number | null;
+  policy_rejections_per_run: number | null;
   hallucinated_refs_per_run: number | null;
   mean_iterations: number | null;
   mean_steps: number | null;

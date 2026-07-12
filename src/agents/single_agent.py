@@ -294,7 +294,7 @@ class SingleAgent(BaseModel):
         except ValueError as exc:
             return (
                 state.with_error(str(exc))
-                .with_context(kind="invalid_action", text=f"error: {exc}")
+                .with_context(kind="policy_rejection", text=f"error: {exc}")
                 .with_last_action_json("")
                 .advance_step(),
                 previous_action,
@@ -350,7 +350,7 @@ class SingleAgent(BaseModel):
         except ValueError as exc:
             return (
                 state.with_error(str(exc))
-                .with_context(kind="invalid_action", text=f"error: {exc}")
+                .with_context(kind="policy_rejection", text=f"error: {exc}")
                 .with_last_action_json(action_json, tool_call_id, tool_name)
                 .advance_step(),
                 action,

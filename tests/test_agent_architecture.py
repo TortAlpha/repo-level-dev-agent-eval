@@ -4,6 +4,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from langchain_core.language_models.fake_chat_models import FakeListChatModel
 
@@ -12,9 +13,9 @@ from src.agents.actions import (
     CompleteSubtaskAction,
     EditFileAction,
     FinishAction,
+    ReopenSubtaskAction,
     RunShellAction,
     RunTestsAction,
-    ReopenSubtaskAction,
     SearchAction,
     SetSubtasksAction,
     SubtaskDraft,
@@ -40,7 +41,8 @@ from src.agents.multi_agent import (
     planner_handoff_plan,
     swe_developer_call_limit,
 )
-from src.agents.sandbox import DockerSandbox
+from src.agents.roles import ROLES, build_role_agent, run_role
+from src.agents.sandbox import CommandResult, DockerSandbox
 from src.agents.single_agent import SingleAgent
 from src.agents.state import ContextBudget, State
 from src.agents.tracing import run_trace_extra
@@ -447,7 +449,7 @@ class AgentArchitectureInvariantTests(unittest.TestCase):
             ),
         )
 
-        self.assertEqual(result.context[-1].kind, "invalid_action")
+        self.assertEqual(result.context[-1].kind, "policy_rejection")
         self.assertIn("newly created", result.last_error or "")
 
     def test_any_failed_test_clears_full_suite_verification(self) -> None:
@@ -485,7 +487,7 @@ class AgentArchitectureInvariantTests(unittest.TestCase):
             ),
         )
         self.assertIn("read-only", edited.last_error or "")
-        self.assertEqual(edited.context[-1].kind, "invalid_action")
+        self.assertEqual(edited.context[-1].kind, "policy_rejection")
 
         overwritten = self.executor.execute(
             state,
@@ -496,7 +498,7 @@ class AgentArchitectureInvariantTests(unittest.TestCase):
             ),
         )
         self.assertIn("read-only", overwritten.last_error or "")
-        self.assertEqual(overwritten.context[-1].kind, "invalid_action")
+        self.assertEqual(overwritten.context[-1].kind, "policy_rejection")
 
     def test_tester_can_create_tests_but_not_production_files(self) -> None:
         state = self.state(active_role="tester")
@@ -528,7 +530,7 @@ class AgentArchitectureInvariantTests(unittest.TestCase):
             ),
         )
         self.assertIn("production code", rejected.last_error or "")
-        self.assertEqual(rejected.context[-1].kind, "invalid_action")
+        self.assertEqual(rejected.context[-1].kind, "policy_rejection")
 
         developer_rejected = self.executor.execute(
             self.state(active_role="developer"),
@@ -539,7 +541,7 @@ class AgentArchitectureInvariantTests(unittest.TestCase):
             ),
         )
         self.assertIn("Developer role cannot", developer_rejected.last_error or "")
-        self.assertEqual(developer_rejected.context[-1].kind, "invalid_action")
+        self.assertEqual(developer_rejected.context[-1].kind, "policy_rejection")
 
     def test_reviewer_shell_is_read_only(self) -> None:
         state = self.state(active_role="reviewer")
@@ -549,7 +551,7 @@ class AgentArchitectureInvariantTests(unittest.TestCase):
             RunShellAction(action="run_shell", command="touch src/changed.py"),
         )
         self.assertIn("read-only", rejected.last_error or "")
-        self.assertEqual(rejected.context[-1].kind, "invalid_action")
+        self.assertEqual(rejected.context[-1].kind, "policy_rejection")
 
     def test_regressions_make_evaluation_unsuccessful(self) -> None:
         self.assertTrue(task_success(True, True, 0))
@@ -691,6 +693,68 @@ class AgentArchitectureInvariantTests(unittest.TestCase):
         self.assertTrue(adaptive.developer_escalation_pending())
         self.assertIs(adaptive._select_role_model("reviewer", self.state()), strong)
         self.assertEqual(len(adaptive.usage_models()), 2)
+
+    def test_failed_tester_episode_preserves_failure_for_adaptive_escalation(
+        self,
+    ) -> None:
+        cheap = LangChainModel(
+            model="cheap",
+            chat=FakeListChatModel(
+                responses=[
+                    '{"action":"run_tests"}',
+                    '{"action":"report","summary":"tests failed"}',
+                ]
+            ),
+        )
+        strong = LangChainModel(
+            model="strong",
+            chat=FakeListChatModel(responses=["unused"]),
+        )
+        role_agent = build_role_agent(ROLES["tester"], cheap, "text_json")
+        compactor = ContextCompactor(
+            budget=ContextBudget(window_tokens=8192, reserved_output_tokens=1024),
+            mode="drop",
+            model=cheap,
+        )
+        with patch.object(
+            DockerSandbox,
+            "run_tests",
+            return_value=CommandResult(returncode=1, output="1 failed"),
+        ):
+            merged, _ = run_role(
+                ROLES["tester"],
+                agent=role_agent,
+                executor=self.executor,
+                compactor=compactor,
+                state=self.state(),
+                instruction="verify",
+            )
+
+        self.assertEqual(merged.failed_test_runs, 1)
+        adaptive = GuardedOrchestratorAgent(
+            model=cheap,
+            developer_escalation_model=strong,
+        )
+        adaptive._developer_episodes = 1
+        self.assertIs(adaptive._select_role_model("developer", merged), strong)
+
+    def test_policy_rejection_does_not_count_as_parse_failure(self) -> None:
+        state = self.state(active_role="developer")
+        rejected = self.executor.execute(
+            state,
+            WriteFileAction(
+                action="write_file",
+                path="tests/test_forbidden.py",
+                content="def test_x():\n    assert True\n",
+            ),
+        )
+        model = LangChainModel(
+            model="fake", chat=FakeListChatModel(responses=["unused"])
+        )
+        agent = SingleAgent(model=model)
+
+        self.assertEqual(rejected.context[-1].kind, "policy_rejection")
+        self.assertEqual(agent._parse_failure_streak(rejected), 0)
 
     def test_trace_name_and_tags_expose_model_policy(self) -> None:
         extra = run_trace_extra(

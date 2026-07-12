@@ -166,6 +166,7 @@ def run_role(
             "active_role": None,
             "step": role_state.step,
             "iteration": role_state.iteration,
+            "failed_test_runs": role_state.failed_test_runs,
             "action_counts": role_state.action_counts,
             "compaction_count": role_state.compaction_count,
             "role_steps": role_steps,

@@ -45,6 +45,7 @@ _ROWS: list[tuple[str, str, str]] = [
     ("mean_regressions", "Regressions (mean/run)", "mean"),
     ("test_overfitting_rate", "Test-overfitting rate", "rate"),
     ("tool_use_validity_rate", "Tool-use validity rate", "rate"),
+    ("policy_rejections_per_run", "Policy rejections (mean/run)", "mean"),
     ("hallucinated_refs_per_run", "Hallucinated refs (mean/run)", "mean"),
     ("mean_iterations", "Mean iterations", "mean"),
     ("mean_steps", "Mean steps", "mean"),

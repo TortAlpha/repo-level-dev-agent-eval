@@ -19,7 +19,6 @@ from ..metrics.pricing import PRICING_CSV
 from .collection import DEFAULT_COLLECTION, load_collection
 from .task_sets import TaskSet, load_task_set
 
-
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_RESULTS_DIR = Path("experiments/results")
 HARNESS_PATHS = (
@@ -751,6 +750,11 @@ def main() -> int:
         raise SystemExit(
             "task-set/resumable/budgeted sweeps require --concurrency 1; parallel "
             "mode confounds provider timing and global budget accounting"
+        )
+    if args.concurrency != 1 and args.stop_on_error:
+        raise SystemExit(
+            "--stop-on-error requires --concurrency 1 because already-running "
+            "parallel combinations cannot be stopped reliably"
         )
 
     tasks, task_set = _selected_tasks(args)

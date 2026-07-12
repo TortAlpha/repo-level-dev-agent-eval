@@ -78,6 +78,7 @@ class MetricSet:
     # Agent behavior
     test_overfitting_rate: float | None
     tool_use_validity_rate: float | None
+    policy_rejections_per_run: float | None
     hallucinated_refs_per_run: float | None
     # Efficiency
     mean_iterations: float | None
@@ -190,6 +191,9 @@ def compute_metrics(
         mean_regressions=_mean([r.regressions for r in regressed]),
         test_overfitting_rate=_rate([not bool(r.outcome) for r in visible_ok_scored]),
         tool_use_validity_rate=(valid_calls / total_calls if total_calls else None),
+        policy_rejections_per_run=_mean(
+            [r.action_counts.get("policy_rejection", 0) for r in with_actions]
+        ),
         hallucinated_refs_per_run=_mean(
             [
                 sum(r.action_counts.get(k, 0) for k in _ACTION_FAILURE_KINDS)
