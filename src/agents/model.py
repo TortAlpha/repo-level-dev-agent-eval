@@ -1,8 +1,9 @@
 import json
 import time
+from collections.abc import Mapping
+from dataclasses import dataclass
 
 from langchain_core.language_models import BaseChatModel
-from langsmith import tracing_context
 from langchain_core.messages import (
     AIMessage,
     BaseMessage,
@@ -10,6 +11,7 @@ from langchain_core.messages import (
     SystemMessage,
     ToolMessage,
 )
+from langsmith import tracing_context
 from pydantic import BaseModel
 
 from .actions import (
@@ -23,7 +25,6 @@ from .state import State
 from .state.rendering import render_header, render_progress
 from .tracing import trace_model_call, trace_summarize_call
 from .transport import ActionTransport
-
 
 TOOL_MODE_PROMPT = """
 
@@ -76,14 +77,38 @@ class GeneratedAction(BaseModel):
     tool_name: str = ""
 
 
+@dataclass(frozen=True)
+class ActionGenerationFailure:
+    """A recoverable invalid model response, with its transport metadata.
+
+    This is deliberately a return value rather than an exception escaping the
+    traced model call.  The single-agent loop can then feed back the error in
+    the correct protocol without every normal model-formatting slip becoming
+    a trace failure.
+    """
+
+    error: ActionParseError
+    transport: str
+    action_json: str
+    tool_call_id: str = ""
+    tool_name: str = ""
+
+
 class LangChainModel(BaseModel):
     model: str
     chat: BaseChatModel
+    input_cost_per_1m: float | None = None
+    output_cost_per_1m: float | None = None
 
     # Cumulative usage over a run, for efficiency metrics.
     calls: int = 0
     input_tokens: int = 0
     output_tokens: int = 0
+    cached_input_tokens: int = 0
+    # OpenRouter can report billed generation cost in detailed usage. Keep it
+    # separate from the static token-price estimate: absence is not zero.
+    provider_reported_cost_usd: float = 0.0
+    provider_cost_calls: int = 0
     # Steps where the tools transport had to fall back to text-JSON parsing;
     # recorded per run so tools-mode results stay interpretable.
     fallback_calls: int = 0
@@ -94,6 +119,15 @@ class LangChainModel(BaseModel):
     @property
     def total_tokens(self) -> int:
         return self.input_tokens + self.output_tokens
+
+    @property
+    def estimated_cost_usd(self) -> float | None:
+        if self.input_cost_per_1m is None or self.output_cost_per_1m is None:
+            return None
+        return (
+            self.input_tokens / 1_000_000 * self.input_cost_per_1m
+            + self.output_tokens / 1_000_000 * self.output_cost_per_1m
+        )
 
     @trace_model_call
     def generate(self, prompt: str, state: State) -> str:
@@ -109,12 +143,42 @@ class LangChainModel(BaseModel):
         prompt: str,
         state: State,
         transport: ActionTransport,
-    ) -> GeneratedAction:
-        if transport == "text_json" or transport == "auto":
-            return self._generate_text_action(prompt, state)
-        return self._generate_tool_action(prompt, state)
+        space: str | None = None,
+    ) -> GeneratedAction | ActionGenerationFailure:
+        try:
+            if transport == "text_json" or transport == "auto":
+                return self._generate_text_action(prompt, state, space)
+            return self._generate_tool_action(prompt, state, space)
+        except ActionParseError as error:
+            return self._generation_failure(error, transport)
 
-    def _generate_text_action(self, prompt: str, state: State) -> GeneratedAction:
+    @staticmethod
+    def _generation_failure(
+        error: ActionParseError, transport: ActionTransport
+    ) -> ActionGenerationFailure:
+        """Normalize a failed response for replay in its original protocol."""
+        action_json = error.raw_response
+        if error.tool_call_id and error.tool_name:
+            args = error.tool_arguments
+            # Native tool calls require an object of valid JSON arguments on
+            # replay.  A provider may have supplied malformed JSON text, in
+            # which case the tool error itself retains the raw diagnostic and
+            # the replay uses an empty argument object.
+            if isinstance(args, Mapping):
+                action_json = json.dumps({"action": error.tool_name, **args})
+            else:
+                action_json = json.dumps({"action": error.tool_name})
+        return ActionGenerationFailure(
+            error=error,
+            transport=transport,
+            action_json=action_json,
+            tool_call_id=error.tool_call_id,
+            tool_name=error.tool_name,
+        )
+
+    def _generate_text_action(
+        self, prompt: str, state: State, space: str | None = None
+    ) -> GeneratedAction:
         messages = self._messages(prompt, state)
         boost: dict = {}
         for attempt in (0, 1):
@@ -122,7 +186,7 @@ class LangChainModel(BaseModel):
             self._record_usage(response)
             text = self._text(response)
             try:
-                action = parse_action(text)
+                action = parse_action(text, space)
             except ActionParseError as error:
                 # In-call recovery, once, before charging the agent a step:
                 # a reasoning-only turn gets an explicit nudge (at temperature
@@ -133,7 +197,10 @@ class LangChainModel(BaseModel):
                 truncated = self._hit_output_limit(response)
                 if attempt == 0 and (error.kind == "no_action" or truncated):
                     if error.kind == "no_action":
-                        messages = [*messages, HumanMessage(content=_EMPTY_TURN_NUDGE_TEXT)]
+                        messages = [
+                            *messages,
+                            HumanMessage(content=_EMPTY_TURN_NUDGE_TEXT),
+                        ]
                     if truncated:
                         boost = {"max_tokens": self._escalated_max_tokens()}
                     self.empty_retries += 1
@@ -147,7 +214,9 @@ class LangChainModel(BaseModel):
             )
         raise AssertionError("unreachable")
 
-    def _generate_tool_action(self, prompt: str, state: State) -> GeneratedAction:
+    def _generate_tool_action(
+        self, prompt: str, state: State, space: str | None = None
+    ) -> GeneratedAction:
         if not hasattr(self.chat, "bind_tools"):
             raise ActionParseError(
                 "invalid_action",
@@ -159,7 +228,7 @@ class LangChainModel(BaseModel):
         # parameter outright. parse_tool_action tolerates multi-call responses
         # by executing the first call instead.
         tool_chat = self.chat.bind_tools(
-            action_tool_schemas(),
+            action_tool_schemas(space),
             tool_choice="required",
         )
         messages = self._tool_history_messages(f"{prompt}\n{TOOL_MODE_PROMPT}", state)
@@ -171,11 +240,11 @@ class LangChainModel(BaseModel):
             text = self._text(response)
             calls = getattr(response, "tool_calls", []) or []
             try:
-                action = parse_tool_action(calls)
+                action = parse_tool_action(calls, space)
             except ActionParseError as tool_error:
                 if text.strip():
                     try:
-                        action = parse_action(text)
+                        action = parse_action(text, space)
                     except ActionParseError as text_error:
                         raise self._with_output_limit_hint(
                             text_error, response, text
@@ -193,7 +262,10 @@ class LangChainModel(BaseModel):
                 truncated = self._hit_output_limit(response)
                 if attempt == 0 and (tool_error.kind == "no_action" or truncated):
                     if tool_error.kind == "no_action":
-                        messages = [*messages, HumanMessage(content=_EMPTY_TURN_NUDGE_TOOLS)]
+                        messages = [
+                            *messages,
+                            HumanMessage(content=_EMPTY_TURN_NUDGE_TOOLS),
+                        ]
                     if truncated:
                         boost = {"max_tokens": self._escalated_max_tokens()}
                     self.empty_retries += 1
@@ -240,10 +312,13 @@ class LangChainModel(BaseModel):
 
     @trace_summarize_call
     def summarize(self, instructions: str, content: str) -> str:
-        response = self._invoke_with_transient_retry(self.chat, [
-            SystemMessage(content=instructions),
-            HumanMessage(content=content),
-        ])
+        response = self._invoke_with_transient_retry(
+            self.chat,
+            [
+                SystemMessage(content=instructions),
+                HumanMessage(content=content),
+            ],
+        )
         self._record_usage(response)
         return self._text(response)
 
@@ -351,7 +426,8 @@ class LangChainModel(BaseModel):
                 if isinstance(block, str):
                     parts.append(block)
                 elif isinstance(block, dict) and block.get("type") in (
-                    "text", "output_text",
+                    "text",
+                    "output_text",
                 ):
                     parts.append(str(block.get("text", "")))
                 # else: reasoning item / unknown block -> drop it.
@@ -430,3 +506,37 @@ class LangChainModel(BaseModel):
         usage = getattr(response, "usage_metadata", None) or {}
         self.input_tokens += int(usage.get("input_tokens") or 0)
         self.output_tokens += int(usage.get("output_tokens") or 0)
+        input_details = usage.get("input_token_details") or {}
+        response_meta = getattr(response, "response_metadata", None) or {}
+        token_usage = response_meta.get("token_usage") or {}
+        prompt_details = token_usage.get("prompt_tokens_details") or {}
+        self.cached_input_tokens += int(
+            input_details.get("cache_read")
+            or input_details.get("cached_tokens")
+            or prompt_details.get("cached_tokens")
+            or 0
+        )
+
+        cost = self._reported_cost(usage, response_meta)
+        if cost is not None:
+            self.provider_reported_cost_usd += cost
+            self.provider_cost_calls += 1
+
+    @staticmethod
+    def _reported_cost(usage: Mapping, response_meta: Mapping) -> float | None:
+        """Best-effort extraction across OpenRouter/OpenAI client metadata."""
+        containers = [
+            usage,
+            usage.get("cost_details") or {},
+            response_meta.get("usage") or {},
+            response_meta.get("token_usage") or {},
+        ]
+        for container in containers:
+            for key in ("cost", "total_cost", "upstream_inference_cost"):
+                value = container.get(key) if isinstance(container, Mapping) else None
+                if value is not None:
+                    try:
+                        return float(value)
+                    except (TypeError, ValueError):
+                        pass
+        return None

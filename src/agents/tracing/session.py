@@ -6,6 +6,34 @@ import os
 from typing import Any
 
 
+def _short_model_name(value: Any) -> str:
+    name = str(value or "unknown").rsplit("/", 1)[-1]
+    return "".join(char if char.isalnum() or char in ".-" else "-" for char in name)
+
+
+def model_policy_label(policy: dict[str, Any] | None) -> str | None:
+    """Human-readable trace label; the technical type remains a filter tag."""
+    if not policy:
+        return None
+    policy_type = str(policy.get("type") or "legacy")
+    base = policy.get("base_model")
+    roles = policy.get("roles") if isinstance(policy.get("roles"), dict) else {}
+    developer = roles.get("developer") or base
+    fallback = policy.get("developer_escalation_model")
+    if policy_type == "single":
+        return f"single_{_short_model_name(base)}"
+    if policy_type == "shared":
+        return f"shared_{_short_model_name(base)}"
+    if policy_type == "adaptive":
+        return (
+            f"adaptive_dev_{_short_model_name(developer)}"
+            f"_to_{_short_model_name(fallback)}"
+        )
+    if policy_type == "role_routed":
+        return f"dev_{_short_model_name(developer)}"
+    return policy_type
+
+
 def configure_langsmith(config: Any) -> None:
     if not config.langsmith_tracing_enabled:
         return
@@ -30,6 +58,13 @@ def run_trace_extra(
     settings: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     tags = [f"task:{task_id}", f"agent_mode:{agent_mode}"]
+    policy = (settings or {}).get("model_policy")
+    policy_type = policy.get("type") if isinstance(policy, dict) else None
+    policy_label = model_policy_label(policy if isinstance(policy, dict) else None)
+    if policy_type:
+        tags.append(f"model_policy:{policy_type}")
+    if policy_label:
+        tags.append(f"model_policy_label:{policy_label}")
     if complexity:
         tags.append(f"complexity:{complexity}")
 
@@ -43,12 +78,15 @@ def run_trace_extra(
         metadata["complexity"] = complexity
     if settings:
         metadata.update(settings)
+    if policy_label:
+        metadata["model_policy_label"] = policy_label
 
+    display_mode = f"{agent_mode}/{policy_label}" if policy_label else agent_mode
     extra: dict[str, Any] = {
         # Name the top-level span after the actual agent so swe-agent / single /
         # multi runs are distinguishable at a glance in LangSmith (tags/metadata
         # also carry agent_mode for filtering).
-        "name": f"{agent_mode}.run[{task_id}]",
+        "name": f"{display_mode}.run[{task_id}]",
         "tags": tags,
         "metadata": metadata,
     }

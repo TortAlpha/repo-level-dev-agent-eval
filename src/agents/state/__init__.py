@@ -10,6 +10,7 @@
 from .budget import ContextBudget
 from .core import State
 from .entry import ContextEntry
+from .subtask import Subtask, SubtaskKind, SubtaskStatus
 from .status import (
     AgentStatus,
     MAX_RENDERED_TEST_OUTPUT_CHARS,
@@ -25,4 +26,7 @@ __all__ = [
     "TERMINAL_STATUSES",
     "STALE_FILE_SNAPSHOT_KINDS",
     "MAX_RENDERED_TEST_OUTPUT_CHARS",
+    "Subtask",
+    "SubtaskKind",
+    "SubtaskStatus",
 ]

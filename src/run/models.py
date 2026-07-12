@@ -9,6 +9,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from ..agents.model import LangChainModel
 from ..agents.single_agent import SingleAgent
 from ..config import Config, ProviderSpec
+from ..metrics.pricing import PRICES
 
 
 def build_model(config: Config, spec: ProviderSpec) -> LangChainModel:
@@ -18,7 +19,13 @@ def build_model(config: Config, spec: ProviderSpec) -> LangChainModel:
             f"No API key configured for provider '{config.model_provider}'. "
             "Set the matching *_API_KEY in your .env file."
         )
-    return LangChainModel(model=spec.model_name, chat=build_chat_model(config, spec))
+    price = PRICES.get(spec.model_name)
+    return LangChainModel(
+        model=spec.model_name,
+        chat=build_chat_model(config, spec),
+        input_cost_per_1m=price.input_per_1m if price else None,
+        output_cost_per_1m=price.output_per_1m if price else None,
+    )
 
 
 def build_agent(
@@ -40,9 +47,9 @@ def build_agent(
         or config.context_budget_tokens,
         max_response_tokens=config.max_tokens,
         compaction_mode=config.compaction_mode,
-        action_transport=getattr(
-            args, "action_transport", None
-        ) or config.agent_action_transport,
+        action_transport=getattr(args, "action_transport", None)
+        or config.agent_action_transport,
+        max_cost_usd=getattr(args, "max_cost_usd", None) or config.max_cost_usd,
     )
 
 

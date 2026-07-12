@@ -47,6 +47,38 @@ def _hard_facts(dropped: list[ContextEntry]) -> list[str]:
             f"Test runs compacted: {len(test_results)}; "
             f"most recent: {test_results[-1]}"
         )
+    inspected = _inspected_paths(dropped)
+    if inspected:
+        facts.append(
+            "Files inspected before compaction: " + ", ".join(inspected[-12:])
+        )
+
+    # Search results are the most fragile part of an exploration-only run:
+    # unlike edits/tests, they previously survived only if the free-form
+    # summarizer happened to mention them. Preserve a compact recent ledger
+    # mechanically so negative searches and localization hits are not retried.
+    recent_searches: list[str] = []
+    seen: set[str] = set()
+    for entry in reversed(dropped):
+        if entry.kind not in ("search", "search_reused"):
+            continue
+        lines = entry.text.splitlines()
+        query = lines[0] if lines else "query=?"
+        if query in seen:
+            continue
+        seen.add(query)
+        result = next(
+            (line.strip() for line in lines[1:] if line.strip()),
+            "No recorded result.",
+        )
+        recent_searches.append(f"{query} -> {result[:180]}")
+        if len(recent_searches) >= 8:
+            break
+    if recent_searches:
+        facts.append(
+            "Recent searches before compaction:\n- "
+            + "\n- ".join(reversed(recent_searches))
+        )
     return facts
 
 
@@ -73,7 +105,7 @@ class ContextCompactor(BaseModel):
     budget: ContextBudget
     mode: CompactionMode = "summarize"
     model: LangChainModel | None = None
-    summary_max_chars: int = Field(default=2000, gt=0)
+    summary_max_chars: int = Field(default=4000, gt=0)
 
     def apply(self, state: State) -> State:
         if not self.budget.needs_compaction(state):
@@ -92,10 +124,14 @@ class ContextCompactor(BaseModel):
         # so edit_file still has exact source; only summarize the rest.
         rescued, remaining = self._rescue_live_inspections(dropped, kept, state)
         if not remaining:
-            return state.model_copy(update={"context": [*rescued, *kept]})
+            return state.model_copy(
+                update={"context": [*rescued, *kept]}
+            ).record_compaction()
 
         digest = self._digest_entry(remaining)
-        return state.model_copy(update={"context": [digest, *rescued, *kept]})
+        return state.model_copy(
+            update={"context": [digest, *rescued, *kept]}
+        ).record_compaction()
 
     def _rescue_live_inspections(
         self,
@@ -203,7 +239,9 @@ class ContextCompactor(BaseModel):
         summarized_files = _inspected_paths(dropped)
         if summarized_files:
             header.append(
-                "Summarized below (NOT verbatim) — re-inspect with inspect_file "
-                "before editing: " + ", ".join(summarized_files)
+                "The digest is not verbatim. Re-inspect only the specific edit "
+                "target immediately before editing; do not repeat broad "
+                "repository exploration. Summarized files: "
+                + ", ".join(summarized_files)
             )
         return "\n".join([*header, summary])

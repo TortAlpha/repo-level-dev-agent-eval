@@ -28,6 +28,10 @@ def main() -> int:
     spec = config.provider_spec(args.model)
     model = build_model(config, spec)
     agent = build_agent(config, args, model, spec)
+    if agent.max_cost_usd is not None and model.estimated_cost_usd is None:
+        raise SystemExit(
+            "--max-cost-usd requires a model with known pricing in static/pricing.csv"
+        )
 
     state = State(
         task=task_file.read_text(encoding="utf-8"),
@@ -101,6 +105,7 @@ def parse_args() -> argparse.Namespace:
         help="Model provider to use. Overrides MODEL_PROVIDER from .env.",
     )
     parser.add_argument("--model", default=None)
+    parser.add_argument("--max-cost-usd", type=float, default=None)
     parser.add_argument(
         "--action-transport",
         choices=["text_json", "tools", "auto"],

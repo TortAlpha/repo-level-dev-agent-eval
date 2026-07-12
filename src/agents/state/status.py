@@ -9,12 +9,15 @@ AgentStatus = Literal[
     "testing",
     "needs_revision",
     "reviewing",
+    "submitted",
     "solved",
     "failed",
     "handoff",
 ]
 
-TERMINAL_STATUSES: set[AgentStatus] = {"solved", "failed", "handoff"}
+TERMINAL_STATUSES: set[AgentStatus] = {
+    "submitted", "solved", "failed", "handoff"
+}
 
 STALE_FILE_SNAPSHOT_KINDS = frozenset({"inspect_file"})
 

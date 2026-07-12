@@ -326,12 +326,15 @@ class SweAgentAdapter(BaseModel):
     ) -> State:
         if not changed:
             return state.mark_handoff("SWE-agent produced no applicable changes.")
-        for _ in range(min(steps, 1000)):
+        remaining = max(state.max_steps - state.step, 0)
+        for _ in range(min(steps, remaining)):
             state = state.advance_step()
         summary = f"SWE-agent produced a patch touching {len(changed)} file(s)."
         return (
             state.with_changed_files(changed)
-            .with_status("solved")
+            # A produced patch is a submission, not proof of correctness.
+            # The benchmark evaluator decides task_success afterwards.
+            .with_status("submitted")
             .with_observation(summary)
             .with_context(kind="finish", text=summary)
         )

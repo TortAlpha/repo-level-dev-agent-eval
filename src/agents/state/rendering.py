@@ -54,6 +54,12 @@ def render_state(state: State) -> str:
     plan = state.plan.strip() or "No plan yet."
     container_id = state.container_id or "No container assigned."
     tests_status = "passed" if state.test_passed else "not passed"
+    full_tests_status = "passed" if state.full_test_passed else "not passed"
+    compatibility_status = (
+        "not required"
+        if not state.compatibility_check_required
+        else ("passed" if state.compatibility_check_passed else "not passed")
+    )
     test_command = state.test_command or "No test command configured."
     last_test_output = _tail(
         state.last_test_output.strip() or "No tests run yet.",
@@ -61,6 +67,7 @@ def render_state(state: State) -> str:
     )
     relevant_files = _format_paths(state.relevant_files)
     changed_files = _format_paths(state.changed_files)
+    subtasks = _format_subtasks(state)
     context = (
         "\n\n".join(
             entry.render(i) for i, entry in enumerate(state.context, start=1)
@@ -86,6 +93,9 @@ Docker container:
 Plan:
 {plan}
 
+Structured subtasks:
+{subtasks}
+
 Action history (oldest first):
 {context}
 
@@ -98,14 +108,32 @@ Iteration:
 Step:
 {state.step} / {state.max_steps}
 
+Workspace revision:
+{state.workspace_revision}
+
+Repair cycles:
+{state.repair_cycles} / {state.max_repair_cycles}
+
 Relevant files:
 {relevant_files}
 
 Changed files:
 {changed_files}
 
-Visible tests:
+Last test invocation:
 {tests_status}
+
+Configured full visible suite:
+{full_tests_status} (revision {state.full_suite_verified_revision})
+
+Focused compatibility check:
+{compatibility_status} (revision {state.compatibility_verified_revision})
+
+Last compatibility command:
+{state.last_compatibility_command or "No compatibility check run yet."}
+
+Last test command:
+{state.last_test_command or "No tests run yet."}
 
 Last test output:
 {last_test_output}
@@ -131,9 +159,19 @@ def _progress_message(state: State) -> str:
     return (
         f"Current progress: step {state.step}/{state.max_steps}, "
         f"test iteration {state.iteration}/{state.max_iterations}.\n"
+        f"Workspace revision: {state.workspace_revision}; repair cycles: "
+        f"{state.repair_cycles}/{state.max_repair_cycles}.\n"
         f"Plan: {plan}\n"
+        f"Active subtask: {_active_subtask_line(state)}\n"
+        f"Subtasks: {_format_subtasks_inline(state)}\n"
+        f"Consecutive read-only research steps: {state.research_streak}\n"
         f"Changed files: {_format_paths_inline(state.changed_files)}\n"
-        f"Visible tests: {'passed' if state.test_passed else 'not passed'}\n"
+        f"Last test invocation: {'passed' if state.test_passed else 'not passed'}\n"
+        f"Configured full visible suite: "
+        f"{'passed' if state.full_test_passed else 'not passed'} "
+        f"(revision {state.full_suite_verified_revision})\n"
+        f"Focused compatibility check: "
+        f"{'not required' if not state.compatibility_check_required else ('passed' if state.compatibility_check_passed else 'required, not passed')}\n"
         f"Last test output:\n{last_test_output}\n\n"
         "Reply with exactly one JSON object for your next action."
     )
@@ -143,6 +181,29 @@ def _tail(text: str, max_chars: int) -> str:
     if len(text) <= max_chars:
         return text
     return f"... truncated to last {max_chars} characters ...\n{text[-max_chars:]}"
+
+
+def _active_subtask_line(state: State) -> str:
+    item = state.active_subtask
+    if item is None:
+        return "none"
+    return f"{item.id} [{item.kind}] — {item.objective}"
+
+
+def _format_subtasks(state: State) -> str:
+    if not state.subtasks:
+        return "Not created." if state.decomposition_required else "Not required."
+    return "\n".join(
+        f"- {item.id} [{item.kind}/{item.status}] deps="
+        f"{','.join(item.dependencies) or 'none'}: {item.objective}"
+        for item in state.subtasks
+    )
+
+
+def _format_subtasks_inline(state: State) -> str:
+    if not state.subtasks:
+        return "not created" if state.decomposition_required else "not required"
+    return ", ".join(f"{item.id}={item.status}" for item in state.subtasks)
 
 
 def _merge_consecutive_users(

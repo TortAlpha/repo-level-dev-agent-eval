@@ -71,6 +71,7 @@ class RunShellAction(ActionBase):
 class RunTestsAction(ActionBase):
     action: Literal["run_tests"]
     command: str | None = None
+    purpose: Literal["verification", "compatibility"] = "verification"
     timeout_seconds: int | None = Field(default=None, gt=0)
 
 
@@ -84,6 +85,48 @@ class HandoffAction(ActionBase):
     reason: str
 
 
+class SubtaskDraft(BaseModel):
+    id: str = Field(pattern=r"^[a-z][a-z0-9_-]{0,31}$")
+    objective: str = Field(min_length=8, max_length=500)
+    kind: Literal["investigate", "implement", "verify", "compatibility"]
+    dependencies: list[str] = Field(default_factory=list, max_length=8)
+    acceptance_command: str | None = Field(default=None, max_length=1000)
+
+
+class SetSubtasksAction(ActionBase):
+    action: Literal["set_subtasks"]
+    subtasks: list[SubtaskDraft] = Field(min_length=2, max_length=12)
+
+
+class CompleteSubtaskAction(ActionBase):
+    action: Literal["complete_subtask"]
+    subtask_id: str
+    evidence: str = Field(min_length=8, max_length=2000)
+
+
+class ReopenSubtaskAction(ActionBase):
+    action: Literal["reopen_subtask"]
+    subtask_id: str
+    reason: str = Field(min_length=8, max_length=2000)
+
+
+class ReportAction(ActionBase):
+    """Role-local terminal action (multi-agent): hand results back to the
+    orchestration layer. Unlike ``finish`` it carries no solved/failed
+    semantics and never reaches the executor."""
+
+    action: Literal["report"]
+    summary: str
+
+
+class DelegateAction(ActionBase):
+    """Orchestrator-only: run one specialist role and observe its report."""
+
+    action: Literal["delegate"]
+    role: Literal["planner", "developer", "tester", "reviewer"]
+    instruction: str
+
+
 AgentAction: TypeAlias = Annotated[
     SetPlanAction
     | InspectFileAction
@@ -94,7 +137,12 @@ AgentAction: TypeAlias = Annotated[
     | RunShellAction
     | RunTestsAction
     | FinishAction
-    | HandoffAction,
+    | HandoffAction
+    | SetSubtasksAction
+    | CompleteSubtaskAction
+    | ReopenSubtaskAction
+    | ReportAction
+    | DelegateAction,
     Field(discriminator="action"),
 ]
 
@@ -119,10 +167,67 @@ ACTION_DESCRIPTIONS = {
     "write_file": "Create or fully rewrite one repository file.",
     "edit_file": "Replace an exact string in one repository file.",
     "run_shell": "Run a shell command inside the repository sandbox.",
-    "run_tests": "Run the visible tests or a focused test command.",
+    "run_tests": (
+        "Run visible/focused tests, or an explicit legacy-behavior probe with "
+        "purpose=compatibility."
+    ),
     "finish": "Finish after code changed and visible tests pass.",
     "handoff": "Stop and explain why the task cannot be completed.",
+    "set_subtasks": "Create the structured dependency-aware work queue.",
+    "complete_subtask": "Complete the active subtask with concrete evidence.",
+    "reopen_subtask": "Reopen implementation after failed verification.",
+    "report": "Finish your role: report your results back to the orchestrator.",
+    "delegate": "Delegate a focused instruction to one specialist role.",
 }
+
+_EXTRA_MODELS: dict[str, type[BaseModel]] = {
+    "report": ReportAction,
+    "delegate": DelegateAction,
+    "set_subtasks": SetSubtasksAction,
+    "complete_subtask": CompleteSubtaskAction,
+    "reopen_subtask": ReopenSubtaskAction,
+}
+
+
+class ActionSpace:
+    """A named subset of the action vocabulary (multi-agent roles restrict it).
+
+    Registered by name so pydantic agents can reference a space as a plain
+    string field. The default space is the full single-agent vocabulary.
+    """
+
+    def __init__(self, name: str, action_names: Sequence[str]) -> None:
+        catalog = {**ACTION_MODELS, **_EXTRA_MODELS}
+        unknown = [n for n in action_names if n not in catalog]
+        if unknown:
+            raise ValueError(f"unknown actions for space {name!r}: {unknown}")
+        self.name = name
+        self.models: dict[str, type[BaseModel]] = {
+            n: catalog[n] for n in action_names
+        }
+        types = list(self.models.values())
+        if len(types) == 1:
+            self.adapter: TypeAdapter[Any] = TypeAdapter(types[0])
+        else:
+            union = types[0]
+            for t in types[1:]:
+                union = union | t
+            self.adapter = TypeAdapter(
+                Annotated[union, Field(discriminator="action")]
+            )
+        ACTION_SPACES[name] = self
+
+
+ACTION_SPACES: dict[str, ActionSpace] = {}
+DEFAULT_SPACE = ActionSpace("default", list(ACTION_MODELS))
+
+
+def resolve_space(space: str | None) -> ActionSpace:
+    if space is None:
+        return DEFAULT_SPACE
+    if space not in ACTION_SPACES:
+        raise ValueError(f"unknown action space: {space!r}")
+    return ACTION_SPACES[space]
 
 
 def same_action(a: AgentAction | None, b: AgentAction | None) -> bool:
@@ -136,13 +241,29 @@ def same_action(a: AgentAction | None, b: AgentAction | None) -> bool:
 class ActionParseError(ValueError):
     """Raised when a model response cannot be parsed into an action."""
 
-    def __init__(self, kind: str, message: str, raw_response: str = "") -> None:
+    def __init__(
+        self,
+        kind: str,
+        message: str,
+        raw_response: str = "",
+        *,
+        tool_call_id: str = "",
+        tool_name: str = "",
+        tool_arguments: Mapping[str, Any] | str | None = None,
+    ) -> None:
         super().__init__(message)
         self.kind = kind
         self.raw_response = raw_response
+        # A malformed native tool call still needs to be replayed as a tool
+        # call plus a ToolMessage error.  Keeping this protocol metadata on
+        # the parse failure lets the single-agent recovery preserve that
+        # conversation shape instead of silently degrading into text history.
+        self.tool_call_id = tool_call_id
+        self.tool_name = tool_name
+        self.tool_arguments = tool_arguments
 
 
-def parse_action(text: str) -> AgentAction:
+def parse_action(text: str, space: str | None = None) -> AgentAction:
     if not text or not text.strip():
         # Reasoning models sometimes return a reasoning-only turn (no answer),
         # which arrives here as empty text. Nudge for an actual action rather
@@ -168,20 +289,23 @@ def parse_action(text: str) -> AgentAction:
         raise ActionParseError("malformed_action", str(exc), raw_response=text) from exc
 
     try:
-        return ACTION_ADAPTER.validate_python(data)
+        return resolve_space(space).adapter.validate_python(data)
     except ValidationError as exc:
         raise ActionParseError(
-            "invalid_action", _validation_message(data, exc), raw_response=text
+            "invalid_action",
+            _validation_message(data, exc, space),
+            raw_response=text,
         ) from exc
 
 
-def _validation_message(data: Any, exc: ValidationError) -> str:
+def _validation_message(data: Any, exc: ValidationError, space: str | None = None) -> str:
     """Actionable validation feedback for the model.
 
     Raw pydantic errors (union_tag_not_found, docs URLs) are noise a model
     cannot act on; name the actual problem and the valid vocabulary instead.
     """
-    names = ", ".join(ACTION_MODELS)
+    vocabulary = resolve_space(space).models
+    names = ", ".join(vocabulary)
     if isinstance(data, dict):
         tag = data.get("action")
         if tag is None:
@@ -191,7 +315,7 @@ def _validation_message(data: Any, exc: ValidationError) -> str:
                 f"keys: {keys}. Reply with one JSON action object whose "
                 f'"action" is one of: {names}.'
             )
-        if tag not in ACTION_MODELS:
+        if tag not in vocabulary:
             return (
                 f"Invalid agent action: unknown action {tag!r}. "
                 f'Valid "action" values: {names}.'
@@ -203,7 +327,7 @@ def _validation_message(data: Any, exc: ValidationError) -> str:
     return f"Invalid agent action: {problems}"
 
 
-def action_tool_schemas() -> list[dict[str, Any]]:
+def action_tool_schemas(space: str | None = None) -> list[dict[str, Any]]:
     """OpenAI-compatible tool definitions for one-action-at-a-time agents."""
     return [
         {
@@ -214,11 +338,13 @@ def action_tool_schemas() -> list[dict[str, Any]]:
                 "parameters": _parameters_without_action(model_type),
             },
         }
-        for name, model_type in ACTION_MODELS.items()
+        for name, model_type in resolve_space(space).models.items()
     ]
 
 
-def parse_tool_action(tool_calls: Sequence[Mapping[str, Any]]) -> AgentAction:
+def parse_tool_action(
+    tool_calls: Sequence[Mapping[str, Any]], space: str | None = None
+) -> AgentAction:
     """Convert a chat-model tool call into an ``AgentAction``."""
     if not tool_calls:
         raise ActionParseError(
@@ -229,27 +355,46 @@ def parse_tool_action(tool_calls: Sequence[Mapping[str, Any]]) -> AgentAction:
     # the first one keeps the one-action-per-step loop moving instead of
     # burning the step on a rejection.
     call = tool_calls[0]
+    call_id = str(call.get("id") or "")
+    vocabulary = resolve_space(space).models
     name = str(call.get("name") or "")
-    if name not in ACTION_MODELS:
-        raise ActionParseError("invalid_action", f"Unknown action tool: {name}")
+    raw_args = call.get("args")
 
-    raw_args = call.get("args") or {}
+    def tool_error(kind: str, message: str) -> ActionParseError:
+        return ActionParseError(
+            kind,
+            message,
+            tool_call_id=call_id,
+            tool_name=name,
+            tool_arguments=raw_args,
+        )
+
+    if name not in vocabulary:
+        raise tool_error(
+            "invalid_action",
+            f"Unknown action tool: {name}. Available: {', '.join(vocabulary)}.",
+        )
+
+    raw_args = raw_args or {}
     if isinstance(raw_args, str):
         try:
             args = json.loads(raw_args, strict=False)
         except json.JSONDecodeError as exc:
-            raise ActionParseError(
+            raise tool_error(
                 "malformed_action", f"Malformed tool arguments JSON: {exc}"
             ) from exc
     elif isinstance(raw_args, Mapping):
         args = dict(raw_args)
     else:
-        raise ActionParseError(
+        raise tool_error(
             "invalid_action",
             f"Tool arguments must be an object, got {type(raw_args).__name__}.",
         )
 
-    return _validate_action({"action": name, **args})
+    try:
+        return _validate_action({"action": name, **args}, space)
+    except ActionParseError as exc:
+        raise tool_error(exc.kind, str(exc)) from exc
 
 
 def _extract_json_object(text: str) -> str:
@@ -274,12 +419,12 @@ def _extract_json_object(text: str) -> str:
     return stripped[start : end + 1]
 
 
-def _validate_action(data: dict[str, Any]) -> AgentAction:
+def _validate_action(data: dict[str, Any], space: str | None = None) -> AgentAction:
     try:
-        return ACTION_ADAPTER.validate_python(data)
+        return resolve_space(space).adapter.validate_python(data)
     except ValidationError as exc:
         raise ActionParseError(
-            "invalid_action", _validation_message(data, exc)
+            "invalid_action", _validation_message(data, exc, space)
         ) from exc
 
 

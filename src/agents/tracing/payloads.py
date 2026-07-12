@@ -39,6 +39,17 @@ def generate_outputs(output: Any) -> dict:
             "action": action.model_dump() if hasattr(action, "model_dump") else action,
             "response": _head(getattr(output, "text", "") or ""),
         }
+    if hasattr(output, "error") and hasattr(output, "transport"):
+        error = getattr(output, "error")
+        return {
+            "transport": getattr(output, "transport", None),
+            "parse_failure": {
+                "kind": getattr(error, "kind", None),
+                "message": str(error),
+                "tool_name": getattr(output, "tool_name", None),
+            },
+            "response": _head(getattr(output, "action_json", "") or ""),
+        }
     return {"response": output}
 
 
@@ -64,6 +75,18 @@ def run_outputs(state: State) -> dict:
         "iteration": f"{state.iteration}/{state.max_iterations}",
         "step": f"{state.step}/{state.max_steps}",
         "test_passed": state.test_passed,
+        "full_test_passed": state.full_test_passed,
+        "compatibility_check_required": state.compatibility_check_required,
+        "compatibility_check_passed": state.compatibility_check_passed,
+        "last_compatibility_command": state.last_compatibility_command,
+        "decomposition_required": state.decomposition_required,
+        "active_subtask": state.active_subtask_id,
+        "subtasks": [item.model_dump() for item in state.subtasks],
+        "workspace_revision": state.workspace_revision,
+        "full_suite_verified_revision": state.full_suite_verified_revision,
+        "compatibility_verified_revision": state.compatibility_verified_revision,
+        "repair_cycles": state.repair_cycles,
+        "last_test_command": state.last_test_command,
         "changed_files": [str(path) for path in state.changed_files],
         "last_error": state.last_error,
         "action_counts": dict(state.action_counts),

@@ -19,6 +19,9 @@ def load_prompt(name: str) -> str:
 
 # Instructs the single agent which action to take next (see actions.py).
 SINGLE_AGENT_PROMPT = load_prompt("single_agent")
+DECOMPOSED_SINGLE_AGENT_PROMPT = (
+    SINGLE_AGENT_PROMPT + "\n\n" + load_prompt("decomposed_single_agent")
+)
 
 # Compresses dropped history into a factual digest; takes a {max_chars} slot.
 CONTEXT_SUMMARY_PROMPT = load_prompt("context_summary")

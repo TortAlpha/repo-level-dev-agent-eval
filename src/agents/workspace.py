@@ -41,6 +41,18 @@ class Workspace(BaseModel):
 
     root: Path
 
+    @staticmethod
+    def search_key(query: str, path: str = ".") -> str:
+        """Stable cache key for searches whose result survives compaction.
+
+        Models often emit basic-grep alternation (``\\|``), while ripgrep's
+        regex syntax uses ``|``. The search implementation retries that form,
+        so both spellings must share a cache key.
+        """
+        normalized_query = " ".join(query.strip().split()).replace(r"\|", "|")
+        normalized_path = Path(path).as_posix().rstrip("/") or "."
+        return f"{normalized_path}\n{normalized_query}"
+
     def resolve(self, path: str) -> Path:
         if Path(path).is_absolute():
             raise ValueError(f"Absolute paths are not allowed: {path}")
@@ -53,6 +65,22 @@ class Workspace(BaseModel):
 
     def to_relative(self, path: Path) -> str:
         return str(path.relative_to(self.root.resolve()))
+
+    def is_tracked(self, path: str) -> bool:
+        """Whether ``path`` belongs to the pristine Git checkout (HEAD/index)."""
+        file_path = self.resolve(path)
+        rel_path = self.to_relative(file_path)
+        result = subprocess.run(
+            [
+                "git", "-C", str(self.root.resolve()),
+                "ls-files", "--error-unmatch", "--", rel_path,
+            ],
+            capture_output=True,
+            check=False,
+            text=True,
+            timeout=30,
+        )
+        return result.returncode == 0
 
     @trace_workspace_op("Workspace.read_file")
     def read_file(self, path: str) -> str:
@@ -126,25 +154,46 @@ class Workspace(BaseModel):
         if not search_root.exists():
             raise ValueError(f"Search path does not exist: {path}")
 
-        try:
-            result = subprocess.run(
-                ["rg", "-n", "--no-heading", query, str(search_root)],
+        multiline = "\n" in query or "\r" in query
+
+        def run_rg(*, fixed_strings: bool = False) -> subprocess.CompletedProcess[str]:
+            command = ["rg", "-n", "--no-heading"]
+            if multiline:
+                # ripgrep rejects a literal newline unless multiline mode is
+                # enabled. Agents often paste a short code block as a query.
+                command.append("--multiline")
+            if fixed_strings or multiline:
+                # A pasted multi-line code fragment is almost always a
+                # literal lookup. Treat it as such: otherwise regex escapes
+                # inside the fragment can change its meaning or yield no
+                # match even though multiline mode accepted the pattern.
+                command.append("--fixed-strings")
+            return subprocess.run(
+                [*command, query, str(search_root)],
                 capture_output=True,
                 check=False,
                 text=True,
                 timeout=30,
             )
+
+        try:
+            result = run_rg()
             if result.returncode not in (0, 1) and "regex parse error" in result.stderr:
                 # Models routinely search for literal code (`def parse(self,`),
                 # which is rarely valid regex. Retry literally instead of
                 # burning the agent's step on a pattern syntax error.
-                result = subprocess.run(
-                    ["rg", "-n", "--no-heading", "--fixed-strings", query, str(search_root)],
-                    capture_output=True,
-                    check=False,
-                    text=True,
-                    timeout=30,
-                )
+                result = run_rg(fixed_strings=True)
+            # Basic grep uses ``\|`` for alternation; ripgrep/Rust regex uses
+            # bare ``|`` and treats the escaped form as a literal pipe. Retry
+            # the model's likely intent only after an empty valid result, so a
+            # real literal-pipe match still wins.
+            if result.returncode == 1 and r"\|" in query:
+                original_query = query
+                query = query.replace(r"\|", "|")
+                result = run_rg()
+                if result.returncode not in (0, 1) and "regex parse error" in result.stderr:
+                    result = run_rg(fixed_strings=True)
+                query = original_query
         except FileNotFoundError:
             return self._python_search(search_root, query, max_results)
 

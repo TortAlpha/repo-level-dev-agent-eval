@@ -7,7 +7,19 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from .agents.transport import ActionTransport
 
-AgentMode = Literal["single", "multi", "swe-agent"]
+AgentMode = Literal[
+    "single",
+    "single-decomposed",
+    "swe-agent",
+    # Multi-agent variants (see src/agents/multi_agent.py). "multi" is the
+    # legacy alias for the spec's deterministic graph variant.
+    "multi",
+    "multi-graph",
+    "multi-orch",
+    "multi-orch-guided",
+    "multi-orch-guarded",
+    "multi-swe",
+]
 ModelProvider = Literal["local", "openrouter"]
 
 
@@ -52,6 +64,7 @@ class Config(BaseSettings):
     max_retries: int = 10
 
     max_iterations: int = 5
+    max_cost_usd: float | None = Field(default=None, gt=0)
     test_timeout_seconds: int = 600
     shell_timeout_seconds: int = 300
 
@@ -65,10 +78,34 @@ class Config(BaseSettings):
     # to the provider's context window (compaction effectively off for
     # large-window models). 48000 was a good middle for codex-mini.
     context_budget_tokens: int | None = None
+    # Strong single-agent baseline: bound read-only exploration without
+    # changing the shorter, independently budgeted multi-agent role loops.
+    single_research_guard_enabled: bool = True
+    single_research_warning_steps: int = Field(default=12, gt=0)
+    single_research_hard_limit: int = Field(default=20, gt=0)
+    single_post_plan_research_warning_steps: int = Field(default=5, gt=0)
+    single_post_plan_research_hard_limit: int = Field(default=8, gt=0)
+    single_compatibility_guard_enabled: bool = True
+    single_decomposition_max_subtasks: int = Field(default=8, ge=4, le=12)
+    single_decomposition_implementation_warning_steps: int = Field(default=8, gt=0)
+    single_decomposition_implementation_hard_limit: int = Field(default=14, gt=0)
+    single_decomposition_verification_step_reserve: int = Field(default=20, ge=0)
+    single_decomposition_max_repair_cycles: int = Field(default=2, ge=0)
 
     docker_enabled: bool = True
     docker_image: str | None = None
     docker_network_disabled: bool = True
+
+    # Optional role-specific model routing. Empty values preserve the legacy
+    # behavior where every role shares the primary model.
+    role_model_orchestrator: str | None = None
+    role_model_planner: str | None = None
+    role_model_developer: str | None = None
+    role_model_tester: str | None = None
+    role_model_reviewer: str | None = None
+    developer_escalation_model: str | None = None
+    developer_escalate_after_no_edit_episodes: int = Field(default=1, gt=0)
+    developer_escalate_after_failed_tests: int = Field(default=1, gt=0)
 
     benchmark_dir: Path = Path("eval/tasks")
     workspaces_dir: Path = Path("experiments/workspaces")

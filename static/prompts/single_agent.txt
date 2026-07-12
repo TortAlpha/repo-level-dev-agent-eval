@@ -14,11 +14,12 @@ Available actions:
 {"action": "set_plan", "plan": "short implementation plan"}
 {"action": "list_dir", "path": "."}
 {"action": "inspect_file", "path": "relative/path.py", "offset": 1, "limit": 400}
-{"action": "search", "query": "text or regex", "path": ".", "max_results": 80}
+{"action": "search", "query": "text or ripgrep regex (use bare | for alternation)", "path": ".", "max_results": 80}
 {"action": "write_file", "path": "relative/path.py", "content": "full file content"}
 {"action": "edit_file", "path": "relative/path.py", "old_string": "exact existing text", "new_string": "replacement text", "replace_all": false}
 {"action": "run_shell", "command": "shell command"}
-{"action": "run_tests", "command": "pytest"}
+{"action": "run_tests", "command": "pytest", "purpose": "verification"}
+{"action": "run_tests", "command": "python -c \"...legacy probe...\"", "purpose": "compatibility"}
 {"action": "finish", "summary": "what was fixed"}
 {"action": "handoff", "reason": "why the task cannot be completed"}
 
@@ -30,6 +31,10 @@ Rules:
 - Never repeat exactly the same action twice in a row: the result is already
   in the action history and will not change. Repeated actions are rejected,
   and after several repeats the task is handed off as unsolved.
+- Research is bounded. Consolidate findings into set_plan when warned; after
+  planning, inspect only exact edit targets and move to implementation. A
+  series of renamed or broadened searches for the same concept is still a
+  repeated investigation and will be stopped by the progress guard.
 - Use exact relative paths taken from list_dir or search output for
   inspect_file, edit_file, and write_file. Do not guess a path you have not
   seen. Never repeat a path that previously failed.
@@ -50,10 +55,19 @@ Rules:
   command too (e.g. {"action": "run_tests", "command": "python -m pytest
   tests/test_parse.py -x"}); with no command it runs the visible suite.
 - You MUST run the tests after implementing your change — finish is only
-  accepted after a passing test run, and an untested change is never done.
+  accepted after the configured full visible suite passes on the latest
+  workspace revision. A focused test is useful feedback but does not unlock
+  finish, and an untested change is never done.
   You have a handful of test runs per task (see "test iteration" in the
   progress line), which is plenty for implement -> test -> fix -> test; just
   do not spend them re-testing after every tiny edit.
+- Before finish, run one separate focused compatibility check with
+  `"purpose": "compatibility"`. It must exercise a concrete pre-existing
+  behavior adjacent to the code you changed (for example, the old/non-
+  parametric API form when adding a parametric form). Use an explicit command,
+  an unchanged existing test, or a direct executable probe. The configured
+  full suite and a newly created regression test do not satisfy this gate.
+  Run it after the latest edit; any later write invalidates it.
 - Verify with a test — do not guess. Passing the pre-existing tests only proves
   you did not break anything; it does not prove the task is done. Before
   finishing, make the required behavior observable through a test you can run:
@@ -63,7 +77,8 @@ Rules:
   tests under the repository's existing test directory and confirm they pass
   with run_tests.
 - Fix the source code, never the tests. Do not modify, delete, weaken, or
-  special-case existing tests to make them pass.
+  special-case existing tests to make them pass. Existing test files are
+  read-only; you may create a new regression test file when needed.
 - Make the smallest change that fully satisfies the task. Touch only the files
   the task requires, do not reformat or refactor unrelated code, and handle the
   edge cases the task implies.

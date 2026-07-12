@@ -38,6 +38,10 @@ class DockerSandbox(BaseModel):
             "run",
             "-d",
             "--rm",
+            # Neutralize image ENTRYPOINTs (e.g. SWE-bench Pro envs ship
+            # ENTRYPOINT=/bin/bash, which would swallow our keep-alive loop).
+            "--entrypoint",
+            "sh",
             "--mount",
             f"type=bind,src={self.workdir.resolve()},dst={self.container_workdir}",
             "-w",
@@ -45,7 +49,7 @@ class DockerSandbox(BaseModel):
         ]
         if self.network_disabled:
             args.extend(["--network", "none"])
-        args.extend([self.image, "sh", "-lc", "while true; do sleep 1; done"])
+        args.extend([self.image, "-lc", "while true; do sleep 1; done"])
 
         try:
             result = subprocess.run(
@@ -105,6 +109,30 @@ class DockerSandbox(BaseModel):
     ) -> CommandResult:
         timeout = timeout_seconds or self.test_timeout_seconds
         return self.run_shell(command, timeout_seconds=timeout)
+
+    def disable_network(self) -> None:
+        """Disconnect a running setup container before the agent can act.
+
+        Dependency installation may need the network, while benchmark agents
+        must not be able to fetch a public upstream patch. Containers started
+        directly with ``--network none`` are already isolated.
+        """
+        if self.network_disabled:
+            return
+        container_id = self.start()
+        result = subprocess.run(
+            ["docker", "network", "disconnect", "bridge", container_id],
+            capture_output=True,
+            check=False,
+            text=True,
+            timeout=60,
+        )
+        if result.returncode != 0:
+            output = combine_output(result.stdout, result.stderr)
+            raise RuntimeError(
+                f"Failed to isolate benchmark container network:\n{output}"
+            )
+        self.network_disabled = True
 
     def stop(self) -> None:
         if not self.container_id:
