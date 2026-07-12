@@ -1,7 +1,7 @@
 """CLI: print the spec's evaluation metrics from recorded runs.
 
-    python -m src.metrics.report                 # overall + per agent_mode
-    python -m src.metrics.report --group-by size # per repository size bucket
+python -m src.metrics.report                 # overall + per agent_mode
+python -m src.metrics.report --group-by size # per repository size bucket
 """
 
 from __future__ import annotations
@@ -16,6 +16,7 @@ from .records import (
     DEFAULT_COLLECTION_PATH,
     DEFAULT_QUALITY_PATH,
     DEFAULT_RUNS_PATH,
+    RunRecord,
     attach_hidden_suite_fallbacks,
     attach_quality,
     attach_sizes,
@@ -52,6 +53,7 @@ _ROWS: list[tuple[str, str, str]] = [
     ("mean_total_tokens", "Mean total tokens", "mean"),
     ("mean_cost_usd", "Mean cost (USD)", "usd"),
     ("total_cost_usd", "Total cost (USD)", "usd"),
+    ("cost_per_success_usd", "Cost per successful run", "usd"),
     ("mean_quality_score", "Mean quality (0-5)", "mean"),
 ]
 
@@ -92,9 +94,7 @@ def render(columns: list[tuple[str, MetricSet]]) -> str:
         "",
     ]
     for field, label, kind in _ROWS:
-        lines.append(
-            row(label, [_fmt(getattr(m, field), kind) for _, m in columns])
-        )
+        lines.append(row(label, [_fmt(getattr(m, field), kind) for _, m in columns]))
     if legend:
         lines.extend(["", *legend])
     return "\n".join(lines)
@@ -127,7 +127,9 @@ def _print_sessions(records: list) -> None:
     for name in sorted(agg, key=lambda k: agg[k]["last"], reverse=True):
         s = agg[name]
         agents = ",".join(sorted(s["agents"]))
-        print(f"{name:<28}{s['n']:>6}{len(s['tasks']):>7}  {agents:<20}{s['last'][:19]}")
+        print(
+            f"{name:<28}{s['n']:>6}{len(s['tasks']):>7}  {agents:<20}{s['last'][:19]}"
+        )
 
 
 def main() -> int:
@@ -142,8 +144,11 @@ def main() -> int:
         return 0
 
     records = filter_runs(
-        records, run_id=args.run_id, task_id=args.task_id,
-        session_id=args.session, last=args.last,
+        records,
+        run_id=args.run_id,
+        task_id=args.task_id,
+        session_id=args.session,
+        last=args.last,
     )
     if not records:
         print("No runs match the given filter.")
@@ -182,8 +187,11 @@ def _difficulty_table(records: list[RunRecord]) -> str:
         empirical_difficulty(records).values(),
         key=lambda d: (-d.difficulty, -(d.discrimination or 0)),
     )
-    lines = ["", "Task difficulty (measured from runs):",
-             f"  {'task':30} {'runs':>4} {'models':>6} {'solve':>6} {'diff':>6} {'discrim':>7}  flags"]
+    lines = [
+        "",
+        "Task difficulty (measured from runs):",
+        f"  {'task':30} {'runs':>4} {'models':>6} {'solve':>6} {'diff':>6} {'discrim':>7}  flags",
+    ]
     for d in measured:
         flags = []
         if d.n_runs < MIN_RUNS:
@@ -212,8 +220,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--group-by",
         choices=[
-            "agent_mode", "size", "task_type", "difficulty",
-            "difficulty_estimate", "model", "session_id", "none",
+            "agent_mode",
+            "size",
+            "task_type",
+            "difficulty",
+            "difficulty_estimate",
+            "model",
+            "session_id",
+            "none",
             "action_transport",
         ],
         default="agent_mode",
@@ -233,7 +247,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--task-id", default=None, help="Only this task_id.")
     parser.add_argument("--session", default=None, help="Only runs from this session.")
     parser.add_argument(
-        "--list-sessions", action="store_true",
+        "--list-sessions",
+        action="store_true",
         help="List recorded sessions (run counts, agents, last time) and exit.",
     )
     parser.add_argument(

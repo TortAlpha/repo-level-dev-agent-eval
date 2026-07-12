@@ -66,6 +66,13 @@ class RunRecord:
     transport_downgraded: bool | None = None
     # Reasoning-only turns recovered by the in-call nudged retry.
     no_action_retries: int | None = None
+    # Multi-agent: cumulative steps spent per role.
+    role_steps: dict[str, int] = field(default_factory=dict)
+    model_policy: dict = field(default_factory=dict)
+    role_usage: dict = field(default_factory=dict)
+    role_transports: dict = field(default_factory=dict)
+    developer_escalations: int = 0
+    max_cost_usd: float | None = None
     changed_files: list[str] = field(default_factory=list)
     finished_at: str | None = None
     # Efficiency/behavior signals (present on runs recorded since run_metrics).
@@ -73,11 +80,22 @@ class RunRecord:
     llm_calls: int | None = None
     input_tokens: int | None = None
     output_tokens: int | None = None
+    cached_input_tokens: int | None = None
     total_tokens: int | None = None
+    cost_usd: float | None = None
+    provider_reported_cost_usd: float | None = None
+    provider_cost_calls: int | None = None
     action_counts: dict[str, int] = field(default_factory=dict)
     regressions: int | None = None  # visible tests passing before but not after
+    test_oracle_tampered: bool | None = None
     workspace: str | None = None  # repo dir of this run (for quality scoring)
     task_type: str | None = None  # bugfix/feature (recorded, or joined)
+    task_set_id: str | None = None
+    campaign_id: str | None = None
+    experiment_fingerprint: str | None = None
+    docker_image: str | None = None
+    docker_image_id: str | None = None
+    agent_network_disabled_after_setup: bool | None = None
     size: str | None = None  # joined from collection.csv when available
     difficulty: str | None = None  # best-available bucket (empirical or static)
     difficulty_estimate: str | None = None  # static (a priori) bucket
@@ -90,6 +108,30 @@ class RunRecord:
     @property
     def changed_any(self) -> bool:
         return bool(self.changed_files)
+
+    @property
+    def model_policy_type(self) -> str:
+        value = self.model_policy.get("type") if self.model_policy else None
+        if value:
+            return str(value)
+        return "single" if self.agent_mode == "single" else "legacy"
+
+    @property
+    def agent_policy(self) -> str:
+        policy = self.model_policy_type
+        return self.agent_mode if policy == "single" else f"{self.agent_mode}/{policy}"
+
+    @property
+    def effective_cost_usd(self) -> float | None:
+        """Complete provider billing wins; otherwise use the token estimate."""
+        if (
+            self.provider_reported_cost_usd is not None
+            and self.provider_cost_calls is not None
+            and self.llm_calls is not None
+            and self.provider_cost_calls >= self.llm_calls
+        ):
+            return self.provider_reported_cost_usd
+        return self.cost_usd
 
     @property
     def required_hidden_passed(self) -> bool | None:
@@ -145,6 +187,12 @@ class RunRecord:
                 if row.get("no_action_retries") is not None
                 else None
             ),
+            role_steps=dict(row.get("role_steps") or {}),
+            model_policy=dict(row.get("model_policy") or {}),
+            role_usage=dict(row.get("role_usage") or {}),
+            role_transports=dict(row.get("role_transports") or {}),
+            developer_escalations=int(row.get("developer_escalations") or 0),
+            max_cost_usd=row.get("max_cost_usd"),
             steps=int(row.get("steps", 0)),
             iterations=int(row.get("iterations", 0)),
             test_passed=bool(row.get("test_passed", False)),
@@ -169,11 +217,24 @@ class RunRecord:
             llm_calls=row.get("llm_calls"),
             input_tokens=row.get("input_tokens"),
             output_tokens=row.get("output_tokens"),
+            cached_input_tokens=row.get("cached_input_tokens"),
             total_tokens=row.get("total_tokens"),
+            cost_usd=row.get("cost_usd"),
+            provider_reported_cost_usd=row.get("provider_reported_cost_usd"),
+            provider_cost_calls=row.get("provider_cost_calls"),
             action_counts=dict(row.get("action_counts", {})),
             regressions=row.get("regressions"),
+            test_oracle_tampered=_bool_or_none(row.get("test_oracle_tampered")),
             workspace=row.get("workspace"),
             task_type=row.get("task_type"),
+            task_set_id=row.get("task_set_id"),
+            campaign_id=row.get("campaign_id"),
+            experiment_fingerprint=row.get("experiment_fingerprint"),
+            docker_image=row.get("docker_image"),
+            docker_image_id=row.get("docker_image_id"),
+            agent_network_disabled_after_setup=_bool_or_none(
+                row.get("agent_network_disabled_after_setup")
+            ),
         )
 
 
@@ -209,7 +270,9 @@ def load_task_types(path: Path = DEFAULT_COLLECTION_PATH) -> dict[str, str]:
     return _collection_field(path, "task_type")
 
 
-def load_hidden_suite_specs(path: Path = DEFAULT_COLLECTION_PATH) -> dict[str, set[str]]:
+def load_hidden_suite_specs(
+    path: Path = DEFAULT_COLLECTION_PATH,
+) -> dict[str, set[str]]:
     """Map ``task_id`` to the hidden suite names configured in collection.csv."""
     if not path.is_file():
         return {}

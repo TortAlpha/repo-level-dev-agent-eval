@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from collections.abc import Sequence
+from datetime import UTC, datetime
 from pathlib import Path
 
 from ..agents.model import LangChainModel
@@ -12,19 +13,59 @@ from ..config import Config
 
 
 def run_metrics(
-    model: LangChainModel, final_state: State, duration_s: float
+    model: LangChainModel | Sequence[LangChainModel],
+    final_state: State,
+    duration_s: float,
 ) -> dict:
     """Per-run efficiency/behavior signals recorded alongside the outcome:
     wall-clock time, LLM usage, and a histogram of action kinds (from which
     tool-use validity and hallucinated references are derived)."""
-    return {
+    models = [model] if isinstance(model, LangChainModel) else list(model)
+    unique: list[LangChainModel] = []
+    seen: set[int] = set()
+    for item in models:
+        if id(item) not in seen:
+            unique.append(item)
+            seen.add(id(item))
+    costs = [item.estimated_cost_usd for item in unique]
+    cost_usd = (
+        sum(cost for cost in costs if cost is not None)
+        if not any(cost is None for cost in costs)
+        else None
+    )
+    result = {
         "duration_s": round(duration_s, 2),
-        "llm_calls": model.calls,
-        "input_tokens": model.input_tokens,
-        "output_tokens": model.output_tokens,
-        "total_tokens": model.total_tokens,
+        "llm_calls": sum(item.calls for item in unique),
+        "input_tokens": sum(item.input_tokens for item in unique),
+        "output_tokens": sum(item.output_tokens for item in unique),
+        "cached_input_tokens": sum(item.cached_input_tokens for item in unique),
+        "total_tokens": sum(item.total_tokens for item in unique),
         "action_counts": dict(final_state.action_counts),
+        "compaction_count": final_state.compaction_count,
+        "research_guard_violations": final_state.research_guard_violations,
+        "compatibility_check_required": final_state.compatibility_check_required,
+        "compatibility_check_passed": final_state.compatibility_check_passed,
+        "decomposition_required": final_state.decomposition_required,
+        "subtask_count": len(final_state.subtasks),
+        "completed_subtasks": sum(
+            item.status == "completed" for item in final_state.subtasks
+        ),
+        "workspace_revision": final_state.workspace_revision,
+        "full_suite_verified_revision": final_state.full_suite_verified_revision,
+        "compatibility_verified_revision": (
+            final_state.compatibility_verified_revision
+        ),
+        "repair_cycles": final_state.repair_cycles,
     }
+    if cost_usd is not None:
+        result["cost_usd"] = round(cost_usd, 8)
+    provider_cost_calls = sum(item.provider_cost_calls for item in unique)
+    if provider_cost_calls:
+        result["provider_reported_cost_usd"] = round(
+            sum(item.provider_reported_cost_usd for item in unique), 8
+        )
+        result["provider_cost_calls"] = provider_cost_calls
+    return result
 
 
 def load_task_meta(task_file: Path) -> dict:
@@ -66,7 +107,7 @@ def record_run_result(
         "test_passed": final_state.test_passed if test_passed is None else test_passed,
         "changed_files": [str(path) for path in final_state.changed_files],
         "compaction_mode": config.compaction_mode,
-        "finished_at": datetime.now(timezone.utc).isoformat(),
+        "finished_at": datetime.now(UTC).isoformat(),
     }
     if summary is not None:
         record["summary"] = summary

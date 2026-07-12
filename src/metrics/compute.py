@@ -20,16 +20,40 @@ from .records import RunRecord
 EXTERNAL_METRICS: dict[str, str] = {}
 
 # Action-history kinds that count as (in)valid tool use for the validity rate.
-_VALID_ACTION_KINDS = frozenset({
-    "set_plan", "inspect_file", "list_dir", "search", "write_file",
-    "edit_file", "run_shell", "run_tests", "finish", "handoff",
-})
-_INVALID_ACTION_KINDS = frozenset({
-    "invalid_action", "malformed_action", "no_action", "repeated_action",
-})
-_ACTION_FAILURE_KINDS = frozenset({
-    "invalid_action", "malformed_action", "no_action",
-})
+_VALID_ACTION_KINDS = frozenset(
+    {
+        "set_plan",
+        "inspect_file",
+        "list_dir",
+        "search",
+        "search_reused",
+        "write_file",
+        "edit_file",
+        "run_shell",
+        "run_tests",
+        "compatibility_check",
+        "set_subtasks",
+        "complete_subtask",
+        "reopen_subtask",
+        "finish",
+        "handoff",
+    }
+)
+_INVALID_ACTION_KINDS = frozenset(
+    {
+        "invalid_action",
+        "malformed_action",
+        "no_action",
+        "repeated_action",
+    }
+)
+_ACTION_FAILURE_KINDS = frozenset(
+    {
+        "invalid_action",
+        "malformed_action",
+        "no_action",
+    }
+)
 
 
 @dataclass
@@ -63,6 +87,7 @@ class MetricSet:
     mean_total_tokens: float | None
     mean_cost_usd: float | None
     total_cost_usd: float | None
+    cost_per_success_usd: float | None
     # Quality
     mean_quality_score: float | None
 
@@ -96,11 +121,7 @@ def compute_metrics(
     first_run: dict[str, RunRecord] = {}
     for record in sorted(records, key=lambda r: r.finished_at or ""):
         first_run.setdefault(record.task_id, record)
-    first_scored = [
-        r.outcome
-        for r in first_run.values()
-        if r.outcome is not None
-    ]
+    first_scored = [r.outcome for r in first_run.values() if r.outcome is not None]
 
     # Tool-use validity and hallucinations come from the action histograms.
     with_actions = [r for r in records if r.action_counts]
@@ -118,6 +139,9 @@ def compute_metrics(
     # Cost: runs with token counts and a known (or overridden) model price.
     costs: list[float] = []
     for r in records:
+        if r.effective_cost_usd is not None:
+            costs.append(r.effective_cost_usd)
+            continue
         if r.input_tokens is None or r.output_tokens is None:
             continue
         cost = estimate_cost(
@@ -125,6 +149,9 @@ def compute_metrics(
         )
         if cost is not None:
             costs.append(cost)
+
+    solved_count = sum(1 for r in scored if r.outcome)
+    total_cost = sum(costs) if costs else None
 
     return MetricSet(
         n_runs=len(records),
@@ -161,9 +188,7 @@ def compute_metrics(
         repair_success_rate=_rate([r.test_passed for r in retried]),
         regression_rate=_rate([r.regressions > 0 for r in regressed]),
         mean_regressions=_mean([r.regressions for r in regressed]),
-        test_overfitting_rate=_rate(
-            [not bool(r.outcome) for r in visible_ok_scored]
-        ),
+        test_overfitting_rate=_rate([not bool(r.outcome) for r in visible_ok_scored]),
         tool_use_validity_rate=(valid_calls / total_calls if total_calls else None),
         hallucinated_refs_per_run=_mean(
             [
@@ -176,23 +201,26 @@ def compute_metrics(
         mean_duration_s=_mean(
             [r.duration_s for r in records if r.duration_s is not None]
         ),
-        mean_llm_calls=_mean(
-            [r.llm_calls for r in records if r.llm_calls is not None]
-        ),
+        mean_llm_calls=_mean([r.llm_calls for r in records if r.llm_calls is not None]),
         mean_total_tokens=_mean(
             [r.total_tokens for r in records if r.total_tokens is not None]
         ),
         mean_cost_usd=_mean(costs),
-        total_cost_usd=sum(costs) if costs else None,
+        total_cost_usd=total_cost,
+        cost_per_success_usd=(
+            total_cost / solved_count
+            if total_cost is not None
+            and solved_count > 0
+            and len(costs) == len(records)
+            else None
+        ),
         mean_quality_score=_mean(
             [r.quality_score for r in records if r.quality_score is not None]
         ),
     )
 
 
-def group_by(
-    records: Sequence[RunRecord], key: str
-) -> dict[str, list[RunRecord]]:
+def group_by(records: Sequence[RunRecord], key: str) -> dict[str, list[RunRecord]]:
     """Bucket records by an attribute (e.g. ``agent_mode`` or ``size``)."""
     groups: dict[str, list[RunRecord]] = {}
     for record in records:
