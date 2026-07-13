@@ -44,6 +44,12 @@ class BenchmarkFairnessTests(unittest.TestCase):
         core_tasks, core_agents = task_set.matrix("core-all")
         self.assertEqual(len(core_tasks), 24)
         self.assertEqual(core_agents, ["single", "multi-graph", "multi-orch-guarded"])
+        swe_single_tasks, swe_single_agents = task_set.matrix("swepro-all-single50")
+        swe_graph_tasks, swe_graph_agents = task_set.matrix("swepro-all-graph75")
+        self.assertEqual(len(swe_single_tasks), 15)
+        self.assertEqual(swe_single_tasks, swe_graph_tasks)
+        self.assertEqual(swe_single_agents, ["single"])
+        self.assertEqual(swe_graph_agents, ["multi-graph"])
         self.assertEqual(len(task_set.previously_exercised), 21)
         self.assertEqual(len(set(task_set.tasks()) - set(task_set.previously_exercised)), 20)
 

@@ -111,16 +111,21 @@ as a secondary aggregate. The exposure split is frozen in
 
 ### Full core comparison
 
-Run every core task with the same GLM model, transport, evaluator, step limit,
-and iteration limit:
+Run every core task with the same GLM model, transport, evaluator, and
+iteration limit:
 
 - `single`
 - `multi-graph`
 - `multi-orch-guarded`
 
-This is the primary 72-run comparison: 24 tasks times three architectures.
+This is a 72-run comparison: 24 tasks times three architectures.
 `single` is the strengthened baseline, `multi-graph` is the deterministic
 role-based control, and `multi-orch-guarded` is the main candidate system.
+The small block is an equal-cap pilot with 50 steps for all three
+architectures. After both multi architectures reached that cap on the shared
+failure, the medium block uses 50 steps for `single` and 75 for both multi
+architectures. Report small and medium separately; the mixed-cap 24-task
+aggregate is secondary rather than a controlled equal-cap estimate.
 
 The scored `single` baseline uses the strong progress guard introduced after
 the exploratory Sonnet runs:
@@ -145,11 +150,16 @@ mixed into the primary core aggregate.
 
 ### SWE-bench Pro comparison
 
-SWE-bench Pro architecture coverage is deliberately deferred until the core
-comparison is complete. The selected tasks remain frozen, but no executable
-SWE matrix is present in the manifest yet. The next comparison may use
-`single` versus `multi-orch-guarded`; that decision must be recorded before
-any scored SWE runs begin.
+Run all 15 selected SWE-bench Pro tasks as a 30-run comparison:
+
+- `single` with a 50-step limit;
+- `multi-graph` with a 75-step limit.
+
+The selection contains five Ansible, five OpenLibrary, and five qutebrowser
+tasks. `multi-orch-guarded` is not part of this block because it did not
+improve resolve rate over `multi-graph` on core and cost more. The separate
+matrices keep the step policies explicit while using the same model,
+transport, evaluator, campaign budget, and task membership.
 
 ### Role-model policy extension
 
@@ -191,18 +201,28 @@ architecture produced a patch.
 ### Reproducible core sweep blocks
 
 The current manifest fixes core task membership and architecture coverage.
-Use a new session for each block and the same model/transport/limits
-throughout. Both sessions share one campaign so their costs and final core
-report can be aggregated without rerunning tasks:
+The executed sessions share one campaign but preserve their explicit step
+policies:
 
 ```text
 python -m src.benchmark.sweep --task-set final-v1 --matrix core-small --session final_v1_core_small --campaign final_v1_main --provider openrouter --models z-ai/glm-5.2 --max-total-cost-usd 50
-python -m src.benchmark.sweep --task-set final-v1 --matrix core-medium --session final_v1_core_medium --campaign final_v1_main --provider openrouter --models z-ai/glm-5.2 --max-total-cost-usd 50
+python -m src.benchmark.sweep --task-set final-v1 --task-groups core_medium --agents single --session final_v1_core_medium_single50 --campaign final_v1_main --provider openrouter --models z-ai/glm-5.2 --max-steps 50 --max-total-cost-usd 50
+python -m src.benchmark.sweep --task-set final-v1 --task-groups core_medium --agents multi-graph,multi-orch-guarded --session final_v1_core_medium_multi75 --campaign final_v1_main --provider openrouter --models z-ai/glm-5.2 --max-steps 75 --max-total-cost-usd 50
 ```
 
 Do not run `core-all` after these two blocks: it contains the same 24 tasks and
 would duplicate all 72 scored combinations. Aggregate the two sessions by
 their shared campaign instead.
+
+### Reproducible SWE-bench Pro blocks
+
+Run the two step policies sequentially. They contain the same 15 tasks and
+share the final campaign budget:
+
+```text
+python -m src.benchmark.sweep --task-set final-v1 --matrix swepro-all-single50 --session final_v1_swepro_single50 --campaign final_v1_main --provider openrouter --models z-ai/glm-5.2 --max-steps 50 --max-total-cost-usd 50
+python -m src.benchmark.sweep --task-set final-v1 --matrix swepro-all-graph75 --session final_v1_swepro_graph75 --campaign final_v1_main --provider openrouter --models z-ai/glm-5.2 --max-steps 75 --max-total-cost-usd 50
+```
 
 Interrupted blocks resume with the identical command plus `--resume`. A final
 task-set sweep refuses a dirty harness; `--allow-dirty-harness` is reserved for

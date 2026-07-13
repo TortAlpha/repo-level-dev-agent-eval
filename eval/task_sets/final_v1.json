@@ -70,6 +70,14 @@
     "core-all": {
       "groups": ["core_small", "core_medium"],
       "agents": ["single", "multi-graph", "multi-orch-guarded"]
+    },
+    "swepro-all-single50": {
+      "groups": ["swepro_ansible", "swepro_openlibrary", "swepro_qutebrowser"],
+      "agents": ["single"]
+    },
+    "swepro-all-graph75": {
+      "groups": ["swepro_ansible", "swepro_openlibrary", "swepro_qutebrowser"],
+      "agents": ["multi-graph"]
     }
   },
   "previously_exercised": [
