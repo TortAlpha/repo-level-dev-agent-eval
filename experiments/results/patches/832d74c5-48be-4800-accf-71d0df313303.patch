@@ -1,0 +1,90 @@
+diff --git a/sqlparse/engine/grouping.py b/sqlparse/engine/grouping.py
+index 57d257e..ebee283 100644
+--- a/sqlparse/engine/grouping.py
++++ b/sqlparse/engine/grouping.py
+@@ -220,7 +220,7 @@ def group_comparison(tlist):
+            valid_prev, valid_next, post, extend=False)
+ 
+ 
+-@recurse(sql.Identifier)
++@recurse(sql.Identifier, sql.Parenthesis)
+ def group_identifier(tlist):
+     ttypes = (T.String.Symbol, T.Name)
+ 
+@@ -360,6 +360,7 @@ def group_functions(tlist):
+         tidx, token = tlist.token_next_by(t=T.Name, idx=tidx)
+ 
+ 
++@recurse(sql.Parenthesis)
+ def group_order(tlist):
+     """Group together Identifier and Asc/Desc token"""
+     tidx, token = tlist.token_next_by(t=T.Keyword.Order)
+diff --git a/tests/test_grouping_ordered_paren.py b/tests/test_grouping_ordered_paren.py
+new file mode 100644
+index 0000000..3e16c07
+--- /dev/null
++++ b/tests/test_grouping_ordered_paren.py
+@@ -0,0 +1,63 @@
++"""Tests for ordered identifiers nested inside parentheses."""
++
++import sqlparse
++from sqlparse import sql, tokens as T
++
++
++def _inner_identifiers(par):
++    result = []
++    for t in par.tokens:
++        if t.is_whitespace:
++            continue
++        if t.ttype is T.Punctuation and t.value in '()':
++            continue
++        result.append(t)
++    return result
++
++
++def test_ordered_identifier_in_parenthesis():
++    p = sqlparse.parse('(a desc)')[0]
++    assert len(p.tokens) == 1
++    par = p.tokens[0]
++    assert isinstance(par, sql.Parenthesis)
++    inner = _inner_identifiers(par)
++    assert len(inner) == 1
++    assert isinstance(inner[0], sql.Identifier)
++    assert inner[0].value == 'a desc'
++    assert inner[0].get_name() == 'a'
++    assert inner[0].get_ordering() == 'DESC'
++
++
++def test_ordered_identifier_in_parenthesis_asc():
++    p = sqlparse.parse('(a asc)')[0]
++    assert len(p.tokens) == 1
++    par = p.tokens[0]
++    assert isinstance(par, sql.Parenthesis)
++    inner = _inner_identifiers(par)
++    assert len(inner) == 1
++    assert isinstance(inner[0], sql.Identifier)
++    assert inner[0].value == 'a asc'
++    assert inner[0].get_ordering() == 'ASC'
++
++
++def test_plain_identifier_in_parenthesis_unchanged():
++    p = sqlparse.parse('(a)')[0]
++    assert len(p.tokens) == 1
++    par = p.tokens[0]
++    assert isinstance(par, sql.Parenthesis)
++    inner = _inner_identifiers(par)
++    assert len(inner) == 1
++    assert isinstance(inner[0], sql.Identifier)
++    assert inner[0].value == 'a'
++    assert inner[0].get_ordering() is None
++
++
++def test_ordered_identifier_in_order_by_unchanged():
++    p = sqlparse.parse('select * from foo order by c1 desc, c2')[0]
++    assert isinstance(p.tokens[-1], sql.IdentifierList)
++    ids = list(p.tokens[-1].get_identifiers())
++    assert len(ids) == 3
++    assert ids[0].get_name() == 'c1'
++    assert ids[0].get_ordering() == 'DESC'
++    assert ids[1].get_name() == 'c2'
++    assert ids[1].get_ordering() is None

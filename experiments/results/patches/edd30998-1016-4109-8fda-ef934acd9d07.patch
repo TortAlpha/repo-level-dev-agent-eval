@@ -1,0 +1,31 @@
+diff --git a/sqlparse/engine/grouping.py b/sqlparse/engine/grouping.py
+index 57d257e..c486318 100644
+--- a/sqlparse/engine/grouping.py
++++ b/sqlparse/engine/grouping.py
+@@ -360,6 +360,7 @@ def group_functions(tlist):
+         tidx, token = tlist.token_next_by(t=T.Name, idx=tidx)
+ 
+ 
++@recurse(sql.Identifier)
+ def group_order(tlist):
+     """Group together Identifier and Asc/Desc token"""
+     tidx, token = tlist.token_next_by(t=T.Keyword.Order)
+diff --git a/tests/test_ordered_paren.py b/tests/test_ordered_paren.py
+new file mode 100644
+index 0000000..ae6c05a
+--- /dev/null
++++ b/tests/test_ordered_paren.py
+@@ -0,0 +1,13 @@
++import sqlparse
++from sqlparse import sql
++
++
++def test_ordered_identifier_in_parenthesis():
++    """An ordered identifier inside parentheses should be grouped as a single Identifier."""
++    parsed = sqlparse.parse('(a desc)')[0]
++    assert len(parsed.tokens) == 1
++    paren = parsed.tokens[0]
++    assert isinstance(paren, sql.Parenthesis)
++    identifiers = [t for t in paren.tokens if isinstance(t, sql.Identifier)]
++    assert len(identifiers) == 1
++    assert str(identifiers[0]) == 'a desc'

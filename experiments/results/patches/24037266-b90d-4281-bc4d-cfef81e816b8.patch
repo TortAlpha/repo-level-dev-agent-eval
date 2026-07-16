@@ -1,0 +1,236 @@
+diff --git a/qutebrowser/keyinput/keyutils.py b/qutebrowser/keyinput/keyutils.py
+index ae8885559..f8419ef04 100644
+--- a/qutebrowser/keyinput/keyutils.py
++++ b/qutebrowser/keyinput/keyutils.py
+@@ -41,7 +41,7 @@ from qutebrowser.qt.gui import QKeySequence, QKeyEvent
+ try:
+     from qutebrowser.qt.core import QKeyCombination
+ except ImportError:
+-    pass  # Qt 6 only
++    QKeyCombination = None  # Qt 5 fallback
+ 
+ from qutebrowser.utils import utils
+ 
+@@ -374,15 +374,15 @@ class KeyInfo:
+     @classmethod
+     def from_qt(cls, combination: Union[int, 'QKeyCombination']) -> 'KeyInfo':
+         """Construct a KeyInfo from a Qt5-style int or Qt6-style QKeyCombination."""
+-        if isinstance(combination, int):
++        if QKeyCombination is None or not isinstance(combination, QKeyCombination):
++            # Qt5-style int (or Qt.KeyboardModifiers which acts like an int)
++            combination = int(combination)
+             key = Qt.Key(
+-                int(combination) & ~Qt.KeyboardModifier.KeyboardModifierMask)
++                combination & ~Qt.KeyboardModifier.KeyboardModifierMask)
+             modifiers = Qt.KeyboardModifiers(
+-                int(combination) & Qt.KeyboardModifier.KeyboardModifierMask)
++                combination & Qt.KeyboardModifier.KeyboardModifierMask)
+             return cls(key, modifiers)
+         else:
+-            # QKeyCombination is now guaranteed to be available here
+-            assert isinstance(combination, QKeyCombination)  
+             return cls(
+                 key=combination.key(),
+                 modifiers=combination.keyboardModifiers(),
+@@ -453,6 +453,20 @@ class KeyInfo:
+         """Get the key as an integer (with key/modifiers)."""
+         return int(self.key) | int(self.modifiers)
+ 
++    def to_qt(self) -> Union[int, 'QKeyCombination']:
++        """Get something suitable for a QKeySequence.
++
++        Returns an integer for Qt5 or QKeyCombination for Qt6.
++        """
++        if QKeyCombination is None:
++            return int(self.key) | int(self.modifiers)
++        return QKeyCombination(self.modifiers, self.key)
++
++    def with_stripped_modifiers(
++            self, modifiers: Qt.KeyboardModifier) -> 'KeyInfo':
++        """Create a new KeyInfo with certain modifiers stripped."""
++        return KeyInfo(self.key, self.modifiers & ~modifiers)
++
+ 
+ class KeySequence:
+ 
+@@ -473,7 +487,7 @@ class KeySequence:
+ 
+     _MAX_LEN = 4
+ 
+-    def __init__(self, *keys: int) -> None:
++    def __init__(self, *keys: KeyInfo) -> None:
+         self._sequences: List[QKeySequence] = []
+         for sub in utils.chunk(keys, self._MAX_LEN):
+             args = [self._convert_key(key) for key in sub]
+@@ -483,10 +497,11 @@ class KeySequence:
+             assert self
+         self._validate()
+ 
+-    def _convert_key(self, key: Union[int, Qt.KeyboardModifier]) -> int:
++    def _convert_key(self, key: Union[KeyInfo, int, 'QKeyCombination']) -> Union[int, 'QKeyCombination']:
+         """Convert a single key for QKeySequence."""
+-        assert isinstance(key, (int, Qt.KeyboardModifiers)), key
+-        return int(key)
++        if not isinstance(key, KeyInfo):
++            key = KeyInfo.from_qt(key)
++        return key.to_qt()
+ 
+     def __str__(self) -> str:
+         parts = []
+@@ -543,8 +558,8 @@ class KeySequence:
+ 
+     def __getitem__(self, item: Union[int, slice]) -> Union[KeyInfo, 'KeySequence']:
+         if isinstance(item, slice):
+-            keys = list(self._iter_keys())
+-            return self.__class__(*keys[item])
++            infos = list(self)
++            return self.__class__(*infos[item])
+         else:
+             infos = list(self)
+             return infos[item]
+@@ -650,30 +665,30 @@ class KeySequence:
+                 modifiers &= ~Qt.KeyboardModifier.MetaModifier
+                 modifiers |= Qt.KeyboardModifier.ControlModifier
+ 
+-        keys = list(self._iter_keys())
+-        keys.append(key | int(modifiers))
++        infos = list(self)
++        infos.append(KeyInfo(key, modifiers))
+ 
+-        return self.__class__(*keys)
++        return self.__class__(*infos)
+ 
+     def strip_modifiers(self) -> 'KeySequence':
+         """Strip optional modifiers from keys."""
+         modifiers = Qt.KeyboardModifier.KeypadModifier
+-        keys = [key & ~modifiers for key in self._iter_keys()]
+-        return self.__class__(*keys)
++        infos = [info.with_stripped_modifiers(modifiers) for info in self]
++        return self.__class__(*infos)
+ 
+     def with_mappings(
+             self,
+             mappings: Mapping['KeySequence', 'KeySequence']
+     ) -> 'KeySequence':
+         """Get a new KeySequence with the given mappings applied."""
+-        keys = []
+-        for key in self._iter_keys():
+-            key_seq = KeySequence(key)
++        infos = []
++        for info in self:
++            key_seq = KeySequence(info)
+             if key_seq in mappings:
+-                keys += [info.to_int() for info in mappings[key_seq]]
++                infos += list(mappings[key_seq])
+             else:
+-                keys.append(key)
+-        return self.__class__(*keys)
++                infos.append(info)
++        return self.__class__(*infos)
+ 
+     @classmethod
+     def parse(cls, keystr: str) -> 'KeySequence':
+diff --git a/tests/unit/keyinput/test_keyinfo_new.py b/tests/unit/keyinput/test_keyinfo_new.py
+new file mode 100644
+index 000000000..c50e6eb10
+--- /dev/null
++++ b/tests/unit/keyinput/test_keyinfo_new.py
+@@ -0,0 +1,98 @@
++# vim: ft=python fileencoding=utf-8 sts=4 sw=4 et:
++
++# Copyright 2021 Florian Bruhin (The Compiler) <mail@qutebrowser.org>
++#
++# This file is part of qutebrowser.
++#
++# qutebrowser is free software: you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation, either version 3 of the License, or
++# (at your option) any later version.
++#
++# qutebrowser is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with qutebrowser.  If not, see <https://www.gnu.org/licenses/>.
++
++"""Tests for the new KeyInfo public methods."""
++
++from qutebrowser.qt.core import Qt
++try:
++    from qutebrowser.qt.core import QKeyCombination
++except ImportError:
++    QKeyCombination = None
++
++from qutebrowser.keyinput import keyutils
++
++
++def test_key_info_to_qt():
++    info = keyutils.KeyInfo(Qt.Key.Key_A, Qt.KeyboardModifier.ControlModifier)
++    result = info.to_qt()
++    if QKeyCombination is None:
++        # Qt5: integer
++        assert isinstance(result, int)
++        assert result == int(Qt.Key.Key_A) | int(Qt.KeyboardModifier.ControlModifier)
++    else:
++        # Qt6: QKeyCombination
++        assert isinstance(result, QKeyCombination)
++        assert result.key() == Qt.Key.Key_A
++        assert result.keyboardModifiers() == Qt.KeyboardModifier.ControlModifier
++
++
++def test_key_info_to_qt_no_modifiers():
++    info = keyutils.KeyInfo(Qt.Key.Key_B, Qt.KeyboardModifier.NoModifier)
++    result = info.to_qt()
++    if QKeyCombination is None:
++        assert isinstance(result, int)
++        assert result == int(Qt.Key.Key_B)
++    else:
++        assert isinstance(result, QKeyCombination)
++        assert result.key() == Qt.Key.Key_B
++        assert result.keyboardModifiers() == Qt.KeyboardModifier.NoModifier
++
++
++def test_key_info_with_stripped_modifiers():
++    info = keyutils.KeyInfo(
++        Qt.Key.Key_A,
++        Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier,
++    )
++    stripped = info.with_stripped_modifiers(Qt.KeyboardModifier.ShiftModifier)
++    assert stripped.key == Qt.Key.Key_A
++    assert stripped.modifiers == Qt.KeyboardModifier.ControlModifier
++    # Original unchanged
++    assert info.modifiers == (
++        Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier
++    )
++
++
++def test_key_info_with_stripped_modifiers_all():
++    info = keyutils.KeyInfo(
++        Qt.Key.Key_A,
++        Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.AltModifier,
++    )
++    stripped = info.with_stripped_modifiers(
++        Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.AltModifier
++    )
++    assert stripped.key == Qt.Key.Key_A
++    assert stripped.modifiers == Qt.KeyboardModifier.NoModifier
++
++
++def test_key_info_with_stripped_modifiers_none_stripped():
++    info = keyutils.KeyInfo(Qt.Key.Key_A, Qt.KeyboardModifier.ControlModifier)
++    stripped = info.with_stripped_modifiers(Qt.KeyboardModifier.ShiftModifier)
++    assert stripped.key == Qt.Key.Key_A
++    assert stripped.modifiers == Qt.KeyboardModifier.ControlModifier
++
++
++def test_key_sequence_uses_key_info_to_qt():
++    """Ensure KeySequence can be built from KeyInfo and round-trips."""
++    info = keyutils.KeyInfo(Qt.Key.Key_A, Qt.KeyboardModifier.ControlModifier)
++    seq = keyutils.KeySequence(info)
++    assert len(seq) == 1
++    result_infos = list(seq)
++    assert len(result_infos) == 1
++    assert result_infos[0].key == Qt.Key.Key_A
++    assert result_infos[0].modifiers == Qt.KeyboardModifier.ControlModifier

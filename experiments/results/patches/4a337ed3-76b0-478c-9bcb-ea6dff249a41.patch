@@ -1,0 +1,236 @@
+diff --git a/qutebrowser/utils/utils.py b/qutebrowser/utils/utils.py
+index beb6e2578..74bf8cc46 100644
+--- a/qutebrowser/utils/utils.py
++++ b/qutebrowser/utils/utils.py
+@@ -193,14 +193,40 @@ def _resource_path(filename: str) -> pathlib.Path:
+     return importlib_resources.files(qutebrowser) / filename
+ 
+ 
++def _glob_resources(resource_path: Any, subdir: str, ext: str) -> Iterator[str]:
++    """Find resource files under a subdirectory matching an extension.
++
++    Args:
++        resource_path: The base resource path (a pathlib.Path or a
++            zipfile.Path / importlib.resources path).
++        subdir: The subdirectory to search in (e.g. 'html').
++        ext: The file extension to match, including the leading dot (e.g.
++            '.html'). Must not contain wildcards.
++
++    Return:
++        An iterable of POSIX-style relative paths (e.g. 'html/test.html').
++    """
++    assert ext.startswith('.'), ext
++    assert '*' not in ext, ext
++
++    if isinstance(resource_path, pathlib.Path):
++        path = resource_path / subdir
++        for full_path in path.glob(f'*{ext}'):
++            yield full_path.relative_to(resource_path).as_posix()
++    else:
++        directory = resource_path / subdir
++        assert directory.is_dir()
++        for entry in directory.iterdir():
++            if entry.name.endswith(ext):
++                yield posixpath.join(subdir, entry.name)
++
++
+ def preload_resources() -> None:
+     """Load resource files into the cache."""
+     resource_path = _resource_path('')
+-    for subdir, pattern in [('html', '*.html'), ('javascript', '*.js')]:
+-        path = resource_path / subdir
+-        for full_path in path.glob(pattern):
+-            sub_path = full_path.relative_to(resource_path).as_posix()
+-            _resource_cache[sub_path] = read_file(sub_path)
++    for subdir, ext in [('html', '.html'), ('javascript', '.js')]:
++        for name in _glob_resources(resource_path, subdir, ext):
++            _resource_cache[name] = read_file(name)
+ 
+ 
+ def read_file(filename: str) -> str:
+diff --git a/tests/unit/utils/test_glob_resources.py b/tests/unit/utils/test_glob_resources.py
+new file mode 100644
+index 000000000..9a624a3f2
+--- /dev/null
++++ b/tests/unit/utils/test_glob_resources.py
+@@ -0,0 +1,180 @@
++# vim: ft=python fileencoding=utf-8 sts=4 sw=4 et:
++
++# Tests for qutebrowser.utils.utils._glob_resources and preload_resources.
++
++import pathlib
++import posixpath
++
++import pytest
++
++import qutebrowser
++from qutebrowser.utils import utils
++
++
++class FakeZipEntry:
++
++    """A fake entry inside a zip-like resource path."""
++
++    def __init__(self, name, is_file=True):
++        self.name = name
++        self._is_file = is_file
++
++    def is_file(self):
++        return self._is_file
++
++    def is_dir(self):
++        return not self._is_file
++
++
++class FakeZipDir:
++
++    """A fake directory inside a zip-like resource path.
++
++    Mimics the subset of zipfile.Path / importlib.resources Traversable used
++    by _glob_resources: supports `/`, `is_dir()`, and `iterdir()`.
++    """
++
++    def __init__(self, entries):
++        # entries: dict mapping name -> FakeZipDir or FakeZipEntry
++        self._entries = entries
++
++    @property
++    def name(self):
++        return None
++
++    def is_dir(self):
++        return True
++
++    def is_file(self):
++        return False
++
++    def iterdir(self):
++        for name, obj in self._entries.items():
++            yield obj
++
++    def __truediv__(self, child):
++        if child in self._entries:
++            return self._entries[child]
++        raise KeyError(child)
++
++
++class FakeZipRoot:
++
++    """A fake root zip-like resource path."""
++
++    def __init__(self, subdirs):
++        # subdirs: dict mapping subdir name -> FakeZipDir
++        self._subdirs = subdirs
++
++    def is_dir(self):
++        return True
++
++    def is_file(self):
++        return False
++
++    def __truediv__(self, child):
++        if child in self._subdirs:
++            return self._subdirs[child]
++        raise KeyError(child)
++
++
++def test_glob_resources_pathlib_excludes_non_matching():
++    """Directory branch should only yield files matching the extension."""
++    resource_path = utils._resource_path('')
++    assert isinstance(resource_path, pathlib.Path)
++
++    html_files = list(utils._glob_resources(resource_path, 'html', '.html'))
++    assert 'html/error.html' in html_files
++    for name in html_files:
++        assert name.startswith('html/')
++        assert name.endswith('.html')
++        # Names like README or unrelatedhtml must be excluded
++        assert not name.endswith('README')
++        assert not name.endswith('unrelatedhtml')
++
++    js_files = list(utils._glob_resources(resource_path, 'javascript', '.js'))
++    assert 'javascript/scroll.js' in js_files
++    for name in js_files:
++        assert name.startswith('javascript/')
++        assert name.endswith('.js')
++
++
++def test_glob_resources_pathlib_posix_style():
++    """Directory branch should yield POSIX-style relative paths."""
++    resource_path = utils._resource_path('')
++    names = list(utils._glob_resources(resource_path, 'html', '.html'))
++    for name in names:
++        assert '/' in name
++        assert '\\' not in name
++        assert not name.startswith('/')
++
++
++def test_glob_resources_ext_validation():
++    """ext must start with a dot and contain no wildcards."""
++    resource_path = utils._resource_path('')
++    with pytest.raises(AssertionError):
++        list(utils._glob_resources(resource_path, 'html', 'html'))
++    with pytest.raises(AssertionError):
++        list(utils._glob_resources(resource_path, 'html', '*.html'))
++
++
++def test_glob_resources_zip_branch():
++    """Zip/importlib-resources branch should iterate and filter by ext."""
++    html_dir = FakeZipDir({
++        'error.html': FakeZipEntry('error.html'),
++        'test.html': FakeZipEntry('test.html'),
++        'README': FakeZipEntry('README'),
++        'unrelatedhtml': FakeZipEntry('unrelatedhtml'),
++        'subdir': FakeZipEntry('subdir', is_file=False),
++    })
++    root = FakeZipRoot({'html': html_dir})
++
++    results = sorted(utils._glob_resources(root, 'html', '.html'))
++    assert results == ['html/error.html', 'html/test.html']
++    for name in results:
++        assert name.startswith('html/')
++        assert name.endswith('.html')
++        assert 'README' not in name
++        assert 'unrelatedhtml' not in name
++
++
++def test_glob_resources_zip_branch_javascript():
++    """Zip branch should work for javascript/.js as well."""
++    js_dir = FakeZipDir({
++        'scroll.js': FakeZipEntry('scroll.js'),
++        'utils.js': FakeZipEntry('utils.js'),
++        'README': FakeZipEntry('README'),
++        'notes_txt': FakeZipEntry('notes_txt'),
++    })
++    root = FakeZipRoot({'javascript': js_dir})
++
++    results = sorted(utils._glob_resources(root, 'javascript', '.js'))
++    assert results == ['javascript/scroll.js', 'javascript/utils.js']
++
++
++def test_glob_resources_zip_branch_missing_dir():
++    """Zip branch should assert that the subdirectory exists."""
++    root = FakeZipRoot({})
++    with pytest.raises(KeyError):
++        list(utils._glob_resources(root, 'html', '.html'))
++
++
++def test_preload_resources_caches_globbed_files():
++    """preload_resources should cache html and js resources via _glob_resources."""
++    utils._resource_cache.clear()
++    utils.preload_resources()
++
++    # Known resources that must be preloaded
++    assert 'html/error.html' in utils._resource_cache
++    assert 'javascript/scroll.js' in utils._resource_cache
++
++    # Cached content should match a fresh read
++    assert utils._resource_cache['html/error.html'] == utils.read_file('html/error.html')
++    assert utils._resource_cache['javascript/scroll.js'] == utils.read_file('javascript/scroll.js')
++
++    # No non-matching names should be cached
++    for key in utils._resource_cache:
++        if key.startswith('html/'):
++            assert key.endswith('.html')
++        if key.startswith('javascript/'):
++            assert key.endswith('.js')

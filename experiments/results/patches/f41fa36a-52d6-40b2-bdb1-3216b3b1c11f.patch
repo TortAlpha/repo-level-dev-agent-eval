@@ -1,0 +1,178 @@
+diff --git a/toolz/itertoolz.py b/toolz/itertoolz.py
+index 1ab5485..e6f1b90 100644
+--- a/toolz/itertoolz.py
++++ b/toolz/itertoolz.py
+@@ -725,14 +725,36 @@ def partition_all(n, seq):
+         prev = next(it)
+     except StopIteration:
+         return
++    count = 1
+     for item in it:
+         yield prev
+         prev = item
++        count += 1
+     if prev[-1] is no_pad:
+         try:
+             # If seq defines __len__, then
+             # we can quickly calculate where no_pad starts
+-            yield prev[:len(seq) % n]
++            trim = len(seq) % n
++            # Being in the no_pad branch means the last tuple is partial,
++            # so the real element count mod n must be nonzero.  If trim == 0
++            # then len(seq) is inconsistent with the consumed elements.
++            if trim == 0:
++                raise LookupError(
++                    "partition_all: iterable's reported length (%r) is "
++                    "inconsistent with the number of elements consumed (%d)" %
++                    (len(seq), (count - 1) * n))
++            # Verify that trim is the correct cut point within the last tuple.
++            if prev[trim] is not no_pad or prev[trim - 1] is no_pad:
++                raise LookupError(
++                    "partition_all: iterable's reported length (%r) is "
++                    "inconsistent with the number of elements consumed (%d)" %
++                    (len(seq), (count - 1) * n + trim))
++            if (count - 1) * n + trim != len(seq):
++                raise LookupError(
++                    "partition_all: iterable's reported length (%r) is "
++                    "inconsistent with the number of elements consumed (%d)" %
++                    (len(seq), (count - 1) * n + trim))
++            yield prev[:trim]
+         except TypeError:
+             # Get first index of no_pad without using .index()
+             # https://github.com/pytoolz/toolz/issues/387
+@@ -747,6 +769,14 @@ def partition_all(n, seq):
+                     lo = mid + 1
+             yield prev[:lo]
+     else:
++        try:
++            if count * n != len(seq):
++                raise LookupError(
++                    "partition_all: iterable's reported length (%r) is "
++                    "inconsistent with the number of elements consumed (%d)" %
++                    (len(seq), count * n))
++        except TypeError:
++            pass
+         yield prev
+ 
+ 
+diff --git a/toolz/tests/test_partition_all_len.py b/toolz/tests/test_partition_all_len.py
+new file mode 100644
+index 0000000..2a33fa2
+--- /dev/null
++++ b/toolz/tests/test_partition_all_len.py
+@@ -0,0 +1,115 @@
++import pytest
++from toolz.itertoolz import partition_all
++
++
++class BadLen:
++    def __init__(self, data, length):
++        self._data = list(data)
++        self._length = length
++
++    def __iter__(self):
++        return iter(self._data)
++
++    def __len__(self):
++        return self._length
++
++
++def test_valid_list_partial_last():
++    assert list(partition_all(2, [1, 2, 3, 4, 5])) == [(1, 2), (3, 4), (5,)]
++
++
++def test_valid_list_full_last():
++    assert list(partition_all(2, [1, 2, 3, 4])) == [(1, 2), (3, 4)]
++
++
++def test_valid_range_full_last():
++    assert list(partition_all(3, range(6))) == [(0, 1, 2), (3, 4, 5)]
++
++
++def test_valid_range_partial_last():
++    assert list(partition_all(3, range(7))) == [(0, 1, 2), (3, 4, 5), (6,)]
++
++
++def test_valid_empty():
++    assert list(partition_all(2, [])) == []
++
++
++def test_valid_iterator_no_len_partial():
++    assert list(partition_all(2, iter([1, 2, 3, 4, 5]))) == [(1, 2), (3, 4), (5,)]
++
++
++def test_valid_iterator_no_len_full():
++    assert list(partition_all(2, iter([1, 2, 3, 4]))) == [(1, 2), (3, 4)]
++
++
++def test_valid_generator_no_len():
++    def gen():
++        for i in range(5):
++            yield i
++    assert list(partition_all(2, gen())) == [(0, 1), (2, 3), (4,)]
++
++
++def test_wrong_len_too_large_partial_last():
++    # actual 5 elements, reported 10; last tuple is partial
++    bad = BadLen([1, 2, 3, 4, 5], 10)
++    with pytest.raises(LookupError):
++        list(partition_all(2, bad))
++
++
++def test_wrong_len_too_small_partial_last():
++    # actual 5 elements, reported 3; last tuple is partial
++    bad = BadLen([1, 2, 3, 4, 5], 3)
++    with pytest.raises(LookupError):
++        list(partition_all(2, bad))
++
++
++def test_wrong_len_too_large_full_last():
++    # actual 4 elements, reported 10; last tuple is full
++    bad = BadLen([1, 2, 3, 4], 10)
++    with pytest.raises(LookupError):
++        list(partition_all(2, bad))
++
++
++def test_wrong_len_too_small_full_last():
++    # actual 4 elements, reported 2; last tuple is full
++    bad = BadLen([1, 2, 3, 4], 2)
++    with pytest.raises(LookupError):
++        list(partition_all(2, bad))
++
++
++def test_wrong_len_nonempty_reported_zero_full_last():
++    # actual 4 elements, reported 0; last tuple is full
++    bad = BadLen([1, 2, 3, 4], 0)
++    with pytest.raises(LookupError):
++        list(partition_all(2, bad))
++
++
++def test_wrong_len_nonempty_reported_zero_partial_last():
++    # actual 5 elements, reported 0; last tuple is partial
++    bad = BadLen([1, 2, 3, 4, 5], 0)
++    with pytest.raises(LookupError):
++        list(partition_all(2, bad))
++
++
++def test_wrong_len_n3_partial_last():
++    # actual 7 elements, reported 100; last tuple partial with n=3
++    bad = BadLen(range(7), 100)
++    with pytest.raises(LookupError):
++        list(partition_all(3, bad))
++
++
++def test_wrong_len_n3_full_last():
++    # actual 6 elements, reported 1; last tuple full with n=3
++    bad = BadLen(range(6), 1)
++    with pytest.raises(LookupError):
++        list(partition_all(3, bad))
++
++
++def test_valid_len_matches_partial_last():
++    bad = BadLen([1, 2, 3, 4, 5], 5)
++    assert list(partition_all(2, bad)) == [(1, 2), (3, 4), (5,)]
++
++
++def test_valid_len_matches_full_last():
++    bad = BadLen([1, 2, 3, 4], 4)
++    assert list(partition_all(2, bad)) == [(1, 2), (3, 4)]

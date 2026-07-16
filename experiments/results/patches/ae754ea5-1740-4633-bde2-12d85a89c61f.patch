@@ -1,0 +1,98 @@
+diff --git a/more_itertools/more.py b/more_itertools/more.py
+index 1986250..701f565 100755
+--- a/more_itertools/more.py
++++ b/more_itertools/more.py
+@@ -163,6 +163,7 @@ __all__ = [
+     'strictly_n',
+     'substrings',
+     'substrings_indexes',
++    'subfactorial',
+     'synchronized',
+     'takewhile_inclusive',
+     'time_limited',
+@@ -951,6 +952,37 @@ def derangements(iterable, r=None):
+     )
+ 
+ 
++def subfactorial(n):
++    """Return the subfactorial of *n*, the number of derangements of *n* items.
++
++    The subfactorial of *n* counts the permutations of *n* elements that leave
++    no element in its original position (OEIS A000166):
++
++        >>> subfactorial(0)
++        1
++        >>> subfactorial(1)
++        0
++        >>> subfactorial(2)
++        1
++        >>> subfactorial(3)
++        2
++        >>> subfactorial(4)
++        9
++        >>> subfactorial(5)
++        44
++
++    *n* must be a non-negative integer; otherwise a :exc:`TypeError` is raised.
++    """
++    if not isinstance(n, int) or isinstance(n, bool):
++        raise TypeError('n must be a non-negative integer')
++    if n < 0:
++        raise ValueError('n must be a non-negative integer')
++    a, b = 1, 0
++    for _ in range(n):
++        a, b = b, (a + b) * (_ + 1)
++    return a
++
++
+ def intersperse(e, iterable, n=1):
+     """Intersperse filler element *e* among the items in *iterable*, leaving
+     *n* items between each filler element.
+diff --git a/more_itertools/more.pyi b/more_itertools/more.pyi
+index 31ca1c9..6539cd1 100644
+--- a/more_itertools/more.pyi
++++ b/more_itertools/more.pyi
+@@ -246,6 +246,7 @@ def distinct_permutations(
+ def derangements(
+     iterable: Iterable[_T], r: int | None = None
+ ) -> Iterator[tuple[_T, ...]]: ...
++def subfactorial(n: int) -> int: ...
+ def intersperse(
+     e: _U, iterable: Iterable[_T], n: int = ...
+ ) -> Iterator[_T | _U]: ...
+diff --git a/tests/test_subfactorial.py b/tests/test_subfactorial.py
+new file mode 100644
+index 0000000..c719bbd
+--- /dev/null
++++ b/tests/test_subfactorial.py
+@@ -0,0 +1,30 @@
++"""Tests for ``more_itertools.subfactorial``."""
++
++import more_itertools as mi
++from more_itertools import ilen
++
++from unittest import TestCase
++
++
++class SubfactorialTests(TestCase):
++    def test_sequence(self):
++        expected = [1, 0, 1, 2, 9, 44, 265, 1854, 14833, 133496]
++        actual = [mi.subfactorial(n) for n in range(len(expected))]
++        self.assertEqual(actual, expected)
++
++    def test_matches_derangements(self):
++        for n in range(8):
++            with self.subTest(n=n):
++                self.assertEqual(
++                    mi.subfactorial(n), ilen(mi.derangements('.' * n))
++                )
++
++    def test_non_integer(self):
++        for value in [1.0, '1', 1.5, None]:
++            with self.subTest(value=value):
++                with self.assertRaises(TypeError):
++                    mi.subfactorial(value)
++
++    def test_negative(self):
++        with self.assertRaises(ValueError):
++            mi.subfactorial(-1)

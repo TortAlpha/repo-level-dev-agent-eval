@@ -1,0 +1,98 @@
+diff --git a/tests/test_url_split_ipv6_fragment.py b/tests/test_url_split_ipv6_fragment.py
+new file mode 100644
+index 0000000..83c562f
+--- /dev/null
++++ b/tests/test_url_split_ipv6_fragment.py
+@@ -0,0 +1,73 @@
++import pytest
++from w3lib._url import _urlsplit
++from w3lib.url import safe_url_string
++
++
++def test_ipv6_query_fragment_split():
++    # Main bug: fragment was folded into query when IPv6 host + query + fragment
++    parts = _urlsplit("http://[::1]?q=1#frag")
++    assert parts.scheme == "http"
++    assert parts.netloc == "[::1]"
++    assert parts.path == ""
++    assert parts.query == "q=1"
++    assert parts.fragment == "frag"
++
++
++def test_ipv6_path_query_fragment_split():
++    parts = _urlsplit("http://[::1]/path?q=1#frag")
++    assert parts.scheme == "http"
++    assert parts.netloc == "[::1]"
++    assert parts.path == "/path"
++    assert parts.query == "q=1"
++    assert parts.fragment == "frag"
++
++
++def test_ipv6_port_path_query_fragment_split():
++    parts = _urlsplit("http://[::1]:8080/path?q=1#frag")
++    assert parts.scheme == "http"
++    assert parts.netloc == "[::1]:8080"
++    assert parts.path == "/path"
++    assert parts.query == "q=1"
++    assert parts.fragment == "frag"
++
++
++def test_ipv6_query_no_fragment_split():
++    parts = _urlsplit("http://[::1]?q=1")
++    assert parts.scheme == "http"
++    assert parts.netloc == "[::1]"
++    assert parts.path == ""
++    assert parts.query == "q=1"
++    assert parts.fragment == ""
++
++
++def test_ipv6_fragment_no_query_split():
++    parts = _urlsplit("http://[::1]#frag")
++    assert parts.scheme == "http"
++    assert parts.netloc == "[::1]"
++    assert parts.path == ""
++    assert parts.query == ""
++    assert parts.fragment == "frag"
++
++
++def test_normal_url_query_fragment_no_regression():
++    parts = _urlsplit("http://example.com/path?q=1#frag")
++    assert parts.scheme == "http"
++    assert parts.netloc == "example.com"
++    assert parts.path == "/path"
++    assert parts.query == "q=1"
++    assert parts.fragment == "frag"
++
++
++def test_safe_url_string_preserves_fragment_ipv6_query_fragment():
++    # safe_url_string should preserve the fragment as a separate component,
++    # not fold it into the query (the bug would cause "q=1#frag" as query)
++    assert safe_url_string("http://[::1]?q=1#frag") == "http://[::1]?q=1#frag"
++    assert safe_url_string("http://[::1]/path?q=1#frag") == "http://[::1]/path?q=1#frag"
++    assert (
++        safe_url_string("http://[::1]:8080/path?q=1#frag")
++        == "http://[::1]:8080/path?q=1#frag"
++    )
++    # Verify the fragment is not folded into the query via _urlsplit
++    parts = _urlsplit(safe_url_string("http://[::1]?q=1#frag"))
++    assert parts.query == "q=1"
++    assert parts.fragment == "frag"
+diff --git a/w3lib/_url.py b/w3lib/_url.py
+index 0fc540d..f34ef2f 100644
+--- a/w3lib/_url.py
++++ b/w3lib/_url.py
+@@ -658,7 +658,13 @@ def _urlsplit(  # pylint: disable=too-many-locals,too-many-statements
+             open_br_pos = idx
+         elif char == "]" and closing_br_pos == -1:
+             closing_br_pos = idx
+-        if slash_pos != question_pos != hash_pos != open_br_pos != closing_br_pos != -1:
++        if (
++            slash_pos != -1
++            and question_pos != -1
++            and hash_pos != -1
++            and open_br_pos != -1
++            and closing_br_pos != -1
++        ):
+             break
+ 
+     if url[:2] == "//":

@@ -1,0 +1,168 @@
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index 95b63fea1..225308df2 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -28,7 +28,8 @@ import re
+ from collections import defaultdict
+ from copy import copy
+ from time import sleep
+-from typing import TYPE_CHECKING, Any, Final
++from typing import TYPE_CHECKING, Any, Final, Iterable
++from urllib.parse import urlparse
+ 
+ import requests
+ import web
+@@ -74,6 +75,11 @@ SUSPECT_PUBLICATION_DATES: Final = [
+ ]
+ SUSPECT_AUTHOR_NAMES: Final = ["unknown", "n/a"]
+ SOURCE_RECORDS_REQUIRING_DATE_SCRUTINY: Final = ["amazon", "bwb", "promise"]
++ALLOWED_COVER_HOSTS: Final = [
++    "archive.org",
++    "covers.openlibrary.org",
++    "www.covers.org",
++]
+ 
+ 
+ type_map = {
+@@ -156,6 +162,32 @@ bad_titles = {
+ subject_fields = ['subjects', 'subject_places', 'subject_times', 'subject_people']
+ 
+ 
++def process_cover_url(
++    edition: dict,
++    allowed_cover_hosts: Iterable[str] = ALLOWED_COVER_HOSTS,
++) -> tuple[str | None, dict]:
++    """
++    Validate and extract the ``cover`` URL from an edition dictionary.
++
++    Removes the ``cover`` key from ``edition`` whenever it is present. If the
++    URL's host matches an entry in ``allowed_cover_hosts`` (case-insensitive)
++    and uses the http or https scheme, the URL is returned; otherwise ``None``
++    is returned. The updated edition dictionary is always returned as the
++    second element of the tuple.
++    """
++    if 'cover' not in edition:
++        return None, edition
++    cover_url = edition.pop('cover')
++    allowed = {host.lower() for host in allowed_cover_hosts}
++    try:
++        parsed = urlparse(cover_url)
++        if parsed.scheme in ('http', 'https') and (parsed.hostname or '').lower() in allowed:
++            return cover_url, edition
++    except Exception:
++        pass
++    return None, edition
++
++
+ def normalize(s):
+     """Strip non-alphanums and truncate at 25 chars."""
+     norm = strip_accents(s).lower()
+@@ -615,10 +647,7 @@ def load_data(
+     if not (edition_key := edition.get('key')):
+         edition_key = web.ctx.site.new_key('/type/edition')
+ 
+-    cover_url = None
+-    if 'cover' in edition:
+-        cover_url = edition['cover']
+-        del edition['cover']
++    cover_url, edition = process_cover_url(edition)
+ 
+     cover_id = None
+     if cover_url:
+@@ -802,8 +831,10 @@ def update_edition_with_rec_data(
+     need_edition_save = False
+     # Add cover to edition
+     if 'cover' in rec and not edition.get_covers():
+-        cover_url = rec['cover']
+-        cover_id = add_cover(cover_url, edition.key, account_key=account_key)
++        cover_url, rec = process_cover_url(rec)
++        cover_id = None
++        if cover_url:
++            cover_id = add_cover(cover_url, edition.key, account_key=account_key)
+         if cover_id:
+             edition['covers'] = [cover_id]
+             need_edition_save = True
+diff --git a/openlibrary/catalog/add_book/tests/test_process_cover_url.py b/openlibrary/catalog/add_book/tests/test_process_cover_url.py
+new file mode 100644
+index 000000000..76696a708
+--- /dev/null
++++ b/openlibrary/catalog/add_book/tests/test_process_cover_url.py
+@@ -0,0 +1,78 @@
++import pytest
++
++from openlibrary.catalog.add_book import ALLOWED_COVER_HOSTS, process_cover_url
++
++
++def test_missing_cover_returns_none_and_unchanged():
++    edition = {"title": "A Book"}
++    cover_url, result = process_cover_url(edition)
++    assert cover_url is None
++    assert result == {"title": "A Book"}
++    assert "cover" not in result
++
++
++def test_unsupported_host_returns_none_and_removes_key():
++    edition = {"title": "A Book", "cover": "http://example.com/image.jpg"}
++    cover_url, result = process_cover_url(edition)
++    assert cover_url is None
++    assert "cover" not in result
++    assert result == {"title": "A Book"}
++
++
++def test_supported_host_returns_url_and_removes_key():
++    url = "https://archive.org/image.jpg"
++    edition = {"title": "A Book", "cover": url}
++    cover_url, result = process_cover_url(edition)
++    assert cover_url == url
++    assert "cover" not in result
++    assert result == {"title": "A Book"}
++
++
++def test_supported_host_http():
++    url = "http://covers.openlibrary.org/image.jpg"
++    edition = {"cover": url}
++    cover_url, result = process_cover_url(edition)
++    assert cover_url == url
++    assert "cover" not in result
++
++
++def test_host_comparison_case_insensitive():
++    url = "https://ARCHIVE.ORG/image.jpg"
++    edition = {"cover": url}
++    cover_url, result = process_cover_url(edition)
++    assert cover_url == url
++    assert "cover" not in result
++
++
++def test_allowed_hosts_case_insensitive():
++    url = "https://archive.org/image.jpg"
++    edition = {"cover": url}
++    cover_url, result = process_cover_url(edition, allowed_cover_hosts=["ARCHIVE.ORG"])
++    assert cover_url == url
++    assert "cover" not in result
++
++
++def test_non_http_scheme_ignored():
++    edition = {"cover": "ftp://archive.org/image.jpg"}
++    cover_url, result = process_cover_url(edition)
++    assert cover_url is None
++    assert "cover" not in result
++
++
++def test_malformed_url_returns_none_and_removes_key():
++    edition = {"cover": "not a url"}
++    cover_url, result = process_cover_url(edition)
++    assert cover_url is None
++    assert "cover" not in result
++
++
++def test_default_allowed_hosts_constant():
++    assert "archive.org" in ALLOWED_COVER_HOSTS
++    assert "covers.openlibrary.org" in ALLOWED_COVER_HOSTS
++
++
++def test_ediction_mutated_in_place():
++    edition = {"cover": "http://example.com/image.jpg"}
++    _, result = process_cover_url(edition)
++    assert result is edition
++    assert "cover" not in edition

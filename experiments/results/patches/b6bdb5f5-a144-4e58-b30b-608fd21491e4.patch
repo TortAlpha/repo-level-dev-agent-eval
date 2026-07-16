@@ -1,0 +1,53 @@
+diff --git a/h11/_headers.py b/h11/_headers.py
+index b97d020..a530672 100644
+--- a/h11/_headers.py
++++ b/h11/_headers.py
+@@ -68,6 +68,12 @@ except ImportError:
+ # Maybe a dict-of-lists would be better?
+ 
+ _content_length_re = re.compile(rb"[0-9]+")
++
++# Limits on Content-Length values. A value with more digits than this is
++# rejected promptly, before any int() conversion, to avoid pathological
++# processing time and to produce a protocol-level error instead of a raw
++# ValueError on newer Python versions.
++MAX_CONTENT_LENGTH_DIGITS = 16
+ _field_name_re = re.compile(field_name.encode("ascii"))
+ _field_value_re = re.compile(field_value.encode("ascii"))
+ 
+@@ -173,6 +179,8 @@ def normalize_and_validate(
+                 raise LocalProtocolError("conflicting Content-Length headers")
+             value = lengths.pop()
+             validate(_content_length_re, value, "bad Content-Length")
++            if len(value) > MAX_CONTENT_LENGTH_DIGITS:
++                raise LocalProtocolError("bad Content-Length")
+             if seen_content_length is None:
+                 seen_content_length = value
+                 new_headers.append((raw_name, name, value))
+diff --git a/h11/tests/test_content_length_limit.py b/h11/tests/test_content_length_limit.py
+new file mode 100644
+index 0000000..03d547c
+--- /dev/null
++++ b/h11/tests/test_content_length_limit.py
+@@ -0,0 +1,21 @@
++import pytest
++
++from .._headers import normalize_and_validate
++from .._util import LocalProtocolError
++
++
++def test_content_length_too_many_digits() -> None:
++    # A pathological Content-Length with far too many digits must be rejected
++    # as a protocol error rather than being parsed as an int.
++    huge = b"9" * 100
++    with pytest.raises(LocalProtocolError):
++        normalize_and_validate([("Content-Length", huge)])
++
++
++def test_content_length_normal_values_still_work() -> None:
++    assert normalize_and_validate([("Content-Length", "0")]) == [
++        (b"content-length", b"0")
++    ]
++    assert normalize_and_validate([("Content-Length", "12345")]) == [
++        (b"content-length", b"12345")
++    ]

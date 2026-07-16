@@ -1,0 +1,205 @@
+diff --git a/openlibrary/core/vendors.py b/openlibrary/core/vendors.py
+index da5748e14..fbd8bc9f8 100644
+--- a/openlibrary/core/vendors.py
++++ b/openlibrary/core/vendors.py
+@@ -271,7 +271,7 @@ class AmazonAPI:
+             'title': (
+                 item_info
+                 and item_info.title
+-                and getattr(item_info.title, 'display_value')
++                and getattr(item_info.title, 'display_value', None)
+             ),
+             'cover': (
+                 images.primary.large.url
+@@ -316,6 +316,24 @@ class AmazonAPI:
+             ),
+         }
+ 
++        languages = []
++        if edition_info:
++            languages_info = getattr(edition_info, 'languages', None)
++            display_values = (
++                languages_info and getattr(languages_info, 'display_values', None)
++            )
++            if display_values:
++                seen = set()
++                for entry in display_values:
++                    if getattr(entry, 'type', None) == 'Original Language':
++                        continue
++                    value = getattr(entry, 'display_value', None)
++                    if value and value not in seen:
++                        seen.add(value)
++                        languages.append(value)
++        if languages:
++            book['languages'] = languages
++
+         if is_dvd(book):
+             return {}
+         return book
+@@ -491,6 +509,7 @@ def clean_amazon_metadata_for_load(metadata: dict) -> dict:
+         'isbn_10',
+         'isbn_13',
+         'physical_format',
++        'languages',
+     ]
+     conforming_metadata = {}
+     for k in conforming_fields:
+diff --git a/openlibrary/tests/core/test_vendors_languages.py b/openlibrary/tests/core/test_vendors_languages.py
+new file mode 100644
+index 000000000..9f6f85ed9
+--- /dev/null
++++ b/openlibrary/tests/core/test_vendors_languages.py
+@@ -0,0 +1,153 @@
++from dataclasses import dataclass, field
++from typing import Any
++
++from openlibrary.core.vendors import AmazonAPI, clean_amazon_metadata_for_load
++
++
++@dataclass
++class DisplayValue:
++    display_value: str | None
++    type: str | None = None
++
++
++@dataclass
++class Languages:
++    display_values: list[DisplayValue] | None = None
++
++
++@dataclass
++class ContentInfo:
++    languages: Languages | None = None
++    publication_date: Any = None
++    pages_count: Any = None
++    edition: Any = None
++
++
++@dataclass
++class ProductGroup:
++    display_value: str | None = None
++
++
++@dataclass
++class Binding:
++    display_value: str | None = None
++
++
++@dataclass
++class Classifications:
++    product_group: ProductGroup | None = None
++    binding: Binding | None = None
++
++
++@dataclass
++class Contributor:
++    locale: str | None = None
++    name: str | None = None
++    role: str | None = None
++
++
++@dataclass
++class ByLineInfo:
++    brand: str | None = None
++    contributors: list[Contributor] | None = None
++    manufacturer: str | None = None
++
++
++@dataclass
++class ItemInfo:
++    classifications: Classifications | None = None
++    content_info: ContentInfo | None = None
++    by_line_info: ByLineInfo | None = None
++    title: Any = None
++
++
++@dataclass
++class AmazonAPIReply:
++    item_info: ItemInfo
++    images: Any = None
++    offers: Any = None
++    asin: str = ''
++
++
++def _base_product(languages=None):
++    classification = Classifications(
++        product_group=ProductGroup('Book'), binding=Binding('hardcover')
++    )
++    content_info = ContentInfo(languages=Languages(display_values=languages))
++    item_info = ItemInfo(
++        classifications=classification,
++        content_info=content_info,
++        by_line_info=None,
++        title='Test Title',
++    )
++    return AmazonAPIReply(item_info=item_info, images='', offers='', asin='059035342X')
++
++
++def test_serialize_includes_languages():
++    product = _base_product(
++        languages=[
++            DisplayValue('English', 'Published'),
++            DisplayValue('French', 'Original Language'),
++        ]
++    )
++    result = AmazonAPI.serialize(product)
++    assert result.get('languages') == ['English']
++
++
++def test_serialize_dedupes_languages():
++    product = _base_product(
++        languages=[
++            DisplayValue('English', 'Published'),
++            DisplayValue('English', 'Published'),
++            DisplayValue('Spanish', 'Published'),
++        ]
++    )
++    result = AmazonAPI.serialize(product)
++    assert result.get('languages') == ['English', 'Spanish']
++
++
++def test_serialize_omits_languages_when_only_original_language():
++    product = _base_product(
++        languages=[DisplayValue('Latin', 'Original Language')]
++    )
++    result = AmazonAPI.serialize(product)
++    assert 'languages' not in result
++
++
++def test_serialize_omits_languages_when_empty():
++    product = _base_product(languages=[])
++    result = AmazonAPI.serialize(product)
++    assert 'languages' not in result
++
++
++def test_serialize_omits_languages_when_missing():
++    product = _base_product(languages=None)
++    result = AmazonAPI.serialize(product)
++    assert 'languages' not in result
++
++
++def test_serialize_preserves_language_casing():
++    product = _base_product(
++        languages=[DisplayValue('eNgLiSh', 'Published')]
++    )
++    result = AmazonAPI.serialize(product)
++    assert result.get('languages') == ['eNgLiSh']
++
++
++def test_clean_amazon_metadata_preserves_languages():
++    amazon = {
++        'title': 'Test Title',
++        'source_records': ['amazon:059035342X'],
++        'languages': ['English', 'Spanish'],
++    }
++    result = clean_amazon_metadata_for_load(amazon)
++    assert result.get('languages') == ['English', 'Spanish']
++
++
++def test_clean_amazon_metadata_omits_languages_when_absent():
++    amazon = {
++        'title': 'Test Title',
++        'source_records': ['amazon:059035342X'],
++    }
++    result = clean_amazon_metadata_for_load(amazon)
++    assert 'languages' not in result

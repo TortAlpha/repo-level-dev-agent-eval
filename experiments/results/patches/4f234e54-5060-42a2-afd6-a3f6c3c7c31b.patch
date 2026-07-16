@@ -1,0 +1,153 @@
+diff --git a/openlibrary/core/vendors.py b/openlibrary/core/vendors.py
+index da5748e14..ed6c7e20d 100644
+--- a/openlibrary/core/vendors.py
++++ b/openlibrary/core/vendors.py
+@@ -256,6 +256,21 @@ class AmazonAPI:
+             logger.exception(f"serialize({product})")
+             publish_date = None
+ 
++        languages = []
++        seen_languages = set()
++        language_display_values = (
++            edition_info
++            and edition_info.languages
++            and getattr(edition_info.languages, 'display_values', None)
++        )
++        for language in language_display_values or []:
++            if getattr(language, 'type', None) == 'Original Language':
++                continue
++            value = getattr(language, 'display_value', None)
++            if value and value not in seen_languages:
++                seen_languages.add(value)
++                languages.append(value)
++
+         asin_is_isbn10 = not product.asin.startswith("B")
+         isbn_13 = isbn_10_to_isbn_13(product.asin) if asin_is_isbn10 else None
+ 
+@@ -316,6 +331,9 @@ class AmazonAPI:
+             ),
+         }
+ 
++        if languages:
++            book['languages'] = languages
++
+         if is_dvd(book):
+             return {}
+         return book
+@@ -491,6 +509,7 @@ def clean_amazon_metadata_for_load(metadata: dict) -> dict:
+         'isbn_10',
+         'isbn_13',
+         'physical_format',
++        'languages',
+     ]
+     conforming_metadata = {}
+     for k in conforming_fields:
+diff --git a/openlibrary/tests/core/test_vendors_languages.py b/openlibrary/tests/core/test_vendors_languages.py
+new file mode 100644
+index 000000000..b6f7542b3
+--- /dev/null
++++ b/openlibrary/tests/core/test_vendors_languages.py
+@@ -0,0 +1,103 @@
++from dataclasses import dataclass, field
++from typing import Any
++
++from openlibrary.core.vendors import AmazonAPI
++
++
++@dataclass
++class ProductGroup:
++    display_value: str | None
++
++
++@dataclass
++class Binding:
++    display_value: str | None
++
++
++@dataclass
++class Classifications:
++    product_group: ProductGroup | None
++    binding: Binding
++
++
++@dataclass
++class Language:
++    type: str | None
++    display_value: str | None
++
++
++@dataclass
++class Languages:
++    display_values: list[Language] | None
++
++
++@dataclass
++class DisplayValue:
++    display_value: str | None
++
++
++@dataclass
++class ContentInfo:
++    languages: Languages | None = None
++    publication_date: DisplayValue | None = None
++    pages_count: DisplayValue | None = None
++    edition: DisplayValue | None = None
++
++
++@dataclass
++class ItemInfo:
++    classifications: Classifications | None
++    content_info: Any
++    by_line_info: None
++    title: str
++
++
++@dataclass
++class AmazonAPIReply:
++    item_info: ItemInfo
++    images: str
++    offers: str
++    asin: str
++
++
++def _product(languages):
++    classification = Classifications(
++        product_group=ProductGroup('Book'), binding=Binding('paperback')
++    )
++    content_info = ContentInfo(languages=Languages(display_values=languages))
++    item_info = ItemInfo(
++        classifications=classification,
++        content_info=content_info,
++        by_line_info=None,
++        title='',
++    )
++    return AmazonAPIReply(item_info=item_info, images='', offers='', asin='')
++
++
++def test_serialize_includes_languages_excluding_original_language():
++    product = _product(
++        [
++            Language('Published', 'English'),
++            Language('Original Language', 'Latin'),
++            Language('Published', 'Spanish'),
++            Language('Published', 'English'),
++        ]
++    )
++    result = AmazonAPI.serialize(product)
++    assert result['languages'] == ['English', 'Spanish']
++
++
++def test_serialize_omits_languages_when_empty():
++    product = _product(
++        [
++            Language('Original Language', 'Latin'),
++        ]
++    )
++    result = AmazonAPI.serialize(product)
++    assert 'languages' not in result
++
++
++def test_serialize_omits_languages_when_none():
++    product = _product(None)
++    result = AmazonAPI.serialize(product)
++    assert 'languages' not in result

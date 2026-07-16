@@ -1,0 +1,41 @@
+diff --git a/src/cachetools/_cachedmethod.py b/src/cachetools/_cachedmethod.py
+index cdf63d4..3f1c7e3 100644
+--- a/src/cachetools/_cachedmethod.py
++++ b/src/cachetools/_cachedmethod.py
+@@ -76,6 +76,12 @@ class _DescriptorBase:
+             )
+ 
+     def __get__(self, obj, objtype=None):
++        if obj is None:
++            # Class access without an instance, e.g. during introspection by
++            # unittest.mock.create_autospec: return the descriptor itself,
++            # matching the default descriptor protocol, instead of trying to
++            # build a wrapper bound to None (which has no __dict__).
++            return self
+         wrapper = self.Wrapper(obj)
+         if self.__attrname is not None:
+             # replace descriptor instance with wrapper in instance dict
+diff --git a/tmp_repro.py b/tmp_repro.py
+new file mode 100644
+index 0000000..e50de9c
+--- /dev/null
++++ b/tmp_repro.py
+@@ -0,0 +1,18 @@
++import warnings
++from cachetools import cachedmethod, LRUCache
++from unittest.mock import create_autospec
++
++class C:
++    @cachedmethod(lambda self: LRUCache(maxsize=10))
++    def f(self, x):
++        return x
++
++with warnings.catch_warnings():
++    warnings.simplefilter("error")
++    try:
++        m = create_autospec(C, instance=True)
++        print("OK", m)
++    except Exception as e:
++        import traceback
++        traceback.print_exc()
++        print("ERR", type(e).__name__, e)

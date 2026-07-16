@@ -1,0 +1,203 @@
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index fac5d4a30..0f87a480a 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -422,15 +422,41 @@ def isbns_from_record(rec: dict) -> list[str]:
+     return isbns
+ 
+ 
++def get_wikisource_id(rec: dict) -> str | None:
++    """
++    Extract the Wikisource identifier from a record's source_records, if present.
++
++    Wikisource source records have the format ``wikisource:<identifier>``.
++
++    :param dict rec: Edition record
++    :return: The Wikisource identifier, or None if no Wikisource source record is present.
++    """
++    for source_record in rec.get('source_records', []):
++        if source_record.startswith('wikisource:'):
++            return source_record[len('wikisource:') :]
++    return None
++
++
+ def build_pool(rec: dict) -> dict[str, list[str]]:
+     """
+     Searches for existing edition matches on title and bibliographic keys.
+ 
++    For Wikisource records, only matches on the Wikisource identifier are
++    considered; no fallback to other bibliographic criteria is performed.
++
+     :param dict rec: Edition record
+     :rtype: dict
+     :return: {<identifier: title | isbn | lccn etc>: [list of /books/OL..M keys that match rec on <identifier>]}
+     """
+     pool = defaultdict(set)
++
++    # Wikisource records must only match editions with the same Wikisource identifier.
++    if wikisource_id := get_wikisource_id(rec):
++        ekeys = editions_matched(rec, 'identifiers.wikisource', wikisource_id)
++        if ekeys:
++            pool['wikisource'] = set(ekeys)
++        return {k: list(v) for k, v in pool.items() if v}
++
+     match_fields = ('title', 'oclc_numbers', 'lccn', 'ocaid')
+ 
+     # Find records with matching fields
+@@ -787,6 +813,12 @@ def validate_record(rec: dict) -> None:
+ 
+ def find_match(rec: dict, edition_pool: dict) -> str | None:
+     """Use rec to try to find an existing edition key that matches."""
++    # Wikisource records must only match editions that already have the same
++    # Wikisource identifier. Skip find_quick_match, which would otherwise match
++    # on shared bibliographic details (ISBN, ocaid, lccn, etc.) and incorrectly
++    # merge with an existing edition that lacks a Wikisource identifier.
++    if get_wikisource_id(rec):
++        return find_threshold_match(rec, edition_pool)
+     return find_quick_match(rec) or find_threshold_match(rec, edition_pool)
+ 
+ 
+diff --git a/openlibrary/catalog/add_book/tests/test_wikisource_find_match.py b/openlibrary/catalog/add_book/tests/test_wikisource_find_match.py
+new file mode 100644
+index 000000000..5ce7b1cc9
+--- /dev/null
++++ b/openlibrary/catalog/add_book/tests/test_wikisource_find_match.py
+@@ -0,0 +1,53 @@
++"""Tests for Wikisource-specific find_match behavior.
++
++Verifies that a Wikisource source record does not match an existing edition
++that shares bibliographic details (ocaid/ISBN) but lacks a matching
++identifiers.wikisource value.
++"""
++
++from openlibrary.catalog.add_book import build_pool, find_match
++
++
++def test_find_match_wikisource_skips_quick_match_on_ocaid(mock_site):
++    """A Wikisource record sharing ocaid with an existing edition must not match."""
++    etype = '/type/edition'
++    ekey = mock_site.new_key(etype)
++    existing = {
++        'title': 'A Tale',
++        'type': {'key': etype},
++        'ocaid': 'tale00tale',
++        'isbn_13': ['9780190906764'],
++        'key': ekey,
++    }
++    mock_site.save(existing)
++
++    rec = {
++        'title': 'A Tale',
++        'ocaid': 'tale00tale',
++        'isbn_13': ['9780190906764'],
++        'source_records': ['wikisource:fr99999'],
++    }
++    pool = build_pool(rec)
++    assert pool == {}
++    assert find_match(rec, pool) is None
++
++
++def test_find_match_wikisource_matches_same_identifier(mock_site):
++    """A Wikisource record must match an edition with the same wikisource identifier."""
++    etype = '/type/edition'
++    ekey = mock_site.new_key(etype)
++    existing = {
++        'title': 'A Tale',
++        'type': {'key': etype},
++        'identifiers': {'wikisource': ['fr99999']},
++        'key': ekey,
++    }
++    mock_site.save(existing)
++
++    rec = {
++        'title': 'A Tale',
++        'source_records': ['wikisource:fr99999'],
++    }
++    pool = build_pool(rec)
++    assert pool == {'wikisource': ['/books/OL1M']}
++    assert find_match(rec, pool) == '/books/OL1M'
+diff --git a/openlibrary/catalog/add_book/tests/test_wikisource_match.py b/openlibrary/catalog/add_book/tests/test_wikisource_match.py
+new file mode 100644
+index 000000000..3d7ebd9b0
+--- /dev/null
++++ b/openlibrary/catalog/add_book/tests/test_wikisource_match.py
+@@ -0,0 +1,79 @@
++"""Tests for Wikisource edition matching behavior."""
++
++from openlibrary.catalog.add_book import build_pool, get_wikisource_id
++
++
++def test_get_wikisource_id_extracts_identifier():
++    rec = {'source_records': ['wikisource:fr12345']}
++    assert get_wikisource_id(rec) == 'fr12345'
++
++
++def test_get_wikisource_id_none_when_absent():
++    rec = {'source_records': ['ia:test_item']}
++    assert get_wikisource_id(rec) is None
++
++
++def test_build_pool_wikisource_no_match_is_empty(mock_site):
++    """A Wikisource record with no matching edition must produce an empty pool."""
++    # Existing edition sharing bibliographic details but without a wikisource identifier.
++    etype = '/type/edition'
++    ekey = mock_site.new_key(etype)
++    existing = {
++        'title': 'A Tale',
++        'type': {'key': etype},
++        'lccn': ['123'],
++        'oclc_numbers': ['456'],
++        'ocaid': 'tale00tale',
++        'isbn_13': ['9780190906764'],
++        'key': ekey,
++    }
++    mock_site.save(existing)
++
++    rec = {
++        'title': 'A Tale',
++        'lccn': ['123'],
++        'oclc_numbers': ['456'],
++        'ocaid': 'tale00tale',
++        'isbn_13': ['9780190906764'],
++        'source_records': ['wikisource:fr99999'],
++    }
++    assert build_pool(rec) == {}
++
++
++def test_build_pool_wikisource_matches_only_same_identifier(mock_site):
++    """A Wikisource record must only match editions with the same wikisource identifier."""
++    etype = '/type/edition'
++    ekey = mock_site.new_key(etype)
++    existing = {
++        'title': 'A Tale',
++        'type': {'key': etype},
++        'identifiers': {'wikisource': ['fr99999']},
++        'key': ekey,
++    }
++    mock_site.save(existing)
++
++    rec = {
++        'title': 'A Tale',
++        'source_records': ['wikisource:fr99999'],
++    }
++    pool = build_pool(rec)
++    assert pool == {'wikisource': ['/books/OL1M']}
++
++
++def test_build_pool_wikisource_does_not_match_other_identifier(mock_site):
++    """A Wikisource record must not match an edition with a different wikisource identifier."""
++    etype = '/type/edition'
++    ekey = mock_site.new_key(etype)
++    existing = {
++        'title': 'A Tale',
++        'type': {'key': etype},
++        'identifiers': {'wikisource': ['fr11111']},
++        'key': ekey,
++    }
++    mock_site.save(existing)
++
++    rec = {
++        'title': 'A Tale',
++        'source_records': ['wikisource:fr99999'],
++    }
++    assert build_pool(rec) == {}

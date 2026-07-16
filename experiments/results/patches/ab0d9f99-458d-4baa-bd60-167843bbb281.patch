@@ -1,0 +1,148 @@
+diff --git a/qutebrowser/utils/version.py b/qutebrowser/utils/version.py
+index 0e3927948..75fe426cb 100644
+--- a/qutebrowser/utils/version.py
++++ b/qutebrowser/utils/version.py
+@@ -612,16 +612,31 @@ class WebEngineVersions:
+         minor_version = pyqt_webengine_version.rsplit('.', maxsplit=1)[0]
+         return cls._CHROMIUM_VERSIONS.get(minor_version)
+ 
++    @classmethod
++    def from_pyqt_importlib(
++            cls,
++            pyqt_webengine_version: str,
++    ) -> 'WebEngineVersions':
++        """Get the versions based on the PyQtWebEngine version via importlib.
++
++        This is used when PyQtWebEngine is installed via pip (detected via
++        importlib), so that we can get the PyQtWebEngine-Qt version string.
++        """
++        return cls(
++            webengine=utils.parse_version(pyqt_webengine_version),
++            chromium=cls._infer_chromium_version(pyqt_webengine_version),
++            source='importlib',
++        )
++
+     @classmethod
+     def from_pyqt(
+             cls,
+             pyqt_webengine_version: str,
+-            source: str = 'PyQt',
+     ) -> 'WebEngineVersions':
+         """Get the versions based on the PyQtWebEngine version.
+ 
+-        This is the "last resort" if we don't want to fully initialize QtWebEngine (so
+-        from_ua isn't possible) and we're not on Linux (or ELF parsing failed).
++        This is used when the PyQtWebEngine version is detected via PyQt (e.g.
++        PYQT_WEBENGINE_VERSION_STR).
+ 
+         Here, we assume that the PyQtWebEngine version is the same as the QtWebEngine
+         version, and infer the Chromium version from that. This assumption isn't
+@@ -634,7 +649,23 @@ class WebEngineVersions:
+         return cls(
+             webengine=utils.parse_version(pyqt_webengine_version),
+             chromium=cls._infer_chromium_version(pyqt_webengine_version),
+-            source=source,
++            source='PyQt',
++        )
++
++    @classmethod
++    def from_qt(
++            cls,
++            qt_version: str,
++    ) -> 'WebEngineVersions':
++        """Get the versions based on the Qt version.
++
++        This is a last-resort fallback using qVersion(), especially with Qt 5.12,
++        when other version detection methods fail.
++        """
++        return cls(
++            webengine=utils.parse_version(qt_version),
++            chromium=cls._infer_chromium_version(qt_version),
++            source='Qt',
+         )
+ 
+ 
+@@ -671,14 +702,13 @@ def qtwebengine_versions(avoid_init: bool = False) -> WebEngineVersions:
+ 
+     pyqt_webengine_qt_version = _get_pyqt_webengine_qt_version()
+     if pyqt_webengine_qt_version is not None:
+-        return WebEngineVersions.from_pyqt(
+-            pyqt_webengine_qt_version, source='importlib')
++        return WebEngineVersions.from_pyqt_importlib(pyqt_webengine_qt_version)
+ 
+     if PYQT_WEBENGINE_VERSION_STR is not None:
+         return WebEngineVersions.from_pyqt(PYQT_WEBENGINE_VERSION_STR)
+ 
+-    return WebEngineVersions.from_pyqt(  # type: ignore[unreachable]
+-        qVersion(), source='Qt')
++    return WebEngineVersions.from_qt(  # type: ignore[unreachable]
++        qVersion())
+ 
+ 
+ def _backend() -> str:
+diff --git a/tests/unit/utils/test_webengine_versions_new.py b/tests/unit/utils/test_webengine_versions_new.py
+new file mode 100644
+index 000000000..6a39d8373
+--- /dev/null
++++ b/tests/unit/utils/test_webengine_versions_new.py
+@@ -0,0 +1,60 @@
++# vim: ft=python fileencoding=utf-8 sts=4 sw=4 et:
++
++# Copyright 2021 Florian Bruhin (The Compiler) <mail@qutebrowser.org>
++#
++# This file is part of qutebrowser.
++#
++# qutebrowser is free software: you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation, either version 3 of the License, or
++# (at your option) any later version.
++#
++# qutebrowser is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with qutebrowser.  If not, see <https://www.gnu.org/licenses/>.
++
++"""Tests for the refactored WebEngineVersions version detection methods."""
++
++import pytest
++
++from qutebrowser.utils import version, utils
++
++
++@pytest.mark.parametrize('qt_version, chromium_version', [
++    ('5.12.10', '69.0.3497.128'),
++    ('5.14.2', '77.0.3865.129'),
++    ('5.15.1', '80.0.3987.163'),
++    ('5.15.2', '83.0.4103.122'),
++])
++def test_from_pyqt_importlib(qt_version, chromium_version):
++    expected = version.WebEngineVersions(
++        webengine=utils.parse_version(qt_version),
++        chromium=chromium_version,
++        source='importlib',
++    )
++    assert version.WebEngineVersions.from_pyqt_importlib(qt_version) == expected
++
++
++@pytest.mark.parametrize('qt_version, chromium_version', [
++    ('5.12.10', '69.0.3497.128'),
++    ('5.14.2', '77.0.3865.129'),
++    ('5.15.1', '80.0.3987.163'),
++    ('5.15.2', '83.0.4103.122'),
++])
++def test_from_qt(qt_version, chromium_version):
++    expected = version.WebEngineVersions(
++        webengine=utils.parse_version(qt_version),
++        chromium=chromium_version,
++        source='Qt',
++    )
++    assert version.WebEngineVersions.from_qt(qt_version) == expected
++
++
++def test_from_pyqt_no_source_argument():
++    """Ensure from_pyqt no longer accepts a source argument."""
++    with pytest.raises(TypeError):
++        version.WebEngineVersions.from_pyqt('5.15.2', source='PyQt')  # type: ignore[call-arg]

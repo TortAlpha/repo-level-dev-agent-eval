@@ -1,0 +1,64 @@
+diff --git a/sqlparse/keywords.py b/sqlparse/keywords.py
+index cd17d63..976c744 100644
+--- a/sqlparse/keywords.py
++++ b/sqlparse/keywords.py
+@@ -90,6 +90,7 @@ SQL_REGEX = {
+          tokens.Keyword),
+         (r"(AT|WITH')\s+TIME\s+ZONE\s+'[^']+'", tokens.Keyword.TZCast),
+         (r'(NOT\s+)?(LIKE|ILIKE|RLIKE)\b', tokens.Operator.Comparison),
++        (r'DIV\b', tokens.Operator),
+         (r'[0-9_A-ZÀ-Ü][_$#\w]*', is_keyword),
+         (r'[;:()\[\],\.]', tokens.Punctuation),
+         (r'[<>=~!]+', tokens.Operator.Comparison),
+diff --git a/tests/test_div_operator.py b/tests/test_div_operator.py
+new file mode 100644
+index 0000000..b971b7c
+--- /dev/null
++++ b/tests/test_div_operator.py
+@@ -0,0 +1,46 @@
++import sqlparse
++from sqlparse import tokens as T
++from sqlparse import sql
++
++
++def test_div_is_operator():
++    p = sqlparse.parse('a DIV b')[0]
++    div = next(t for t in p.flatten() if t.normalized.upper() == 'DIV')
++    assert div.ttype is T.Operator
++
++
++def test_div_grouped_as_operation():
++    p = sqlparse.parse('a DIV b')[0]
++    ops = [t for t in p.tokens if not t.is_whitespace]
++    assert len(ops) == 1
++    assert isinstance(ops[0], sql.Operation)
++    inner = [t for t in ops[0].tokens if not t.is_whitespace]
++    assert len(inner) == 3
++    assert inner[1].ttype is T.Operator
++    assert inner[1].normalized.upper() == 'DIV'
++
++
++def test_div_case_insensitive():
++    p = sqlparse.parse('a div b')[0]
++    div = next(t for t in p.flatten() if t.normalized.upper() == 'DIV')
++    assert div.ttype is T.Operator
++
++
++def test_div_not_name_or_keyword():
++    p = sqlparse.parse('a DIV b')[0]
++    div = next(t for t in p.flatten() if t.normalized.upper() == 'DIV')
++    assert div.ttype is not T.Name
++    assert div.ttype is not T.Keyword
++
++
++def test_div_in_select():
++    p = sqlparse.parse('SELECT a DIV b FROM t')[0]
++    div = next(t for t in p.flatten() if t.normalized.upper() == 'DIV')
++    assert div.ttype is T.Operator
++
++
++def test_div_word_boundary():
++    p = sqlparse.parse('SELECT DIVING FROM t')[0]
++    toks = [t for t in p.flatten() if not t.is_whitespace]
++    assert not any(t.ttype is T.Operator and t.normalized.upper() == 'DIV'
++                   for t in toks)

@@ -1,0 +1,65 @@
+diff --git a/sqlparse/engine/grouping.py b/sqlparse/engine/grouping.py
+index 57d257e..01bc374 100644
+--- a/sqlparse/engine/grouping.py
++++ b/sqlparse/engine/grouping.py
+@@ -276,7 +276,7 @@ def group_operator(tlist):
+ def group_identifier_list(tlist):
+     m_role = T.Keyword, ('null', 'role')
+     sqlcls = (sql.Function, sql.Case, sql.Identifier, sql.Comparison,
+-              sql.IdentifierList, sql.Operation)
++              sql.IdentifierList, sql.Operation, sql.TypedLiteral)
+     ttypes = (T_NUMERICAL + T_STRING + T_NAME
+               + (T.Keyword, T.Comment, T.Wildcard))
+ 
+diff --git a/sqlparse/sql.py b/sqlparse/sql.py
+index 1ccfbdb..8a138e9 100644
+--- a/sqlparse/sql.py
++++ b/sqlparse/sql.py
+@@ -622,7 +622,7 @@ class Function(NameAliasMixin, TokenList):
+         for token in parenthesis.tokens:
+             if isinstance(token, IdentifierList):
+                 return token.get_identifiers()
+-            elif imt(token, i=(Function, Identifier), t=T.Literal):
++            elif imt(token, i=(Function, Identifier, TypedLiteral), t=T.Literal):
+                 return [token, ]
+         return []
+ 
+diff --git a/tests/test_typed_literal_params.py b/tests/test_typed_literal_params.py
+new file mode 100644
+index 0000000..606d389
+--- /dev/null
++++ b/tests/test_typed_literal_params.py
+@@ -0,0 +1,33 @@
++import sqlparse
++from sqlparse import sql
++
++
++def test_function_typed_literal_single_param():
++    f = sqlparse.parse("foo(DATE '2023-11-14')")[0].tokens[0]
++    params = list(f.get_parameters())
++    assert len(params) == 1
++    assert isinstance(params[0], sql.TypedLiteral)
++
++
++def test_function_typed_literal_multiple_params():
++    f = sqlparse.parse(
++        "foo(DATE '2023-11-14', TIMESTAMP '2023-11-15')"
++    )[0].tokens[0]
++    params = list(f.get_parameters())
++    assert len(params) == 2
++    assert all(isinstance(p, sql.TypedLiteral) for p in params)
++
++
++def test_function_mixed_params():
++    f = sqlparse.parse("foo(a, DATE '2023-11-14')")[0].tokens[0]
++    params = list(f.get_parameters())
++    assert len(params) == 2
++    assert isinstance(params[0], sql.Identifier)
++    assert isinstance(params[1], sql.TypedLiteral)
++
++
++def test_function_ordinary_params_unchanged():
++    f = sqlparse.parse('foo(bar(5))')[0].tokens[0]
++    params = list(f.get_parameters())
++    assert len(params) == 1
++    assert type(params[0]) is sql.Function

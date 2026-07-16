@@ -1,0 +1,73 @@
+diff --git a/lib/ansible/module_utils/common/sys_info.py b/lib/ansible/module_utils/common/sys_info.py
+index f0f4e99bf4..209cd43bc1 100644
+--- a/lib/ansible/module_utils/common/sys_info.py
++++ b/lib/ansible/module_utils/common/sys_info.py
+@@ -27,7 +27,9 @@ def get_distribution():
+     '''
+     distribution = None
+ 
+-    if platform.system() == 'Linux':
++    system = platform.system()
++
++    if system == 'Linux':
+         distribution = distro.id().capitalize()
+ 
+         if distribution == 'Amzn':
+@@ -36,6 +38,12 @@ def get_distribution():
+             distribution = 'Redhat'
+         elif not distribution:
+             distribution = 'OtherLinux'
++    elif system == 'Darwin':
++        distribution = 'Darwin'
++    elif system == 'SunOS':
++        distribution = 'Solaris'
++    elif system == 'FreeBSD':
++        distribution = 'Freebsd'
+ 
+     return distribution
+ 
+@@ -78,6 +86,9 @@ def get_distribution_version():
+         else:
+             version = u''
+ 
++    elif platform.system() in ('Darwin', 'SunOS', 'FreeBSD'):
++        version = platform.release()
++
+     return version
+ 
+ 
+diff --git a/test/units/module_utils/common/test_sys_info_nonlinux.py b/test/units/module_utils/common/test_sys_info_nonlinux.py
+new file mode 100644
+index 0000000000..0933848b01
+--- /dev/null
++++ b/test/units/module_utils/common/test_sys_info_nonlinux.py
+@@ -0,0 +1,29 @@
++# -*- coding: utf-8 -*-
++# (c) 2020 Ansible Project
++# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
++
++from __future__ import absolute_import, division, print_function
++__metaclass__ = type
++
++import pytest
++
++from ansible.module_utils.common.sys_info import get_distribution
++from ansible.module_utils.common.sys_info import get_distribution_version
++
++
++@pytest.mark.parametrize('system,expected_name,release,expected_version', [
++    ('Darwin', 'Darwin', '19.6.0', '19.6.0'),
++    ('SunOS', 'Solaris', '11.4', '11.4'),
++    ('FreeBSD', 'Freebsd', '12.1', '12.1'),
++])
++def test_get_distribution_non_linux(system, expected_name, release, expected_version, mocker):
++    mocker.patch('platform.system', return_value=system)
++    mocker.patch('platform.release', return_value=release)
++    assert get_distribution() == expected_name
++    assert get_distribution_version() == expected_version
++
++
++def test_get_distribution_unknown_non_linux_still_none(mocker):
++    mocker.patch('platform.system', return_value='Foo')
++    assert get_distribution() is None
++    assert get_distribution_version() is None

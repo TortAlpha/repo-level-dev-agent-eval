@@ -1,0 +1,62 @@
+diff --git a/src/humanize/filesize.py b/src/humanize/filesize.py
+index c495fed..21a71fd 100644
+--- a/src/humanize/filesize.py
++++ b/src/humanize/filesize.py
+@@ -97,6 +97,16 @@ def naturalsize(
+         return f"{int(bytes_)}B" if gnu else _("%d Bytes") % int(bytes_)
+ 
+     exp = int(min(log(abs_bytes, base), len(suffix)))
++    mantissa = bytes_ / (base**exp)
++    formatted = format % mantissa
++
++    # If rounding pushed the mantissa up to the next unit boundary,
++    # advance the suffix (unless we're already at the largest suffix).
++    if abs(float(formatted)) >= base and exp < len(suffix):
++        exp += 1
++        mantissa = bytes_ / (base**exp)
++        formatted = format % mantissa
++
+     space = "" if gnu else " "
+-    ret: str = format % (bytes_ / (base**exp)) + space + _(suffix[exp - 1])
++    ret: str = formatted + space + _(suffix[exp - 1])
+     return ret
+diff --git a/tests/test_naturalsize_boundary.py b/tests/test_naturalsize_boundary.py
+new file mode 100644
+index 0000000..c572d6f
+--- /dev/null
++++ b/tests/test_naturalsize_boundary.py
+@@ -0,0 +1,34 @@
++"""Regression tests for naturalsize rounding at unit boundaries."""
++
++from __future__ import annotations
++
++import humanize
++
++
++def test_decimal_boundary_carry() -> None:
++    assert humanize.naturalsize(999999) == "1.0 MB"
++    assert humanize.naturalsize(999950) == "1.0 MB"
++    assert humanize.naturalsize(999949) == "999.9 kB"
++
++
++def test_decimal_boundary_carry_negative() -> None:
++    assert humanize.naturalsize(-999999) == "-1.0 MB"
++
++
++def test_binary_boundary_carry() -> None:
++    assert humanize.naturalsize(1024**2 - 1, binary=True) == "1.0 MiB"
++    assert humanize.naturalsize(1024**2 - 1, gnu=True) == "1.0M"
++
++
++def test_binary_boundary_carry_negative() -> None:
++    assert humanize.naturalsize(-(1024**2 - 1), binary=True) == "-1.0 MiB"
++
++
++def test_largest_suffix_unchanged() -> None:
++    assert humanize.naturalsize(10**34 * 3) == "30000.0 QB"
++    assert humanize.naturalsize(1024**10 * 40, binary=True) == "40.0 QiB"
++
++
++def test_non_crossing_unchanged() -> None:
++    assert humanize.naturalsize(999949) == "999.9 kB"
++    assert humanize.naturalsize(1024 * 1023, binary=True) == "1023.0 KiB"

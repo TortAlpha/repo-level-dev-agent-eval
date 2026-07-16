@@ -1,0 +1,173 @@
+diff --git a/lib/ansible/module_utils/facts/network/linux.py b/lib/ansible/module_utils/facts/network/linux.py
+index b7ae97656b..ade636367a 100644
+--- a/lib/ansible/module_utils/facts/network/linux.py
++++ b/lib/ansible/module_utils/facts/network/linux.py
+@@ -17,6 +17,7 @@ from __future__ import (absolute_import, division, print_function)
+ __metaclass__ = type
+ 
+ import glob
++import ipaddress
+ import os
+ import re
+ import socket
+@@ -59,8 +60,70 @@ class LinuxNetwork(Network):
+         network_facts['default_ipv6'] = default_ipv6
+         network_facts['all_ipv4_addresses'] = ips['all_ipv4_addresses']
+         network_facts['all_ipv6_addresses'] = ips['all_ipv6_addresses']
++        network_facts['locally_reachable_ips'] = self.get_locally_reachable_ips(ip_path)
+         return network_facts
+ 
++    def get_locally_reachable_ips(self, ip_path):
++        result = {'ipv4': [], 'ipv6': []}
++        if not ip_path:
++            try:
++                self.module.warn('Unable to collect locally reachable IP ranges: ip command not found')
++            except Exception:
++                pass
++            return result
++
++        families = (
++            ('ipv4', [ip_path, '-4', 'route', 'show', 'table', 'local', 'scope', 'host']),
++            ('ipv6', [ip_path, '-6', 'route', 'show', 'table', 'local', 'scope', 'host']),
++        )
++
++        for family, command in families:
++            if family == 'ipv6' and not socket.has_ipv6:
++                continue
++            try:
++                rc, out, err = self.module.run_command(command, errors='surrogate_then_replace')
++            except Exception:
++                try:
++                    self.module.warn('Unable to collect locally reachable %s IP ranges: command failed' % family)
++                except Exception:
++                    pass
++                continue
++            if rc != 0 or not out:
++                try:
++                    self.module.warn('Unable to collect locally reachable %s IP ranges: no data' % family)
++                except Exception:
++                    pass
++                continue
++
++            entries = set()
++            for line in out.splitlines():
++                try:
++                    tokens = line.split()
++                    if 'local' not in tokens:
++                        continue
++                    idx = tokens.index('local')
++                    if idx + 1 >= len(tokens):
++                        continue
++                    addr = tokens[idx + 1]
++                    if '/' in addr:
++                        network = ipaddress.ip_network(addr, strict=False)
++                        if network.prefixlen == network.max_prefixlen:
++                            entries.add(str(network.network_address))
++                        else:
++                            entries.add(str(network))
++                    else:
++                        address = ipaddress.ip_address(addr)
++                        entries.add(str(address))
++                except Exception:
++                    continue
++
++            try:
++                result[family] = sorted(entries, key=lambda x: ipaddress.ip_network(x, strict=False))
++            except Exception:
++                result[family] = sorted(entries)
++
++        return result
++
+     def get_default_interfaces(self, ip_path, collected_facts=None):
+         collected_facts = collected_facts or {}
+         # Use the commands:
+diff --git a/test/units/module_utils/facts/network/test_locally_reachable_ips.py b/test/units/module_utils/facts/network/test_locally_reachable_ips.py
+new file mode 100644
+index 0000000000..39fb357a4d
+--- /dev/null
++++ b/test/units/module_utils/facts/network/test_locally_reachable_ips.py
+@@ -0,0 +1,84 @@
++# -*- coding: utf-8 -*-
++from __future__ import (absolute_import, division, print_function)
++__metaclass__ = type
++
++import pytest
++
++from units.compat.mock import Mock, patch
++
++from ansible.module_utils.facts.network.linux import LinuxNetwork
++
++
++V4_OUTPUT = """local 127.0.0.0/8 dev lo proto kernel scope host src 127.0.0.1
++local 127.0.0.1 dev lo proto kernel scope host src 127.0.0.1
++local 192.168.0.1 dev eth0 proto kernel scope host src 192.168.0.1
++local 192.168.1.0/24 dev eth0 proto kernel scope host src 192.168.0.1
++broadcast 127.255.255.255 dev lo table local proto kernel scope link src 127.0.0.1
++"""
++
++V6_OUTPUT = """local ::1 dev lo proto kernel scope host src ::1
++local fe80::/64 dev eth0 proto kernel scope host src fe80::1
++"""
++
++
++def make_linux_network():
++    module = Mock()
++    module.get_bin_path = Mock(return_value='/sbin/ip')
++    module.warn = Mock()
++    return LinuxNetwork(module=module, load_on_init=False)
++
++
++def run_command_map(rc_v4=0, out_v4=V4_OUTPUT, rc_v6=0, out_v6=V6_OUTPUT):
++    def _run_command(args, errors=None):
++        if '-4' in args:
++            return (rc_v4, out_v4, '')
++        if '-6' in args:
++            return (rc_v6, out_v6, '')
++        return (0, '', '')
++    return _run_command
++
++
++def test_get_locally_reachable_ips_v4_v6():
++    net = make_linux_network()
++    net.module.run_command = Mock(side_effect=run_command_map())
++    result = net.get_locally_reachable_ips('/sbin/ip')
++    assert result['ipv4'] == ['127.0.0.0/8', '127.0.0.1', '192.168.0.1', '192.168.1.0/24']
++    assert result['ipv6'] == ['::1', 'fe80::/64']
++
++
++def test_get_locally_reachable_ips_none_ip_path():
++    net = make_linux_network()
++    result = net.get_locally_reachable_ips(None)
++    assert result == {'ipv4': [], 'ipv6': []}
++    assert net.module.warn.called
++
++
++def test_get_locally_reachable_ips_command_failure():
++    net = make_linux_network()
++    net.module.run_command = Mock(side_effect=run_command_map(rc_v4=1, out_v4='', rc_v6=1, out_v6=''))
++    result = net.get_locally_reachable_ips('/sbin/ip')
++    assert result == {'ipv4': [], 'ipv6': []}
++    assert net.module.warn.called
++
++
++def test_get_locally_reachable_ips_dedup_and_sort():
++    net = make_linux_network()
++    v4 = """local 192.168.1.0/24 dev eth0 proto kernel scope host src 192.168.0.1
++local 192.168.1.0/24 dev eth0 proto kernel scope host src 192.168.0.1
++local 10.0.0.0/8 dev eth1 proto kernel scope host src 10.0.0.1
++"""
++    net.module.run_command = Mock(side_effect=run_command_map(out_v4=v4, out_v6=''))
++    result = net.get_locally_reachable_ips('/sbin/ip')
++    assert result['ipv4'] == ['10.0.0.0/8', '192.168.1.0/24']
++    assert result['ipv6'] == []
++
++
++def test_populate_includes_locally_reachable_ips():
++    net = make_linux_network()
++    with patch.object(LinuxNetwork, 'get_default_interfaces', return_value=({}, {})):
++        with patch.object(LinuxNetwork, 'get_interfaces_info', return_value=({}, {'all_ipv4_addresses': [], 'all_ipv6_addresses': []})):
++            with patch.object(LinuxNetwork, 'get_locally_reachable_ips', return_value={'ipv4': ['127.0.0.0/8'], 'ipv6': ['::1']}) as mock_lr:
++                facts = net.populate()
++                assert 'locally_reachable_ips' in facts
++                assert facts['locally_reachable_ips'] == {'ipv4': ['127.0.0.0/8'], 'ipv6': ['::1']}
++                mock_lr.assert_called_once()

@@ -1,0 +1,78 @@
+diff --git a/parse.py b/parse.py
+index 8f73fb5..11387af 100644
+--- a/parse.py
++++ b/parse.py
+@@ -5,7 +5,7 @@ __version__ = "1.19.1"
+ # yes, I now have two problems
+ import re
+ import sys
+-from datetime import datetime, time, tzinfo, timedelta
++from datetime import datetime, time, date, tzinfo, timedelta
+ from decimal import Decimal
+ from functools import partial
+ import logging
+@@ -576,7 +576,7 @@ class Parser(object):
+         format = ""
+ 
+         if ":" in field:
+-            name, format = field.split(":")
++            name, format = field.split(":", 1)
+         else:
+             name = field
+ 
+diff --git a/tests/test_strftime.py b/tests/test_strftime.py
+new file mode 100644
+index 0000000..3031b62
+--- /dev/null
++++ b/tests/test_strftime.py
+@@ -0,0 +1,50 @@
++"""Tests for strftime/strptime-style datetime format support."""
++from datetime import date, datetime, time
++
++import parse
++
++
++def test_date_ymd():
++    res = parse.parse("a {:%Y-%m-%d} b", "a 1997-07-16 b")
++    assert res is not None
++    assert res[0] == date(1997, 7, 16)
++
++
++def test_date_yb():
++    res = parse.parse("a {:%Y-%b-%d} b", "a 1997-Feb-16 b")
++    assert res is not None
++    assert res[0] == date(1997, 2, 16)
++
++
++def test_datetime_with_time():
++    res = parse.parse("a {:%Y-%m-%d %H:%M:%S} b", "a 1997-07-16 19:39:00 b")
++    assert res is not None
++    assert res[0] == datetime(1997, 7, 16, 19, 39, 0)
++
++
++def test_datetime_with_tz():
++    res = parse.parse("a {:%Y-%m-%d %H:%M:%S%z} b", "a 1997-07-16 19:39:00+0500 b")
++    assert res is not None
++    dt = res[0]
++    assert dt == datetime(1997, 7, 16, 19, 39, 0, tzinfo=dt.tzinfo)
++    assert dt.utcoffset() is not None
++    assert dt.utcoffset().total_seconds() == 5 * 3600
++
++
++def test_time_only():
++    res = parse.parse("a {:%H:%M:%S} b", "a 19:39:00 b")
++    assert res is not None
++    assert res[0] == time(19, 39, 0)
++
++
++def test_named_field():
++    res = parse.parse("a {when:%Y-%m-%d} b", "a 1997-07-16 b")
++    assert res is not None
++    assert res.named["when"] == date(1997, 7, 16)
++
++
++def test_mixed_with_other_type():
++    res = parse.parse("a {:%Y-%m-%d} b {:d} c", "a 1997-07-16 b 42 c")
++    assert res is not None
++    assert res[0] == date(1997, 7, 16)
++    assert res[1] == 42

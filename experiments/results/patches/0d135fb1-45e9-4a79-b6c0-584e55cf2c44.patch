@@ -1,0 +1,107 @@
+diff --git a/toolz/itertoolz.py b/toolz/itertoolz.py
+index 1ab5485..cddf1ae 100644
+--- a/toolz/itertoolz.py
++++ b/toolz/itertoolz.py
+@@ -725,27 +725,36 @@ def partition_all(n, seq):
+         prev = next(it)
+     except StopIteration:
+         return
++    full_partitions = 0
+     for item in it:
+         yield prev
+         prev = item
++        full_partitions += 1
+     if prev[-1] is no_pad:
+-        try:
+-            # If seq defines __len__, then
+-            # we can quickly calculate where no_pad starts
+-            yield prev[:len(seq) % n]
+-        except TypeError:
+-            # Get first index of no_pad without using .index()
+-            # https://github.com/pytoolz/toolz/issues/387
+-            # Binary search from CPython's bisect module,
+-            # modified for identity testing.
+-            lo, hi = 0, n
+-            while lo < hi:
+-                mid = (lo + hi) // 2
+-                if prev[mid] is no_pad:
+-                    hi = mid
+-                else:
+-                    lo = mid + 1
+-            yield prev[:lo]
++        # Get first index of no_pad without using .index()
++        # https://github.com/pytoolz/toolz/issues/387
++        # Binary search from CPython's bisect module,
++        # modified for identity testing.
++        lo, hi = 0, n
++        while lo < hi:
++            mid = (lo + hi) // 2
++            if prev[mid] is no_pad:
++                hi = mid
++            else:
++                lo = mid + 1
++        if hasattr(seq, '__len__'):
++            # If seq defines __len__, verify that the reported length is
++            # consistent with the number of elements actually observed in
++            # the final partition.  A mismatch means the iterable's
++            # reported length is wrong, so reject it rather than silently
++            # returning bad partition data.
++            if len(seq) != full_partitions * n + lo:
++                raise LookupError(
++                    'Iterable length is inconsistent: partition_all observed '
++                    '%d elements, but %r reports len() as %d'
++                    % (full_partitions * n + lo, seq, len(seq))
++                )
++        yield prev[:lo]
+     else:
+         yield prev
+ 
+diff --git a/toolz/tests/test_partition_all_len.py b/toolz/tests/test_partition_all_len.py
+new file mode 100644
+index 0000000..e1cf601
+--- /dev/null
++++ b/toolz/tests/test_partition_all_len.py
+@@ -0,0 +1,43 @@
++from toolz.itertoolz import partition_all
++from toolz.utils import raises
++
++
++def test_partition_all_invalid_len_too_large():
++    class BadLen:
++        def __init__(self, data, bad_len):
++            self._data = data
++            self._bad_len = bad_len
++        def __iter__(self):
++            return iter(self._data)
++        def __len__(self):
++            return self._bad_len
++
++    bad = BadLen([1, 2, 3, 4, 5], 10)
++    assert raises(LookupError, lambda: list(partition_all(2, bad)))
++
++
++def test_partition_all_invalid_len_too_small():
++    class BadLen:
++        def __init__(self, data, bad_len):
++            self._data = data
++            self._bad_len = bad_len
++        def __iter__(self):
++            return iter(self._data)
++        def __len__(self):
++            return self._bad_len
++
++    bad = BadLen([1, 2, 3, 4, 5], 3)
++    assert raises(LookupError, lambda: list(partition_all(2, bad)))
++
++
++def test_partition_all_valid_len_still_works():
++    class GoodLen:
++        def __init__(self, data):
++            self._data = data
++        def __iter__(self):
++            return iter(self._data)
++        def __len__(self):
++            return len(self._data)
++
++    good = GoodLen([1, 2, 3, 4, 5])
++    assert list(partition_all(2, good)) == [(1, 2), (3, 4), (5,)]

@@ -1,0 +1,137 @@
+diff --git a/src/cachetools/_cachedmethod.py b/src/cachetools/_cachedmethod.py
+index cdf63d4..9f0ff17 100644
+--- a/src/cachetools/_cachedmethod.py
++++ b/src/cachetools/_cachedmethod.py
+@@ -77,6 +77,8 @@ class _DescriptorBase:
+ 
+     def __get__(self, obj, objtype=None):
+         wrapper = self.Wrapper(obj)
++        if obj is None:
++            return wrapper
+         if self.__attrname is not None:
+             # replace descriptor instance with wrapper in instance dict
+             try:
+diff --git a/tests/test_mock.py b/tests/test_mock.py
+new file mode 100644
+index 0000000..c78e4aa
+--- /dev/null
++++ b/tests/test_mock.py
+@@ -0,0 +1,118 @@
++import threading
++import unittest.mock
++import warnings
++
++from cachetools import LRUCache, cachedmethod
++
++
++class _Unlocked:
++    def __init__(self, cache):
++        self.cache = cache
++
++    @cachedmethod(lambda self: self.cache)
++    def method(self, value):
++        return value
++
++
++class _Locked:
++    def __init__(self, cache, lock):
++        self.cache = cache
++        self.lock = lock
++
++    @cachedmethod(lambda self: self.cache, lock=lambda self: self.lock)
++    def method(self, value):
++        return value
++
++
++class _Condition:
++    def __init__(self, cache, lock, cond):
++        self.cache = cache
++        self.lock = lock
++        self.cond = cond
++
++    @cachedmethod(
++        lambda self: self.cache,
++        lock=lambda self: self.lock,
++        condition=lambda self: self.cond,
++    )
++    def method(self, value):
++        return value
++
++
++class _Info:
++    def __init__(self, cache):
++        self.cache = cache
++
++    @cachedmethod(lambda self: self.cache, info=True)
++    def method(self, value):
++        return value
++
++
++class _LockedInfo:
++    def __init__(self, cache, lock):
++        self.cache = cache
++        self.lock = lock
++
++    @cachedmethod(lambda self: self.cache, lock=lambda self: self.lock, info=True)
++    def method(self, value):
++        return value
++
++
++class _ConditionInfo:
++    def __init__(self, cache, lock, cond):
++        self.cache = cache
++        self.lock = lock
++        self.cond = cond
++
++    @cachedmethod(
++        lambda self: self.cache,
++        lock=lambda self: self.lock,
++        condition=lambda self: self.cond,
++        info=True,
++    )
++    def method(self, value):
++        return value
++
++
++def _assert_no_warnings(cls):
++    with warnings.catch_warnings():
++        warnings.simplefilter("error")
++        unittest.mock.create_autospec(cls, instance=True)
++
++
++def test_autospec_unlocked_no_warnings():
++    _assert_no_warnings(_Unlocked)
++
++
++def test_autospec_locked_no_warnings():
++    _assert_no_warnings(_Locked)
++
++
++def test_autospec_condition_no_warnings():
++    _assert_no_warnings(_Condition)
++
++
++def test_autospec_info_no_warnings():
++    _assert_no_warnings(_Info)
++
++
++def test_autospec_locked_info_no_warnings():
++    _assert_no_warnings(_LockedInfo)
++
++
++def test_autospec_condition_info_no_warnings():
++    _assert_no_warnings(_ConditionInfo)
++
++
++def test_instance_caching_unchanged():
++    cache = LRUCache(maxsize=10)
++    lock = threading.Lock()
++    cond = threading.Condition(lock)
++    obj = _ConditionInfo(cache, lock, cond)
++    assert obj.method(1) == 1
++    assert obj.method(1) == 1
++    info = obj.method.cache_info()
++    assert info.hits == 1
++    assert info.misses == 1
++    obj.method.cache_clear()
++    assert obj.method.cache_info().hits == 0

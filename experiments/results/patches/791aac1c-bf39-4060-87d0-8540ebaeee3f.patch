@@ -1,0 +1,81 @@
+diff --git a/sqlparse/sql.py b/sqlparse/sql.py
+index 1ccfbdb..95f3cac 100644
+--- a/sqlparse/sql.py
++++ b/sqlparse/sql.py
+@@ -622,9 +622,9 @@ class Function(NameAliasMixin, TokenList):
+         for token in parenthesis.tokens:
+             if isinstance(token, IdentifierList):
+                 return token.get_identifiers()
+-            elif imt(token, i=(Function, Identifier), t=T.Literal):
+-                return [token, ]
+-        return []
++        return [token for token in parenthesis.tokens
++                if not token.is_whitespace
++                and token.ttype not in (T.Punctuation, )]
+ 
+ 
+ class Begin(TokenList):
+diff --git a/tests/test_typed_literal_params.py b/tests/test_typed_literal_params.py
+new file mode 100644
+index 0000000..b355fcf
+--- /dev/null
++++ b/tests/test_typed_literal_params.py
+@@ -0,0 +1,58 @@
++"""Tests for Function.get_parameters() with typed-literal arguments."""
++import sqlparse
++from sqlparse.sql import Function, TypedLiteral
++
++
++def _get_function(sql):
++    parsed = sqlparse.parse(sql)[0]
++    # find the first Function token
++    for tok in parsed.flatten():
++        if isinstance(tok, Function):
++            return tok
++    for tok in parsed.tokens:
++        if isinstance(tok, Function):
++            return tok
++    raise AssertionError('No Function found in: %r' % sql)
++
++
++def test_single_typed_literal_param():
++    f = _get_function("foo(DATE '2023-11-14')")
++    params = f.get_parameters()
++    assert len(params) == 1
++    assert isinstance(params[0], TypedLiteral)
++
++
++def test_multiple_typed_literal_params():
++    f = _get_function("foo(DATE '2023-11-14', TIMESTAMP '2023-11-15')")
++    params = f.get_parameters()
++    assert len(params) == 2
++    assert isinstance(params[0], TypedLiteral)
++    assert isinstance(params[1], TypedLiteral)
++
++
++def test_mixed_params_typed_literal_and_identifier():
++    f = _get_function("foo(DATE '2023-11-14', bar)")
++    params = f.get_parameters()
++    assert len(params) == 2
++    assert isinstance(params[0], TypedLiteral)
++    assert isinstance(params[1], TypedLiteral) or params[1].get_real_name() == 'bar'
++
++
++def test_ordinary_identifier_still_returned():
++    f = _get_function("foo(bar)")
++    params = f.get_parameters()
++    assert len(params) == 1
++    assert params[0].get_real_name() == 'bar'
++
++
++def test_ordinary_literal_still_returned():
++    f = _get_function("foo(1)")
++    params = f.get_parameters()
++    assert len(params) == 1
++
++
++def test_function_call_param_still_returned():
++    f = _get_function("foo(bar())")
++    params = f.get_parameters()
++    assert len(params) == 1
++    assert isinstance(params[0], Function)

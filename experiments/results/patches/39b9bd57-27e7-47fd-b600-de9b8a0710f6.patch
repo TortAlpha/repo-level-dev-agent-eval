@@ -1,0 +1,34 @@
+diff --git a/sqlparse/keywords.py b/sqlparse/keywords.py
+index cd17d63..f67d0d8 100644
+--- a/sqlparse/keywords.py
++++ b/sqlparse/keywords.py
+@@ -90,6 +90,7 @@ SQL_REGEX = {
+          tokens.Keyword),
+         (r"(AT|WITH')\s+TIME\s+ZONE\s+'[^']+'", tokens.Keyword.TZCast),
+         (r'(NOT\s+)?(LIKE|ILIKE|RLIKE)\b', tokens.Operator.Comparison),
++        (r'\bDIV\b', tokens.Operator),
+         (r'[0-9_A-ZÀ-Ü][_$#\w]*', is_keyword),
+         (r'[;:()\[\],\.]', tokens.Punctuation),
+         (r'[<>=~!]+', tokens.Operator.Comparison),
+diff --git a/tests/test_div_operator.py b/tests/test_div_operator.py
+new file mode 100644
+index 0000000..21aa093
+--- /dev/null
++++ b/tests/test_div_operator.py
+@@ -0,0 +1,16 @@
++import sqlparse
++from sqlparse import tokens
++
++
++def test_div_is_operator():
++    p = sqlparse.parse('a DIV b')[0]
++    divs = [t for t in p.flatten() if t.ttype is tokens.Operator]
++    assert len(divs) == 1
++    assert divs[0].value.upper() == 'DIV'
++
++
++def test_div_case_insensitive():
++    p = sqlparse.parse('a div b')[0]
++    divs = [t for t in p.flatten() if t.ttype is tokens.Operator]
++    assert len(divs) == 1
++    assert divs[0].value.lower() == 'div'

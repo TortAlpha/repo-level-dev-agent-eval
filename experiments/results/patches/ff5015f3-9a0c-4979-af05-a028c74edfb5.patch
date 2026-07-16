@@ -1,0 +1,159 @@
+diff --git a/openlibrary/catalog/add_book/__init__.py b/openlibrary/catalog/add_book/__init__.py
+index 95b63fea1..593b260c1 100644
+--- a/openlibrary/catalog/add_book/__init__.py
++++ b/openlibrary/catalog/add_book/__init__.py
+@@ -28,7 +28,8 @@ import re
+ from collections import defaultdict
+ from copy import copy
+ from time import sleep
+-from typing import TYPE_CHECKING, Any, Final
++from typing import TYPE_CHECKING, Any, Final, Iterable
++from urllib.parse import urlparse
+ 
+ import requests
+ import web
+@@ -75,6 +76,10 @@ SUSPECT_PUBLICATION_DATES: Final = [
+ SUSPECT_AUTHOR_NAMES: Final = ["unknown", "n/a"]
+ SOURCE_RECORDS_REQUIRING_DATE_SCRUTINY: Final = ["amazon", "bwb", "promise"]
+ 
++# Hosts that are permitted when fetching cover images during book import.
++# Cover URLs pointing to any other host are ignored to avoid hangs/timeouts.
++ALLOWED_COVER_HOSTS: Final = ["covers.openlibrary.org", "www.covers.org"]
++
+ 
+ type_map = {
+     'description': 'text',
+@@ -298,6 +303,38 @@ def new_work(edition, rec, cover_id=None):
+     return w
+ 
+ 
++def process_cover_url(
++    edition: dict, allowed_cover_hosts: Iterable[str] = ALLOWED_COVER_HOSTS
++) -> tuple[str | None, dict]:
++    """
++    Validates and extracts the ``cover`` URL from an edition dictionary.
++
++    The ``cover`` key is removed from ``edition`` regardless of whether the URL
++    is valid. The URL is only returned when its host matches an entry in
++    ``allowed_cover_hosts`` (case-insensitive) and it uses the http or https
++    scheme; otherwise ``None`` is returned.
++
++    :param dict edition: The edition dictionary which may contain a ``cover``
++        key with a URL as its value.
++    :param Iterable[str] allowed_cover_hosts: The collection of hostnames that
++        are considered valid for cover URLs.
++    :rtype: tuple[str | None, dict]
++    :return: A tuple where the first element is the cover URL if it is valid,
++        otherwise ``None``. The second element is the updated edition dictionary
++        with the ``cover`` key removed (if it was present).
++    """
++    cover_url = edition.pop('cover', None)
++    if not cover_url:
++        return None, edition
++
++    parsed = urlparse(cover_url)
++    if parsed.scheme in ('http', 'https') and parsed.hostname and any(
++        parsed.hostname.lower() == host.lower() for host in allowed_cover_hosts
++    ):
++        return cover_url, edition
++    return None, edition
++
++
+ def add_cover(cover_url, ekey, account_key=None):
+     """
+     Adds a cover to coverstore and returns the cover id.
+@@ -615,10 +652,7 @@ def load_data(
+     if not (edition_key := edition.get('key')):
+         edition_key = web.ctx.site.new_key('/type/edition')
+ 
+-    cover_url = None
+-    if 'cover' in edition:
+-        cover_url = edition['cover']
+-        del edition['cover']
++    cover_url, edition = process_cover_url(edition)
+ 
+     cover_id = None
+     if cover_url:
+@@ -802,8 +836,8 @@ def update_edition_with_rec_data(
+     need_edition_save = False
+     # Add cover to edition
+     if 'cover' in rec and not edition.get_covers():
+-        cover_url = rec['cover']
+-        cover_id = add_cover(cover_url, edition.key, account_key=account_key)
++        cover_url, rec = process_cover_url(rec)
++        cover_id = add_cover(cover_url, edition.key, account_key=account_key) if cover_url else None
+         if cover_id:
+             edition['covers'] = [cover_id]
+             need_edition_save = True
+diff --git a/openlibrary/catalog/add_book/tests/test_process_cover_url.py b/openlibrary/catalog/add_book/tests/test_process_cover_url.py
+new file mode 100644
+index 000000000..471d34beb
+--- /dev/null
++++ b/openlibrary/catalog/add_book/tests/test_process_cover_url.py
+@@ -0,0 +1,66 @@
++import pytest
++
++from openlibrary.catalog.add_book import ALLOWED_COVER_HOSTS, process_cover_url
++
++
++def test_missing_cover_returns_none_and_leaves_edition_unchanged():
++    edition = {"title": "A Book"}
++    cover_url, updated = process_cover_url(dict(edition))
++    assert cover_url is None
++    assert "cover" not in updated
++    assert updated == edition
++
++
++def test_valid_cover_url_is_extracted_and_key_removed():
++    edition = {"cover": "https://covers.openlibrary.org/b/id/123-M.jpg"}
++    cover_url, updated = process_cover_url(dict(edition))
++    assert cover_url == "https://covers.openlibrary.org/b/id/123-M.jpg"
++    assert "cover" not in updated
++
++
++def test_unsupported_host_is_ignored_and_key_removed():
++    edition = {"cover": "https://example.com/image.jpg"}
++    cover_url, updated = process_cover_url(dict(edition))
++    assert cover_url is None
++    assert "cover" not in updated
++
++
++def test_host_comparison_is_case_insensitive():
++    edition = {"cover": "http://COVERS.OPENLIBRARY.ORG/b/id/1-M.jpg"}
++    cover_url, updated = process_cover_url(dict(edition))
++    assert cover_url == "http://COVERS.OPENLIBRARY.ORG/b/id/1-M.jpg"
++    assert "cover" not in updated
++
++
++def test_http_and_https_are_supported():
++    for scheme in ("http", "https"):
++        edition = {"cover": f"{scheme}://covers.openlibrary.org/b/id/1-M.jpg"}
++        cover_url, updated = process_cover_url(dict(edition))
++        assert cover_url == edition["cover"]
++        assert "cover" not in updated
++
++
++def test_non_http_scheme_is_ignored():
++    edition = {"cover": "ftp://covers.openlibrary.org/b/id/1-M.jpg"}
++    cover_url, updated = process_cover_url(dict(edition))
++    assert cover_url is None
++    assert "cover" not in updated
++
++
++def test_custom_allowed_hosts():
++    edition = {"cover": "https://archive.org/image.jpg"}
++    cover_url, updated = process_cover_url(dict(edition), ["archive.org"])
++    assert cover_url == "https://archive.org/image.jpg"
++    assert "cover" not in updated
++
++
++def test_allowed_cover_hosts_constant_is_defined():
++    assert isinstance(ALLOWED_COVER_HOSTS, list)
++    assert "covers.openlibrary.org" in ALLOWED_COVER_HOSTS
++
++
++def test_empty_cover_value_returns_none_and_removes_key():
++    edition = {"cover": ""}
++    cover_url, updated = process_cover_url(dict(edition))
++    assert cover_url is None
++    assert "cover" not in updated

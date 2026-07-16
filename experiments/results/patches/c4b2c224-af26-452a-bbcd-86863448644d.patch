@@ -1,0 +1,44 @@
+diff --git a/src/dotenv/parser.py b/src/dotenv/parser.py
+index eb100b4..58d3f49 100644
+--- a/src/dotenv/parser.py
++++ b/src/dotenv/parser.py
+@@ -69,6 +69,8 @@ class Error(Exception):
+ class Reader:
+     def __init__(self, stream: IO[str]) -> None:
+         self.string = stream.read()
++        if self.string.startswith("\ufeff"):
++            self.string = self.string[1:]
+         self.position = Position.start()
+         self.mark = Position.start()
+ 
+diff --git a/tests/test_parser_bom.py b/tests/test_parser_bom.py
+new file mode 100644
+index 0000000..fc0c065
+--- /dev/null
++++ b/tests/test_parser_bom.py
+@@ -0,0 +1,25 @@
++import io
++
++from dotenv.parser import parse_stream
++
++
++def test_parse_stream_strips_leading_utf8_bom():
++    bindings = list(parse_stream(io.StringIO("\ufeffFIRST=value1\nSECOND=value2")))
++    keys = [b.key for b in bindings]
++    assert keys == ["FIRST", "SECOND"]
++    assert "\ufeff" not in bindings[0].original.string
++    assert bindings[0].original.string == "FIRST=value1\n"
++
++
++def test_parse_stream_unchanged_without_bom():
++    bindings = list(parse_stream(io.StringIO("FIRST=value1\nSECOND=value2")))
++    keys = [b.key for b in bindings]
++    assert keys == ["FIRST", "SECOND"]
++    assert bindings[0].original.string == "FIRST=value1\n"
++
++
++def test_parse_stream_does_not_strip_non_leading_bom():
++    bindings = list(parse_stream(io.StringIO("FIRST=\ufeffvalue1\nSECOND=value2")))
++    keys = [b.key for b in bindings]
++    assert keys == ["FIRST", "SECOND"]
++    assert bindings[0].value == "\ufeffvalue1"

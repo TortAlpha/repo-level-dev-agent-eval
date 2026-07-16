@@ -1,0 +1,178 @@
+diff --git a/qutebrowser/config/qtargs.py b/qutebrowser/config/qtargs.py
+index d6375f331..00b3894c4 100644
+--- a/qutebrowser/config/qtargs.py
++++ b/qutebrowser/config/qtargs.py
+@@ -28,6 +28,11 @@ from qutebrowser.config import config
+ from qutebrowser.misc import objects
+ from qutebrowser.utils import usertypes, qtutils, utils
+ 
++#: Prefix for flags enabling Chromium features.
++feature_enable_prefix = '--enable-features='
++#: Prefix for flags disabling Chromium features.
++feature_disable_prefix = '--disable-features='
++
+ 
+ def qt_args(namespace: argparse.Namespace) -> List[str]:
+     """Get the Qt QApplication arguments based on an argparse namespace.
+@@ -54,9 +59,13 @@ def qt_args(namespace: argparse.Namespace) -> List[str]:
+         return argv
+ 
+     feature_flags = [flag for flag in argv
+-                     if flag.startswith('--enable-features=')]
+-    argv = [flag for flag in argv if not flag.startswith('--enable-features=')]
+-    argv += list(_qtwebengine_args(namespace, feature_flags))
++                     if flag.startswith(feature_enable_prefix)]
++    disable_flags = [flag for flag in argv
++                     if flag.startswith(feature_disable_prefix)]
++    argv = [flag for flag in argv
++            if not flag.startswith(feature_enable_prefix)
++            and not flag.startswith(feature_disable_prefix)]
++    argv += list(_qtwebengine_args(namespace, feature_flags, disable_flags))
+ 
+     return argv
+ 
+@@ -68,9 +77,8 @@ def _qtwebengine_enabled_features(feature_flags: Sequence[str]) -> Iterator[str]
+         feature_flags: Existing flags passed via the commandline.
+     """
+     for flag in feature_flags:
+-        prefix = '--enable-features='
+-        assert flag.startswith(prefix), flag
+-        flag = flag[len(prefix):]
++        assert flag.startswith(feature_enable_prefix), flag
++        flag = flag[len(feature_enable_prefix):]
+         yield from iter(flag.split(','))
+ 
+     if qtutils.version_check('5.15', compiled=False) and utils.is_linux:
+@@ -123,6 +131,7 @@ def _qtwebengine_enabled_features(feature_flags: Sequence[str]) -> Iterator[str]
+ def _qtwebengine_args(
+         namespace: argparse.Namespace,
+         feature_flags: Sequence[str],
++        disable_flags: Sequence[str],
+ ) -> Iterator[str]:
+     """Get the QtWebEngine arguments to use based on the config."""
+     is_qt_514 = (qtutils.version_check('5.14', compiled=False) and
+@@ -159,7 +168,9 @@ def _qtwebengine_args(
+ 
+     enabled_features = list(_qtwebengine_enabled_features(feature_flags))
+     if enabled_features:
+-        yield '--enable-features=' + ','.join(enabled_features)
++        yield feature_enable_prefix + ','.join(enabled_features)
++
++    yield from disable_flags
+ 
+     yield from _qtwebengine_settings_args()
+ 
+diff --git a/tests/unit/config/test_qtargs_disable_features.py b/tests/unit/config/test_qtargs_disable_features.py
+new file mode 100644
+index 000000000..f0b3f01dd
+--- /dev/null
++++ b/tests/unit/config/test_qtargs_disable_features.py
+@@ -0,0 +1,108 @@
++# vim: ft=python fileencoding=utf-8 sts=4 sw=4 et:
++# Copyright 2020 Florian Bruhin (The Compiler) <mail@qutebrowser.org>
++#
++# This file is part of qutebrowser.
++#
++# qutebrowser is free software: you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation, either version 3 of the License, or
++# (at your option) any later version.
++#
++# qutebrowser is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with qutebrowser.  If not, see <http://www.gnu.org/licenses/>.
++
++"""Regression tests for --disable-features handling in qtargs."""
++
++import pytest
++
++from qutebrowser import qutebrowser
++from qutebrowser.config import qtargs
++from qutebrowser.utils import usertypes
++from helpers import utils
++
++
++class TestDisableFeatures:
++
++    @pytest.fixture
++    def parser(self, mocker):
++        parser = qutebrowser.get_argparser()
++        mocker.patch.object(parser, 'exit', side_effect=Exception)
++        return parser
++
++    @pytest.fixture(autouse=True)
++    def reduce_args(self, monkeypatch, config_stub):
++        monkeypatch.setattr(qtargs.qtutils, 'qVersion', lambda: '5.15.0')
++        config_stub.val.content.headers.referer = 'always'
++        config_stub.val.scrolling.bar = 'never'
++        monkeypatch.setattr(qtargs.utils, 'is_linux', False)
++        monkeypatch.setattr(qtargs.objects, 'backend',
++                            usertypes.Backend.QtWebEngine)
++
++    def test_prefix_constants(self):
++        assert qtargs.feature_enable_prefix == '--enable-features='
++        assert qtargs.feature_disable_prefix == '--disable-features='
++
++    @pytest.mark.parametrize('via_commandline', [True, False])
++    def test_disable_features_propagated(self, config_stub, parser,
++                                         via_commandline):
++        flag = '--disable-features=SomeFeature'
++        config_stub.val.qt.args = ([] if via_commandline else [flag[2:]])
++        parsed = parser.parse_args(['--qt-flag', flag[2:]]
++                                   if via_commandline else [])
++        args = qtargs.qt_args(parsed)
++        assert flag in args
++
++    @pytest.mark.parametrize('via_commandline', [True, False])
++    def test_disable_features_comma_list(self, config_stub, parser,
++                                          via_commandline):
++        flag = '--disable-features=SomeFeature,OtherFeature'
++        config_stub.val.qt.args = ([] if via_commandline else [flag[2:]])
++        parsed = parser.parse_args(['--qt-flag', flag[2:]]
++                                   if via_commandline else [])
++        args = qtargs.qt_args(parsed)
++        assert flag in args
++
++    @pytest.mark.parametrize('via_commandline', [True, False])
++    def test_enable_and_disable_together(self, config_stub, parser,
++                                         via_commandline):
++        enable_flag = '--enable-features=CustomFeature'
++        disable_flag = '--disable-features=SomeFeature'
++        config_stub.val.qt.args = (
++            [] if via_commandline else [enable_flag[2:], disable_flag[2:]]
++        )
++        parsed = parser.parse_args(
++            ['--qt-flag', enable_flag[2:], '--qt-flag', disable_flag[2:]]
++            if via_commandline else []
++        )
++        args = qtargs.qt_args(parsed)
++
++        enable_args = [a for a in args
++                       if a.startswith(qtargs.feature_enable_prefix)]
++        disable_args = [a for a in args
++                        if a.startswith(qtargs.feature_disable_prefix)]
++        assert len(enable_args) == 1
++        assert enable_args[0] == enable_flag
++        assert disable_args == [disable_flag]
++
++    @pytest.mark.parametrize('via_commandline', [True, False])
++    def test_disable_features_separate_from_enable(self, config_stub, parser,
++                                                    via_commandline):
++        enable_flag = '--enable-features=CustomFeature'
++        disable_flag = '--disable-features=SomeFeature'
++        config_stub.val.qt.args = (
++            [] if via_commandline else [enable_flag[2:], disable_flag[2:]]
++        )
++        parsed = parser.parse_args(
++            ['--qt-flag', enable_flag[2:], '--qt-flag', disable_flag[2:]]
++            if via_commandline else []
++        )
++        args = qtargs.qt_args(parsed)
++
++        for arg in args:
++            assert not arg.startswith('--enable-features=SomeFeature')
++            assert not arg.startswith('--disable-features=CustomFeature')

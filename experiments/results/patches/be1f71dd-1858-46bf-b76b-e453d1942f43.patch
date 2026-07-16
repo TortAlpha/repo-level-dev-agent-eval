@@ -1,0 +1,63 @@
+diff --git a/parse/__init__.py b/parse/__init__.py
+index 8922db3..392585e 100644
+--- a/parse/__init__.py
++++ b/parse/__init__.py
+@@ -727,10 +727,16 @@ class Parser(object):
+             self._group_index += 1
+             conv[group] = percentage
+         elif type == "f":
+-            s = r"\d*\.\d+"
++            if format.get("precision") == "0":
++                s = r"\d+"
++            else:
++                s = r"\d*\.\d+"
+             conv[group] = convert_first(float)
+         elif type == "F":
+-            s = r"\d*\.\d+"
++            if format.get("precision") == "0":
++                s = r"\d+"
++            else:
++                s = r"\d*\.\d+"
+             conv[group] = convert_first(Decimal)
+         elif type == "e":
+             s = r"\d*\.\d+[eE][-+]?\d+|nan|NAN|[-+]?inf|[-+]?INF"
+diff --git a/tests/test_precision_zero_float.py b/tests/test_precision_zero_float.py
+new file mode 100644
+index 0000000..4e4074c
+--- /dev/null
++++ b/tests/test_precision_zero_float.py
+@@ -0,0 +1,34 @@
++import decimal
++
++import parse
++
++
++def test_precision_zero_float_matches_integer():
++    assert parse.parse("a {:.0f} b", "a 12 b")[0] == 12.0
++
++
++def test_precision_zero_float_rejects_decimal_point():
++    assert parse.parse("a {:.0f} b", "a 12.0 b") is None
++
++
++def test_precision_zero_float_with_zero_fill_width():
++    assert parse.parse("foo_{:02.0f}t", "foo_20t")[0] == 20.0
++
++
++def test_precision_zero_decimal_matches_integer():
++    result = parse.parse("a {:.0F} b", "a 12 b")[0]
++    assert result == decimal.Decimal("12")
++
++
++def test_precision_zero_decimal_rejects_decimal_point():
++    assert parse.parse("a {:.0F} b", "a 12.0 b") is None
++
++
++def test_nonzero_precision_float_unchanged():
++    assert parse.parse("a {:.2f} b", "a 12.00 b")[0] == 12.0
++    assert parse.parse("a {:.2f} b", "a 12 b") is None
++
++
++def test_default_float_unchanged():
++    assert parse.parse("a {:f} b", "a 12.0 b")[0] == 12.0
++    assert parse.parse("a {:f} b", "a 12 b") is None

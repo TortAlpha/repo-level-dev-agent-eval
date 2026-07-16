@@ -1,0 +1,65 @@
+diff --git a/lib/ansible/module_utils/common/text/formatters.py b/lib/ansible/module_utils/common/text/formatters.py
+index 3096abec7c..0c25fa50a4 100644
+--- a/lib/ansible/module_utils/common/text/formatters.py
++++ b/lib/ansible/module_utils/common/text/formatters.py
+@@ -53,7 +53,7 @@ def human_to_bytes(number, default_unit=None, isbits=False):
+         The function expects 'b' (lowercase) as a bit identifier, e.g. 'Mb'/'Kb'/etc.
+         if 'MB'/'KB'/... is passed, the ValueError will be rased.
+     """
+-    m = re.search(r'^\s*(\d*\.?\d*)\s*([A-Za-z]+)?', str(number), flags=re.IGNORECASE)
++    m = re.match(r'^\s*([0-9]+(?:\.[0-9]+)?)\s*([A-Za-z]+)?\s*$', str(number), flags=re.IGNORECASE)
+     if m is None:
+         raise ValueError("human_to_bytes() can't interpret following string: %s" % str(number))
+     try:
+@@ -87,9 +87,16 @@ def human_to_bytes(number, default_unit=None, isbits=False):
+         if range_key == 'B':
+             expect_message = 'expect %s or %s' % (unit_class, unit_class_name)
+ 
+-        if unit_class_name in unit.lower():
++        valid_unit_words = {
++            'byte': ['byte', 'kilobyte', 'megabyte', 'gigabyte', 'terabyte', 'petabyte', 'exabyte', 'zettabyte', 'yottabyte'],
++            'bit': ['bit', 'kilobit', 'megabit', 'gigabit', 'terabit', 'petabit', 'exabit', 'zettabit', 'yottabit'],
++        }[unit_class_name]
++
++        if unit.lower() in valid_unit_words:
++            pass
++        elif unit == range_key + unit_class:
+             pass
+-        elif unit[1] != unit_class:
++        else:
+             raise ValueError("human_to_bytes() failed to convert %s. Value is not a valid string (%s)" % (number, expect_message))
+ 
+     return int(round(num * limit))
+diff --git a/test/units/module_utils/common/text/formatters/test_human_to_bytes_strict.py b/test/units/module_utils/common/text/formatters/test_human_to_bytes_strict.py
+new file mode 100644
+index 0000000000..31cab14f13
+--- /dev/null
++++ b/test/units/module_utils/common/text/formatters/test_human_to_bytes_strict.py
+@@ -0,0 +1,27 @@
++# -*- coding: utf-8 -*-
++# Copyright 2024 Ansible Project
++# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
++
++from __future__ import annotations
++
++import pytest
++
++from ansible.module_utils.common.text.formatters import human_to_bytes
++
++
++@pytest.mark.parametrize(
++    'test_input',
++    [
++        '10 BBQ sticks please',
++        '1 EBOOK please',
++        '3 prettybytes',
++        '12,000 MB',
++        u'1\u200b000 MB',  # U+200B zero-width space
++        u'8\U00016b59B',  # 8 + ogham digit nine + B
++        u'\u1c54 MB',  # Myanmar digit four + MB
++    ]
++)
++def test_human_to_bytes_rejects_malformed_inputs(test_input):
++    'Malformed inputs from the strict parsing issue must raise ValueError.'
++    with pytest.raises(ValueError):
++        human_to_bytes(test_input)

@@ -1,0 +1,62 @@
+diff --git a/sqlparse/engine/grouping.py b/sqlparse/engine/grouping.py
+index d250e18..79d83d2 100644
+--- a/sqlparse/engine/grouping.py
++++ b/sqlparse/engine/grouping.py
+@@ -343,11 +343,11 @@ def group_functions(tlist):
+     has_table = False
+     has_as = False
+     for tmp_token in tlist.tokens:
+-        if tmp_token.value == 'CREATE':
++        if tmp_token.normalized == 'CREATE':
+             has_create = True
+-        if tmp_token.value == 'TABLE':
++        if tmp_token.normalized == 'TABLE':
+             has_table = True
+-        if tmp_token.value == 'AS':
++        if tmp_token.normalized == 'AS':
+             has_as = True
+     if has_create and has_table and not has_as:
+         return
+diff --git a/tests/test_create_table_case.py b/tests/test_create_table_case.py
+new file mode 100644
+index 0000000..529c186
+--- /dev/null
++++ b/tests/test_create_table_case.py
+@@ -0,0 +1,37 @@
++import sqlparse
++from sqlparse import sql
++
++
++def _parse(sql_text):
++    return sqlparse.parse(sql_text)[0]
++
++
++def _structure(stmt):
++    result = []
++    for token in stmt.tokens:
++        if token.is_whitespace:
++            continue
++        ttype = token.ttype
++        if ttype is not None:
++            result.append((str(ttype), token.normalized))
++        else:
++            result.append((type(token).__name__, _structure(token)))
++    return result
++
++
++def test_lowercase_create_table_grouped_like_uppercase():
++    lower = _parse('create table foo (id integer, name text)')
++    upper = _parse('CREATE TABLE foo (id integer, name text)')
++    assert _structure(lower) == _structure(upper)
++
++
++def test_mixed_case_create_table_grouped_like_uppercase():
++    mixed = _parse('Create Table foo (id integer, name text)')
++    upper = _parse('CREATE TABLE foo (id integer, name text)')
++    assert _structure(mixed) == _structure(upper)
++
++
++def test_lowercase_create_table_as_grouped_like_uppercase():
++    lower = _parse('create table tbl1 as select coalesce(t1.col1, 0) as col1 from t1')
++    upper = _parse('CREATE TABLE tbl1 AS SELECT coalesce(t1.col1, 0) AS col1 FROM t1')
++    assert _structure(lower) == _structure(upper)

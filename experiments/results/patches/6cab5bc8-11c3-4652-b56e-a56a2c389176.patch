@@ -1,0 +1,32 @@
+diff --git a/src/pydash/arrays.py b/src/pydash/arrays.py
+index fc393bb..ad18b97 100644
+--- a/src/pydash/arrays.py
++++ b/src/pydash/arrays.py
+@@ -2696,8 +2696,13 @@ def zip_object(keys, values=None):
+     """
+ 
+     if values is None:
++        if not keys:
++            return {}
+         keys, values = unzip(keys)
+ 
++    if not keys:
++        return {}
++
+     return dict(zip(keys, values))
+ 
+ 
+@@ -2723,8 +2728,13 @@ def zip_object_deep(
+     .. versionadded:: 4.0.0
+     """
+     if values is None:  # pragma: no cover
++        if not keys:
++            return {}
+         keys, values = unzip(keys)
+ 
++    if not keys:
++        return {}
++
+     obj: t.Dict[t.Any, t.Any] = {}
+     for idx, key in enumerate(keys):
+         obj = pyd.set_(obj, key, pyd.get(values, idx))

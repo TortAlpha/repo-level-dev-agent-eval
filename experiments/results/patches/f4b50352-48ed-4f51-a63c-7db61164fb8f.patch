@@ -1,0 +1,166 @@
+diff --git a/parse.py b/parse.py
+index 8f73fb5..267b11b 100644
+--- a/parse.py
++++ b/parse.py
+@@ -5,7 +5,7 @@ __version__ = "1.19.1"
+ # yes, I now have two problems
+ import re
+ import sys
+-from datetime import datetime, time, tzinfo, timedelta
++from datetime import datetime, date, time, tzinfo, timedelta
+ from decimal import Decimal
+ from functools import partial
+ import logging
+@@ -286,6 +286,100 @@ REGEX_SAFETY = re.compile(r"([?\\\\.[\]()*+\^$!\|])")
+ # allowed field types
+ ALLOWED_TYPES = set(list("nbox%fFegwWdDsSl") + ["t" + c for c in "ieahgcts"])
+ 
++# strftime/strptime directive sets for determining return type
++_DATE_DIRECTIVES = set("YymdbBaAjUW")
++_TIME_DIRECTIVES = set("HIMSpf")
++_TZ_DIRECTIVES = set("zZ")
++_STRFTIME_DIRECTIVES = _DATE_DIRECTIVES | _TIME_DIRECTIVES | _TZ_DIRECTIVES | set("%cxX")
++
++# mapping from strftime directive to regex pattern (non-capturing groups)
++_STRFTIME_PATTERNS = {
++    "Y": r"\d{4}",
++    "y": r"\d{2}",
++    "m": r"\d{2}",
++    "d": r"\d{2}",
++    "b": r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)",
++    "B": r"(?:January|February|March|April|May|June|July|August|September|October|November|December)",
++    "a": r"(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)",
++    "A": r"(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)",
++    "H": r"\d{2}",
++    "I": r"\d{2}",
++    "M": r"\d{2}",
++    "S": r"\d{2}",
++    "f": r"\d{1,6}",
++    "p": r"(?:AM|PM)",
++    "z": r"(?:[-+]\d{2}(?::?\d{2})?|Z)",
++    "Z": r"[A-Za-z/_]+",
++    "j": r"\d{3}",
++    "U": r"\d{2}",
++    "W": r"\d{2}",
++    "c": r".+?",
++    "x": r".+?",
++    "X": r".+?",
++    "%": r"%",
++}
++
++
++def _is_strftime_format(format):
++    """Return True if *format* is a strftime/strptime-style datetime spec."""
++    i = 0
++    n = len(format)
++    while i < n - 1:
++        if format[i] == "%" and format[i + 1] in _STRFTIME_DIRECTIVES:
++            return True
++        i += 1
++    return False
++
++
++def _strptime_regex(format):
++    """Build a regex pattern from a strftime/strptime format spec."""
++    parts = []
++    i = 0
++    n = len(format)
++    while i < n:
++        if format[i] == "%" and i + 1 < n:
++            directive = format[i + 1]
++            if directive in _STRFTIME_PATTERNS:
++                parts.append(_STRFTIME_PATTERNS[directive])
++            else:
++                parts.append(re.escape("%" + directive))
++            i += 2
++        else:
++            parts.append(re.escape(format[i]))
++            i += 1
++    return "".join(parts)
++
++
++def _strptime_convert(format):
++    """Return a converter that parses matched text via datetime.strptime."""
++    has_date = False
++    has_time = False
++    i = 0
++    n = len(format)
++    while i < n - 1:
++        if format[i] == "%":
++            d = format[i + 1]
++            if d == "%":
++                i += 2
++                continue
++            if d in _DATE_DIRECTIVES:
++                has_date = True
++            elif d in _TIME_DIRECTIVES or d in _TZ_DIRECTIVES:
++                has_time = True
++            i += 2
++        else:
++            i += 1
++
++    def convert(string, match):
++        dt = datetime.strptime(string, format)
++        if has_time and not has_date:
++            return dt.time()
++        if has_date and not has_time:
++            return dt.date()
++        return dt
++
++    return convert
++
+ 
+ def extract_format(format, extra_types):
+     """Pull apart the format [[fill]align][sign][0][width][.precision][type]"""
+diff --git a/tests/test_strftime.py b/tests/test_strftime.py
+new file mode 100644
+index 0000000..8698538
+--- /dev/null
++++ b/tests/test_strftime.py
+@@ -0,0 +1,46 @@
++from datetime import date, datetime, time
++import parse
++
++
++def test_strftime_date():
++    r = parse.parse("a {:%Y-%m-%d} b", "a 1997-07-16 b")
++    assert r[0] == date(1997, 7, 16)
++
++
++def test_strftime_date_named():
++    r = parse.parse("a {when:%Y-%m-%d} b", "a 1997-07-16 b")
++    assert r.named["when"] == date(1997, 7, 16)
++
++
++def test_strftime_date_month_name():
++    r = parse.parse("a {:%Y-%b-%d} b", "a 1997-Feb-16 b")
++    assert r[0] == date(1997, 2, 16)
++
++
++def test_strftime_datetime():
++    r = parse.parse("{:%Y-%m-%d %H:%M:%S}", "1997-07-16 19:20:30")
++    assert r[0] == datetime(1997, 7, 16, 19, 20, 30)
++
++
++def test_strftime_time():
++    r = parse.parse("{:%H:%M:%S}", "19:20:30")
++    assert r[0] == time(19, 20, 30)
++
++
++def test_strftime_tz():
++    r = parse.parse("{:%Y-%m-%d %H:%M:%S%z}", "1997-07-16 19:20:30+0200")
++    dt = r[0]
++    assert dt.tzinfo is not None
++    assert dt.utcoffset().total_seconds() == 2 * 3600
++
++
++def test_strftime_mixed():
++    r = parse.parse("{:%Y-%m-%d} {num:d}", "1997-07-16 42")
++    assert r[0] == date(1997, 7, 16)
++    assert r["num"] == 42
++
++
++def test_strftime_repeated():
++    r = parse.parse("{:%Y-%m-%d} {:%Y-%m-%d}", "1997-07-16 1997-07-16")
++    assert r[0] == date(1997, 7, 16)
++    assert r[1] == date(1997, 7, 16)
