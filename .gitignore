@@ -15,3 +15,6 @@ web-console/node_modules/
 web-console/dist/
 web-console/tsconfig.tsbuildinfo
 experiments/results/jobs/
+
+.DS_Store
+experiments/results/final_report/.matplotlib/
