@@ -1,0 +1,13 @@
+diff --git a/boltons/strutils.py b/boltons/strutils.py
+index 9763fc0..d98f3d1 100644
+--- a/boltons/strutils.py
++++ b/boltons/strutils.py
+@@ -562,7 +562,7 @@ def bytes2human(nbytes, ndigits=0):
+     """
+     abs_bytes = abs(nbytes)
+     for (size, symbol), (next_size, next_symbol) in _SIZE_RANGES:
+-        if abs_bytes <= next_size:
++        if abs_bytes < next_size:
+             break
+     hnbytes = float(nbytes) / size
+     return '{hnbytes:.{ndigits}f}{symbol}'.format(hnbytes=hnbytes,

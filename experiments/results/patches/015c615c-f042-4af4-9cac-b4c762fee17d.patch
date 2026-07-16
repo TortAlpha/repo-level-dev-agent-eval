@@ -1,0 +1,15 @@
+diff --git a/h11/_headers.py b/h11/_headers.py
+index b97d020..ac472f3 100644
+--- a/h11/_headers.py
++++ b/h11/_headers.py
+@@ -173,6 +173,10 @@ def normalize_and_validate(
+                 raise LocalProtocolError("conflicting Content-Length headers")
+             value = lengths.pop()
+             validate(_content_length_re, value, "bad Content-Length")
++            if len(value) > 16:
++                raise LocalProtocolError(
++                    "Content-Length value too large: {!r}".format(value)
++                )
+             if seen_content_length is None:
+                 seen_content_length = value
+                 new_headers.append((raw_name, name, value))

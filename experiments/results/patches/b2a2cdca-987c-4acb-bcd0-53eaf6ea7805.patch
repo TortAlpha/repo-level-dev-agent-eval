@@ -1,0 +1,94 @@
+diff --git a/freezegun/api.py b/freezegun/api.py
+index 0f11e0c..dbe8182 100644
+--- a/freezegun/api.py
++++ b/freezegun/api.py
+@@ -509,10 +509,10 @@ class TickingDateTimeFactory:
+     def __call__(self) -> datetime.datetime:
+         return self.time_to_freeze + (real_datetime.now() - self.start)
+ 
+-    def tick(self, delta: Union[datetime.timedelta, int]=datetime.timedelta(seconds=1)) -> datetime.datetime:
++    def tick(self, delta: Union[datetime.timedelta, float]=datetime.timedelta(seconds=1)) -> datetime.datetime:
+         if isinstance(delta, numbers.Real):
+             # noinspection PyTypeChecker
+-            self.move_to(self.time_to_freeze + datetime.timedelta(seconds=delta))
++            self.move_to(self.time_to_freeze + datetime.timedelta(seconds=float(delta)))
+         else:
+             self.move_to(self.time_to_freeze + delta)  # type: ignore
+         return self.time_to_freeze
+@@ -531,10 +531,10 @@ class FrozenDateTimeFactory:
+     def __call__(self) -> datetime.datetime:
+         return self.time_to_freeze
+ 
+-    def tick(self, delta: Union[datetime.timedelta, int]=datetime.timedelta(seconds=1)) -> datetime.datetime:
++    def tick(self, delta: Union[datetime.timedelta, float]=datetime.timedelta(seconds=1)) -> datetime.datetime:
+         if isinstance(delta, numbers.Real):
+             # noinspection PyTypeChecker
+-            self.time_to_freeze += datetime.timedelta(seconds=delta)
++            self.time_to_freeze += datetime.timedelta(seconds=float(delta))
+         else:
+             self.time_to_freeze += delta  # type: ignore
+         return self.time_to_freeze
+@@ -557,9 +557,11 @@ class StepTickTimeFactory:
+         self.tick()
+         return return_time
+ 
+-    def tick(self, delta: Union[datetime.timedelta, int, None]=None) -> datetime.datetime:
++    def tick(self, delta: Union[datetime.timedelta, float, None]=None) -> datetime.datetime:
+         if not delta:
+             delta = datetime.timedelta(seconds=self.step_width)
++        if isinstance(delta, numbers.Real):
++            delta = datetime.timedelta(seconds=float(delta))
+         self.time_to_freeze += delta  # type: ignore
+         return self.time_to_freeze
+ 
+diff --git a/tests/test_tick_numeric_delta.py b/tests/test_tick_numeric_delta.py
+new file mode 100644
+index 0000000..da6e6ce
+--- /dev/null
++++ b/tests/test_tick_numeric_delta.py
+@@ -0,0 +1,45 @@
++import datetime
++from fractions import Fraction
++
++import pytest
++
++from freezegun import freeze_time
++
++
++def test_frozen_datetime_factory_tick_accepts_numeric_deltas() -> None:
++    initial = datetime.datetime(year=1, month=7, day=12, hour=15, minute=6, second=3)
++    with freeze_time(initial) as frozen:
++        # int
++        assert frozen.tick(10) == initial + datetime.timedelta(seconds=10)
++        # float
++        assert frozen.tick(2.5) == initial + datetime.timedelta(seconds=12.5)
++        # Fraction
++        assert frozen.tick(Fraction(1, 2)) == initial + datetime.timedelta(seconds=13)
++        # timedelta still works
++        assert frozen.tick(delta=datetime.timedelta(seconds=1)) == initial + datetime.timedelta(seconds=14)
++
++
++def test_step_tick_time_factory_tick_accepts_numeric_deltas() -> None:
++    initial = datetime.datetime(year=1, month=7, day=12, hour=15, minute=6, second=3)
++    with freeze_time(initial, auto_tick_seconds=15) as frozen:
++        # int
++        assert frozen.tick(10) == initial + datetime.timedelta(seconds=10)
++        # float
++        assert frozen.tick(2.5) == initial + datetime.timedelta(seconds=12.5)
++        # Fraction
++        assert frozen.tick(Fraction(1, 2)) == initial + datetime.timedelta(seconds=13)
++        # timedelta still works
++        assert frozen.tick(delta=datetime.timedelta(seconds=1)) == initial + datetime.timedelta(seconds=14)
++
++
++def test_ticking_datetime_factory_tick_accepts_numeric_deltas() -> None:
++    initial = datetime.datetime(year=1, month=7, day=12, hour=15, minute=6, second=3)
++    with freeze_time(initial, tick=True) as frozen:
++        # int
++        assert frozen.tick(10) == initial + datetime.timedelta(seconds=10)
++        # float
++        assert frozen.tick(2.5) == initial + datetime.timedelta(seconds=12.5)
++        # Fraction
++        assert frozen.tick(Fraction(1, 2)) == initial + datetime.timedelta(seconds=13)
++        # timedelta still works
++        assert frozen.tick(delta=datetime.timedelta(seconds=1)) == initial + datetime.timedelta(seconds=14)

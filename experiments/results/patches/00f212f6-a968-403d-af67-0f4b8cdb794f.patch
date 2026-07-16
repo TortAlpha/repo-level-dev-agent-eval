@@ -1,0 +1,35 @@
+diff --git a/boltons/strutils.py b/boltons/strutils.py
+index 9763fc0..d98f3d1 100644
+--- a/boltons/strutils.py
++++ b/boltons/strutils.py
+@@ -562,7 +562,7 @@ def bytes2human(nbytes, ndigits=0):
+     """
+     abs_bytes = abs(nbytes)
+     for (size, symbol), (next_size, next_symbol) in _SIZE_RANGES:
+-        if abs_bytes <= next_size:
++        if abs_bytes < next_size:
+             break
+     hnbytes = float(nbytes) / size
+     return '{hnbytes:.{ndigits}f}{symbol}'.format(hnbytes=hnbytes,
+diff --git a/tests/test_strutils.py b/tests/test_strutils.py
+index 1ffa916..deea7a6 100644
+--- a/tests/test_strutils.py
++++ b/tests/test_strutils.py
+@@ -247,6 +247,17 @@ def test_human_readable_list_type_annotations():
+     assert strutils.human_readable_list(fruits) == 'apple, banana, and cherry'
+ 
+ 
++def test_bytes2human_rollover():
++    assert strutils.bytes2human(0) == '0B'
++    assert strutils.bytes2human(1023) == '1023B'
++    assert strutils.bytes2human(1024) == '1K'
++    assert strutils.bytes2human(2048) == '2K'
++    assert strutils.bytes2human(1024 ** 2) == '1M'
++    assert strutils.bytes2human(1024 ** 3) == '1G'
++    assert strutils.bytes2human(1024, ndigits=2) == '1.00K'
++    assert strutils.bytes2human(1024 ** 2, ndigits=3) == '1.000M'
++
++
+ def test_roundzip():
+     aaa = b'a' * 10000
+     assert strutils.gunzip_bytes(strutils.gzip_bytes(aaa)) == aaa

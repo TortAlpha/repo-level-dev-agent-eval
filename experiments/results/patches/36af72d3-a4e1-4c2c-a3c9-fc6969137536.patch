@@ -1,0 +1,73 @@
+diff --git a/h11/_headers.py b/h11/_headers.py
+index b97d020..3fb2d62 100644
+--- a/h11/_headers.py
++++ b/h11/_headers.py
+@@ -173,6 +173,8 @@ def normalize_and_validate(
+                 raise LocalProtocolError("conflicting Content-Length headers")
+             value = lengths.pop()
+             validate(_content_length_re, value, "bad Content-Length")
++            if len(value) > 16:
++                raise LocalProtocolError("Content-Length too long")
+             if seen_content_length is None:
+                 seen_content_length = value
+                 new_headers.append((raw_name, name, value))
+diff --git a/h11/tests/test_content_length_guard.py b/h11/tests/test_content_length_guard.py
+new file mode 100644
+index 0000000..7e12426
+--- /dev/null
++++ b/h11/tests/test_content_length_guard.py
+@@ -0,0 +1,45 @@
++import pytest
++
++from .._headers import normalize_and_validate
++from .._util import LocalProtocolError
++
++
++def test_content_length_too_long_rejected() -> None:
++    # An excessively long Content-Length value should be rejected promptly
++    # as an h11.ProtocolError (LocalProtocolError), not passed to int().
++    with pytest.raises(LocalProtocolError) as excinfo:
++        normalize_and_validate([("Content-Length", b"9" * 20)])
++    assert "too long" in str(excinfo.value)
++
++    with pytest.raises(LocalProtocolError):
++        normalize_and_validate([("Content-Length", b"1" * 100)])
++
++    with pytest.raises(LocalProtocolError):
++        normalize_and_validate([("Content-Length", b"9" * 17)])
++
++
++def test_content_length_valid_values_accepted() -> None:
++    # Normal valid Content-Length values should continue to work.
++    assert normalize_and_validate([("Content-Length", b"0")]) == [
++        (b"content-length", b"0")
++    ]
++    assert normalize_and_validate([("Content-Length", b"100")]) == [
++        (b"content-length", b"100")
++    ]
++    # 16 digits is the boundary and should still be accepted.
++    assert normalize_and_validate([("Content-Length", b"9999999999999999")]) == [
++        (b"content-length", b"9999999999999999")
++    ]
++    assert normalize_and_validate([("Content-Length", b"1234567890123456")]) == [
++        (b"content-length", b"1234567890123456")
++    ]
++
++
++def test_content_length_str_values() -> None:
++    # str values should also be rejected when too long.
++    with pytest.raises(LocalProtocolError):
++        normalize_and_validate([("Content-Length", "9" * 20)])
++
++    assert normalize_and_validate([("Content-Length", "100")]) == [
++        (b"content-length", b"100")
++    ]
+diff --git a/newsfragments/159.bugfix.rst b/newsfragments/159.bugfix.rst
+new file mode 100644
+index 0000000..07f13e7
+--- /dev/null
++++ b/newsfragments/159.bugfix.rst
+@@ -0,0 +1,3 @@
++Reject pathological ``Content-Length`` header values with more than 16
++digits as an ``h11.ProtocolError`` instead of attempting a slow ``int()``
++conversion or surfacing a raw ``ValueError`` on newer Python versions.

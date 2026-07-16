@@ -1,0 +1,234 @@
+from __future__ import annotations
+
+import subprocess
+from pathlib import Path
+
+from pydantic import BaseModel
+
+from .sandbox import combine_output
+from .tracing import trace_workspace_op
+
+IGNORED_DIR_NAMES = frozenset({".git", "__pycache__", ".pytest_cache"})
+
+
+def _is_ignored(path: Path) -> bool:
+    return any(part in IGNORED_DIR_NAMES for part in path.parts)
+
+
+def _reject_if_broken_python(rel_path: str, content: str) -> None:
+    """SWE-agent-style guard: reject a write/edit that would leave a Python file
+    syntactically invalid, so a bad edit is surfaced instead of silently
+    breaking the file (the file on disk is left unchanged)."""
+    if not rel_path.endswith(".py"):
+        return
+    try:
+        compile(content, rel_path, "exec")
+    except SyntaxError as exc:
+        where = f" (line {exc.lineno})" if exc.lineno else ""
+        raise ValueError(
+            f"Rejected: this change would introduce a Python syntax error in "
+            f"{rel_path}: {exc.msg}{where}. The file was left unchanged — fix "
+            f"the change and try again."
+        ) from exc
+
+
+class Workspace(BaseModel):
+    """File and search operations confined to one repository checkout.
+
+    Every path is validated to stay inside the workspace root, so an agent can
+    only read and modify the repository it was given.
+    """
+
+    root: Path
+
+    @staticmethod
+    def search_key(query: str, path: str = ".") -> str:
+        """Stable cache key for searches whose result survives compaction.
+
+        Models often emit basic-grep alternation (``\\|``), while ripgrep's
+        regex syntax uses ``|``. The search implementation retries that form,
+        so both spellings must share a cache key.
+        """
+        normalized_query = " ".join(query.strip().split()).replace(r"\|", "|")
+        normalized_path = Path(path).as_posix().rstrip("/") or "."
+        return f"{normalized_path}\n{normalized_query}"
+
+    def resolve(self, path: str) -> Path:
+        if Path(path).is_absolute():
+            raise ValueError(f"Absolute paths are not allowed: {path}")
+
+        root = self.root.resolve()
+        resolved = (root / path).resolve()
+        if not resolved.is_relative_to(root):
+            raise ValueError(f"Path escapes workspace: {path}")
+        return resolved
+
+    def to_relative(self, path: Path) -> str:
+        return str(path.relative_to(self.root.resolve()))
+
+    def is_tracked(self, path: str) -> bool:
+        """Whether ``path`` belongs to the pristine Git checkout (HEAD/index)."""
+        file_path = self.resolve(path)
+        rel_path = self.to_relative(file_path)
+        result = subprocess.run(
+            [
+                "git", "-C", str(self.root.resolve()),
+                "ls-files", "--error-unmatch", "--", rel_path,
+            ],
+            capture_output=True,
+            check=False,
+            text=True,
+            timeout=30,
+        )
+        return result.returncode == 0
+
+    @trace_workspace_op("Workspace.read_file")
+    def read_file(self, path: str) -> str:
+        file_path = self.resolve(path)
+        if not file_path.is_file():
+            raise ValueError(f"File does not exist: {path}")
+        return file_path.read_text(encoding="utf-8", errors="replace")
+
+    @trace_workspace_op("Workspace.write_file")
+    def write_file(self, path: str, content: str) -> str:
+        file_path = self.resolve(path)
+        rel_path = self.to_relative(file_path)
+        _reject_if_broken_python(rel_path, content)
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        file_path.write_text(content, encoding="utf-8")
+        return rel_path
+
+    @trace_workspace_op("Workspace.edit_file")
+    def edit_file(
+        self,
+        path: str,
+        old_string: str,
+        new_string: str,
+        replace_all: bool = False,
+    ) -> tuple[str, int]:
+        if old_string == new_string:
+            raise ValueError("old_string and new_string must differ.")
+        if not old_string:
+            raise ValueError("old_string must not be empty.")
+
+        file_path = self.resolve(path)
+        if not file_path.is_file():
+            raise ValueError(f"File does not exist: {path}")
+
+        content = file_path.read_text(encoding="utf-8", errors="replace")
+        count = content.count(old_string)
+        if count == 0:
+            raise ValueError(f"old_string not found in {path}.")
+        if not replace_all and count > 1:
+            raise ValueError(
+                f"old_string is not unique in {path} ({count} occurrences). "
+                "Include more surrounding context or set replace_all=true."
+            )
+
+        new_count = -1 if replace_all else 1
+        new_content = content.replace(old_string, new_string, new_count)
+        rel_path = self.to_relative(file_path)
+        _reject_if_broken_python(rel_path, new_content)
+        file_path.write_text(new_content, encoding="utf-8")
+        return rel_path, count
+
+    @trace_workspace_op("Workspace.list_files")
+    def list_files(self, path: str = ".") -> str:
+        directory = self.resolve(path)
+        if not directory.exists():
+            raise ValueError(f"Path does not exist: {path}")
+
+        base = self.root.resolve()
+        paths = sorted(
+            p.relative_to(base).as_posix()
+            for p in directory.rglob("*")
+            if p.is_file() and not _is_ignored(p)
+        )
+        if not paths:
+            return "No files found."
+        return "\n".join(paths)
+
+    @trace_workspace_op("Workspace.search")
+    def search(self, query: str, path: str = ".", max_results: int = 80) -> str:
+        search_root = self.resolve(path)
+        if not search_root.exists():
+            raise ValueError(f"Search path does not exist: {path}")
+
+        multiline = "\n" in query or "\r" in query
+
+        def run_rg(*, fixed_strings: bool = False) -> subprocess.CompletedProcess[str]:
+            command = ["rg", "-n", "--no-heading"]
+            if multiline:
+                # ripgrep rejects a literal newline unless multiline mode is
+                # enabled. Agents often paste a short code block as a query.
+                command.append("--multiline")
+            if fixed_strings or multiline:
+                # A pasted multi-line code fragment is almost always a
+                # literal lookup. Treat it as such: otherwise regex escapes
+                # inside the fragment can change its meaning or yield no
+                # match even though multiline mode accepted the pattern.
+                command.append("--fixed-strings")
+            return subprocess.run(
+                [*command, query, str(search_root)],
+                capture_output=True,
+                check=False,
+                text=True,
+                timeout=30,
+            )
+
+        try:
+            result = run_rg()
+            if result.returncode not in (0, 1) and "regex parse error" in result.stderr:
+                # Models routinely search for literal code (`def parse(self,`),
+                # which is rarely valid regex. Retry literally instead of
+                # burning the agent's step on a pattern syntax error.
+                result = run_rg(fixed_strings=True)
+            # Basic grep uses ``\|`` for alternation; ripgrep/Rust regex uses
+            # bare ``|`` and treats the escaped form as a literal pipe. Retry
+            # the model's likely intent only after an empty valid result, so a
+            # real literal-pipe match still wins.
+            if result.returncode == 1 and r"\|" in query:
+                original_query = query
+                query = query.replace(r"\|", "|")
+                result = run_rg()
+                if result.returncode not in (0, 1) and "regex parse error" in result.stderr:
+                    result = run_rg(fixed_strings=True)
+                query = original_query
+        except FileNotFoundError:
+            return self._python_search(search_root, query, max_results)
+
+        if result.returncode not in (0, 1):
+            output = combine_output(result.stdout, result.stderr)
+            raise ValueError(f"Search failed:\n{output}")
+
+        output = result.stdout.strip()
+        if not output:
+            return "No matches."
+
+        lines = output.splitlines()
+        suffix = "" if len(lines) <= max_results else "\n... truncated ..."
+        return "\n".join(lines[:max_results]) + suffix
+
+    def _python_search(self, root: Path, query: str, max_results: int) -> str:
+        matches: list[str] = []
+
+        for path in root.rglob("*"):
+            if len(matches) >= max_results:
+                break
+            if not path.is_file() or _is_ignored(path):
+                continue
+
+            try:
+                lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+            except OSError:
+                continue
+
+            for line_number, line in enumerate(lines, start=1):
+                if query in line:
+                    matches.append(f"{path}:{line_number}:{line}")
+                    if len(matches) >= max_results:
+                        break
+
+        if not matches:
+            return "No matches."
+        return "\n".join(matches)

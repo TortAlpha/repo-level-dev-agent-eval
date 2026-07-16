@@ -1,0 +1,111 @@
+diff --git a/parse.py b/parse.py
+index 8f73fb5..0546164 100644
+--- a/parse.py
++++ b/parse.py
+@@ -5,7 +5,7 @@ __version__ = "1.19.1"
+ # yes, I now have two problems
+ import re
+ import sys
+-from datetime import datetime, time, tzinfo, timedelta
++from datetime import datetime, date, time, tzinfo, timedelta
+ from decimal import Decimal
+ from functools import partial
+ import logging
+@@ -332,6 +332,83 @@ def extract_format(format, extra_types):
+     return locals()
+ 
+ 
++_STRFTIME_DIRECTIVES = set("YymHMSzZBbIpjUWwGuVc xXe")
++
++
++def _is_strftime_format(format):
++    """Return True if the format spec is a strftime/strptime datetime format."""
++    directives = re.findall(r"%(.)", format)
++    if not directives:
++        return False
++    parse_only = {"d", "f"}
++    count = {}
++    for d in directives:
++        count[d] = count.get(d, 0) + 1
++        if d not in parse_only:
++            return True
++    # multiple %d or %f directives indicate a strftime format
++    for d in parse_only:
++        if count.get(d, 0) > 1:
++            return True
++    return False
++
++
++_STRFTIME_REGEX_MAP = {
++    "Y": r"\d{4}",
++    "y": r"\d{2}",
++    "m": r"\d{1,2}",
++    "d": r"\d{1,2}",
++    "H": r"\d{1,2}",
++    "M": r"\d{1,2}",
++    "S": r"\d{1,2}",
++    "z": r"[+-]\d{4}",
++    "Z": r"\w+",
++    "b": r"\w{3}",
++    "B": r"\w+",
++    "I": r"\d{1,2}",
++    "p": r"[AP]M",
++    "f": r"\d+",
++    "j": r"\d{1,3}",
++    "%": "%",
++}
++
++
++def _strftime_regex(format):
++    """Return a regex string matching the strftime format."""
++    result = []
++    i = 0
++    while i < len(format):
++        if format[i] == "%" and i + 1 < len(format):
++            directive = format[i + 1]
++            result.append(_STRFTIME_REGEX_MAP.get(directive, r"\S+"))
++            i += 2
++        else:
++            result.append(re.escape(format[i]))
++            i += 1
++    return "".join(result)
++
++
++_DATE_DIRECTIVES = set("YymdbBj")
++_TIME_DIRECTIVES = set("HIMSFp")
++_TZ_DIRECTIVES = set("zZ")
++
++
++def _strftime_convert(matched_text, match, fmt):
++    """Convert matched text into the appropriate date/datetime/time object."""
++    dt = datetime.strptime(matched_text, fmt)
++    directives = set(re.findall(r"%(.)", fmt))
++    has_date = bool(directives & _DATE_DIRECTIVES)
++    has_time = bool(directives & _TIME_DIRECTIVES)
++    has_tz = bool(directives & _TZ_DIRECTIVES)
++    if has_date and not has_time and not has_tz:
++        return dt.date()
++    if has_time and not has_date and not has_tz:
++        return dt.time()
++    if has_time and not has_date and has_tz:
++        return dt.timetz()
++    return dt
++
++
+ PARSE_RE = re.compile(r"""({{|}}|{\w*(?:(?:\.\w+)|(?:\[[^\]]+\]))*(?::[^}]+)?})""")
+ 
+ 
+@@ -611,6 +688,13 @@ class Parser(object):
+             self._group_index += 1
+             return wrap % r".+?"
+ 
++        # detect strftime/strptime-style datetime format specifications
++        if _is_strftime_format(format):
++            s = _strftime_regex(format)
++            self._type_conversions[group] = partial(_strftime_convert, fmt=format)
++            self._group_index += 1
++            return wrap % s
++
+         # decode the format specification
+         format = extract_format(format, self._extra_types)
+ 

@@ -1,0 +1,67 @@
+diff --git a/sqlparse/keywords.py b/sqlparse/keywords.py
+index cd17d63..f67d0d8 100644
+--- a/sqlparse/keywords.py
++++ b/sqlparse/keywords.py
+@@ -90,6 +90,7 @@ SQL_REGEX = {
+          tokens.Keyword),
+         (r"(AT|WITH')\s+TIME\s+ZONE\s+'[^']+'", tokens.Keyword.TZCast),
+         (r'(NOT\s+)?(LIKE|ILIKE|RLIKE)\b', tokens.Operator.Comparison),
++        (r'\bDIV\b', tokens.Operator),
+         (r'[0-9_A-ZÀ-Ü][_$#\w]*', is_keyword),
+         (r'[;:()\[\],\.]', tokens.Punctuation),
+         (r'[<>=~!]+', tokens.Operator.Comparison),
+diff --git a/tests/test_div_operator.py b/tests/test_div_operator.py
+new file mode 100644
+index 0000000..87ea043
+--- /dev/null
++++ b/tests/test_div_operator.py
+@@ -0,0 +1,49 @@
++"""Regression tests for tokenizing DIV as an operator (MySQL integer division)."""
++
++import sqlparse
++from sqlparse import sql
++import sqlparse.tokens as T
++
++
++def _flat_tokens(sql):
++    return [t for t in sqlparse.parse(sql)[0].flatten() if not t.is_whitespace]
++
++
++def test_div_uppercase_token_types():
++    toks = _flat_tokens('a DIV b')
++    assert [t.ttype for t in toks] == [T.Name, T.Operator, T.Name]
++
++
++def test_div_lowercase_token_types():
++    toks = _flat_tokens('a div b')
++    assert [t.ttype for t in toks] == [T.Name, T.Operator, T.Name]
++
++
++def test_div_mixedcase_token_types():
++    toks = _flat_tokens('a Div b')
++    assert [t.ttype for t in toks] == [T.Name, T.Operator, T.Name]
++
++
++def test_div_grouped_as_operation():
++    p = sqlparse.parse('a DIV b')[0]
++    ops = [t for t in p.tokens if isinstance(t, sql.Operation)]
++    assert len(ops) == 1
++    op = ops[0]
++    op_toks = [t for t in op.flatten() if t.ttype is T.Operator]
++    assert len(op_toks) == 1
++    assert op_toks[0].value.upper() == 'DIV'
++
++
++def test_div_lowercase_grouped_as_operation():
++    p = sqlparse.parse('a div b')[0]
++    ops = [t for t in p.tokens if isinstance(t, sql.Operation)]
++    assert len(ops) == 1
++    op_toks = [t for t in ops[0].flatten() if t.ttype is T.Operator]
++    assert len(op_toks) == 1
++    assert op_toks[0].value.upper() == 'DIV'
++
++
++def test_div_operator_value_preserves_case():
++    toks = _flat_tokens('a div b')
++    assert toks[1].ttype is T.Operator
++    assert toks[1].value == 'div'

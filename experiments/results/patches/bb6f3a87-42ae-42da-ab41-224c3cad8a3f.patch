@@ -1,0 +1,67 @@
+diff --git a/lib/ansible/module_utils/common/sys_info.py b/lib/ansible/module_utils/common/sys_info.py
+index f0f4e99bf4..34174ff8f0 100644
+--- a/lib/ansible/module_utils/common/sys_info.py
++++ b/lib/ansible/module_utils/common/sys_info.py
+@@ -36,6 +36,12 @@ def get_distribution():
+             distribution = 'Redhat'
+         elif not distribution:
+             distribution = 'OtherLinux'
++    elif platform.system() == 'Darwin':
++        distribution = 'Darwin'
++    elif platform.system() == 'FreeBSD':
++        distribution = 'Freebsd'
++    elif platform.system() == 'SunOS':
++        distribution = 'Solaris'
+ 
+     return distribution
+ 
+@@ -77,6 +83,12 @@ def get_distribution_version():
+ 
+         else:
+             version = u''
++    elif platform.system() == 'Darwin':
++        version = platform.release()
++    elif platform.system() == 'SunOS':
++        version = platform.release()
++    elif platform.system() == 'FreeBSD':
++        version = platform.release().split('-')[0]
+ 
+     return version
+ 
+diff --git a/test/units/module_utils/common/test_sys_info_nonlinux.py b/test/units/module_utils/common/test_sys_info_nonlinux.py
+new file mode 100644
+index 0000000000..97b234c207
+--- /dev/null
++++ b/test/units/module_utils/common/test_sys_info_nonlinux.py
+@@ -0,0 +1,31 @@
++# -*- coding: utf-8 -*-
++from __future__ import absolute_import, division, print_function
++__metaclass__ = type
++
++import pytest
++
++from units.compat.mock import patch
++
++from ansible.module_utils.common.sys_info import get_distribution
++from ansible.module_utils.common.sys_info import get_distribution_version
++
++
++@pytest.mark.parametrize('system, expected', [
++    ('Darwin', 'Darwin'),
++    ('FreeBSD', 'Freebsd'),
++    ('SunOS', 'Solaris'),
++])
++def test_get_distribution_nonlinux(system, expected):
++    with patch('platform.system', return_value=system):
++        assert get_distribution() == expected
++
++
++@pytest.mark.parametrize('system, release, expected', [
++    ('Darwin', '19.6.0', '19.6.0'),
++    ('SunOS', '11.4', '11.4'),
++    ('FreeBSD', '12.1-RELEASE', '12.1'),
++])
++def test_get_distribution_version_nonlinux(system, release, expected):
++    with patch('platform.system', return_value=system):
++        with patch('platform.release', return_value=release):
++            assert get_distribution_version() == expected

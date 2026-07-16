@@ -1,0 +1,50 @@
+diff --git a/toolz/itertoolz.py b/toolz/itertoolz.py
+index 1ab5485..6b1c203 100644
+--- a/toolz/itertoolz.py
++++ b/toolz/itertoolz.py
+@@ -729,23 +729,30 @@ def partition_all(n, seq):
+         yield prev
+         prev = item
+     if prev[-1] is no_pad:
++        # Get first index of no_pad without using .index()
++        # https://github.com/pytoolz/toolz/issues/387
++        # Binary search from CPython's bisect module,
++        # modified for identity testing.
++        lo, hi = 0, n
++        while lo < hi:
++            mid = (lo + hi) // 2
++            if prev[mid] is no_pad:
++                hi = mid
++            else:
++                lo = mid + 1
++        # If seq defines __len__, then we can quickly calculate where no_pad
++        # starts. Validate that the reported length is consistent with the
++        # observed data so that iterables with a bogus __len__ are rejected
++        # instead of silently producing incorrect partitions.
+         try:
+-            # If seq defines __len__, then
+-            # we can quickly calculate where no_pad starts
+-            yield prev[:len(seq) % n]
++            expected = len(seq) % n
+         except TypeError:
+-            # Get first index of no_pad without using .index()
+-            # https://github.com/pytoolz/toolz/issues/387
+-            # Binary search from CPython's bisect module,
+-            # modified for identity testing.
+-            lo, hi = 0, n
+-            while lo < hi:
+-                mid = (lo + hi) // 2
+-                if prev[mid] is no_pad:
+-                    hi = mid
+-                else:
+-                    lo = mid + 1
+-            yield prev[:lo]
++            expected = lo
++        if expected != lo:
++            raise LookupError(
++                'Iterable length reported by __len__ is inconsistent with '
++                'its contents')
++        yield prev[:lo]
+     else:
+         yield prev
+ 

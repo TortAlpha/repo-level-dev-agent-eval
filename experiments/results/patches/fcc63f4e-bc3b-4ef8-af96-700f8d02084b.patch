@@ -1,0 +1,69 @@
+diff --git a/parse.py b/parse.py
+index 8f73fb5..f35f7e1 100644
+--- a/parse.py
++++ b/parse.py
+@@ -5,7 +5,7 @@ __version__ = "1.19.1"
+ # yes, I now have two problems
+ import re
+ import sys
+-from datetime import datetime, time, tzinfo, timedelta
++from datetime import date, datetime, time, tzinfo, timedelta
+ from decimal import Decimal
+ from functools import partial
+ import logging
+@@ -171,6 +171,55 @@ TIME_PAT = r"(\d{1,2}:\d{1,2}(:\d{1,2}(\.\d+)?)?)"
+ AM_PAT = r"(\s+[AP]M)"
+ TZ_PAT = r"(\s+[-+]\d\d?:?\d\d)"
+ 
++_STRFTIME_DIRECTIVES = set(
++    "%a",
++    "%A",
++    "%w",
++    "%d",
++    "%b",
++    "%B",
++    "%m",
++    "%y",
++    "%Y",
++    "%H",
++    "%I",
++    "%p",
++    "%M",
++    "%S",
++    "%f",
++    "%z",
++    "%Z",
++    "%j",
++)
++
++_DATE_DIRECTIVES = {
++    "%a",
++    "%A",
++    "%w",
++    "%d",
++    "%b",
++    "%B",
++    "%m",
++    "%y",
++    "%Y",
++    "%j",
++}
++
++_TIME_DIRECTIVES = {
++    "%H",
++    "%I",
++    "%p",
++    "%M",
++    "%S",
++    "%f",
++    "%r",
++    "%R",
++    "%T",
++    "%X",
++}
++
++_TZ_DIRECTIVES = {"%z", "%Z"}
++
+ 
+ def date_convert(
+     string,

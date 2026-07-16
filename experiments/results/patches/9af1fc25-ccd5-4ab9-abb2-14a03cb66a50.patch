@@ -1,0 +1,69 @@
+diff --git a/sqlparse/engine/grouping.py b/sqlparse/engine/grouping.py
+index d250e18..86d9394 100644
+--- a/sqlparse/engine/grouping.py
++++ b/sqlparse/engine/grouping.py
+@@ -343,11 +343,11 @@ def group_functions(tlist):
+     has_table = False
+     has_as = False
+     for tmp_token in tlist.tokens:
+-        if tmp_token.value == 'CREATE':
++        if tmp_token.value.upper() == 'CREATE':
+             has_create = True
+-        if tmp_token.value == 'TABLE':
++        if tmp_token.value.upper() == 'TABLE':
+             has_table = True
+-        if tmp_token.value == 'AS':
++        if tmp_token.value.upper() == 'AS':
+             has_as = True
+     if has_create and has_table and not has_as:
+         return
+diff --git a/tests/test_create_table_lowercase.py b/tests/test_create_table_lowercase.py
+new file mode 100644
+index 0000000..f7e874b
+--- /dev/null
++++ b/tests/test_create_table_lowercase.py
+@@ -0,0 +1,44 @@
++"""Regression tests for case-insensitive CREATE TABLE grouping."""
++import sqlparse
++from sqlparse import sql
++
++
++def _token_type_names(p):
++    names = []
++    for tok in p.tokens:
++        if tok.is_whitespace:
++            continue
++        names.append(type(tok).__name__)
++    return names
++
++
++def _assert_create_table_structure(p):
++    # For `CREATE TABLE foo (id integer, name text)` the table name `foo` is
++    # grouped as an sql.Identifier and the column definitions are grouped as an
++    # sql.Parenthesis.
++    ident = None
++    paren = None
++    for tok in p.tokens:
++        if isinstance(tok, sql.Identifier):
++            ident = tok
++        elif isinstance(tok, sql.Parenthesis):
++            paren = tok
++    assert ident is not None, 'Expected an Identifier group for the table name'
++    assert ident.get_real_name() == 'foo'
++    assert paren is not None, 'Expected a Parenthesis group for column defs'
++
++
++def test_create_table_uppercase():
++    p = sqlparse.parse('CREATE TABLE foo (id integer, name text)')[0]
++    _assert_create_table_structure(p)
++
++
++def test_create_table_lowercase():
++    p = sqlparse.parse('create table foo (id integer, name text)')[0]
++    _assert_create_table_structure(p)
++
++
++def test_create_table_lowercase_matches_uppercase():
++    lower = sqlparse.parse('create table foo (id integer, name text)')[0]
++    upper = sqlparse.parse('CREATE TABLE foo (id integer, name text)')[0]
++    assert _token_type_names(lower) == _token_type_names(upper)

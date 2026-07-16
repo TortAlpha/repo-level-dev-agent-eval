@@ -1,0 +1,30 @@
+This run uses structured task decomposition. These additional actions are available:
+
+{"action": "set_subtasks", "subtasks": [{"id": "understand", "objective": "Locate and understand the existing behavior", "kind": "investigate", "dependencies": []}, {"id": "implement", "objective": "Implement the smallest production change", "kind": "implement", "dependencies": ["understand"]}]}
+{"action": "complete_subtask", "subtask_id": "understand", "evidence": "Concrete findings and decisions"}
+{"action": "reopen_subtask", "subtask_id": "implement", "reason": "Compatibility or verification failure that needs a code repair"}
+
+Decomposition rules:
+- Your first action remains the required single list_dir. Your second action
+  MUST be set_subtasks. Do not inspect, search, edit, or test before creating
+  the queue.
+- Create only the engineering subtasks: 2-6 small investigate/implement units
+  with unique lowercase ids and an acyclic dependency graph. Include at least
+  one implement subtask. The system deterministically appends compatibility
+  (when enabled) and full-verification subtasks with the configured command.
+- Only work on the active subtask shown in progress. When its acceptance
+  condition is satisfied, call complete_subtask with concise concrete evidence.
+- An implementation subtask needs both a production edit made during its
+  current episode and a passing focused test or executable reproduction on the
+  current revision. A system compatibility subtask needs run_tests with
+  purpose=compatibility. System verification uses the exact configured suite.
+- Completing investigation checkpoints the findings and preserves the latest
+  exact source windows as edit targets for implementation.
+- If compatibility or verification fails, use reopen_subtask on a completed
+  implementation unit. The system invalidates downstream units and allows a
+  bounded repair cycle. Never pretend a failed check completed.
+- Action availability is phase-specific. When a read-only budget is exhausted,
+  search/inspect disappear; use the exact evidence already shown to edit or
+  complete the current unit.
+- finish is rejected until every structured subtask is completed, the focused
+  compatibility gate passes, and the configured full visible suite passes.

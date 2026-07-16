@@ -1,0 +1,108 @@
+diff --git a/sqlparse/sql.py b/sqlparse/sql.py
+index def0679..b7f7f86 100644
+--- a/sqlparse/sql.py
++++ b/sqlparse/sql.py
+@@ -623,8 +623,10 @@ class Function(NameAliasMixin, TokenList):
+ 
+     def get_parameters(self):
+         """Return a list of parameters."""
+-        parenthesis = self.tokens[-1]
++        parenthesis = self.token_next_by(i=Parenthesis)[1]
+         result = []
++        if parenthesis is None:
++            return result
+         for token in parenthesis.tokens:
+             if isinstance(token, IdentifierList):
+                 return token.get_identifiers()
+@@ -633,6 +635,20 @@ class Function(NameAliasMixin, TokenList):
+                 result.append(token)
+         return result
+ 
++    def get_window(self):
++        """Return the window of the function if any.
++
++        Returns the window identifier for a named window (e.g.
++        ``foo(5) OVER win1``), the parenthesised window definition for an
++        inline window (e.g. ``foo(5) OVER (PARTITION BY c1)``) or ``None``
++        if the function has no ``OVER`` clause.
++        """
++        over = self.token_next_by(i=Over)[1]
++        if over is None:
++            return None
++        _, window = over.token_next_by(i=(Identifier, Parenthesis))
++        return window
++
+ 
+ class Begin(TokenList):
+     """A BEGIN/END block."""
+diff --git a/tests/test_window.py b/tests/test_window.py
+new file mode 100644
+index 0000000..0bf46c8
+--- /dev/null
++++ b/tests/test_window.py
+@@ -0,0 +1,65 @@
++import sqlparse
++from sqlparse import sql
++
++
++def parse_one(sql_text):
++    return sqlparse.parse(sql_text)[0]
++
++
++def get_functions(stmt):
++    return list(stmt.get_sublists())
++
++
++def _select_functions(sql_text):
++    stmt = parse_one(sql_text)
++    identifier_list = stmt.tokens[-1]
++    if isinstance(identifier_list, sql.IdentifierList):
++        return [t for t in identifier_list.get_identifiers()
++                if isinstance(t, sql.Function)]
++    return [t for t in stmt.get_sublists() if isinstance(t, sql.Function)]
++
++
++def test_named_window():
++    funcs = _select_functions('SELECT foo(5) OVER win1 FROM t')
++    assert len(funcs) == 1
++    func = funcs[0]
++    window = func.get_window()
++    assert isinstance(window, sql.Identifier)
++    assert window.value == 'win1'
++
++
++def test_inline_window():
++    funcs = _select_functions('SELECT foo(5) OVER (PARTITION BY c1) FROM t')
++    assert len(funcs) == 1
++    func = funcs[0]
++    window = func.get_window()
++    assert isinstance(window, sql.Parenthesis)
++    assert 'PARTITION BY c1' in window.value
++
++
++def test_no_window():
++    funcs = _select_functions('SELECT foo(5) FROM t')
++    assert len(funcs) == 1
++    func = funcs[0]
++    assert func.get_window() is None
++
++
++def test_parameters_with_named_window():
++    funcs = _select_functions('SELECT foo(5) OVER win1 FROM t')
++    params = funcs[0].get_parameters()
++    assert len(params) == 1
++    assert params[0].value == '5'
++
++
++def test_parameters_with_inline_window():
++    funcs = _select_functions('SELECT foo(5) OVER (PARTITION BY c1) FROM t')
++    params = funcs[0].get_parameters()
++    assert len(params) == 1
++    assert params[0].value == '5'
++
++
++def test_parameters_without_window():
++    funcs = _select_functions('SELECT foo(5) FROM t')
++    params = funcs[0].get_parameters()
++    assert len(params) == 1
++    assert params[0].value == '5'

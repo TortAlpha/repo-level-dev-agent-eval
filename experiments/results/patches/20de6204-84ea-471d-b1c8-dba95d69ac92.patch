@@ -1,0 +1,75 @@
+diff --git a/openlibrary/core/wikidata.py b/openlibrary/core/wikidata.py
+index c20e101b7..3b12c2525 100644
+--- a/openlibrary/core/wikidata.py
++++ b/openlibrary/core/wikidata.py
+@@ -32,7 +32,7 @@ class WikidataEntity:
+     labels: dict[str, str]
+     descriptions: dict[str, str]
+     aliases: dict[str, list[str]]
+-    statements: dict[str, dict]
++    statements: dict[str, list]
+     sitelinks: dict[str, dict]
+     _updated: datetime  # This is when we fetched the data, not when the entity was changed in Wikidata
+ 
+@@ -54,6 +54,25 @@ class WikidataEntity:
+             return self.sitelinks[english_wiki]['url'], 'en'
+         return None
+ 
++    def get_statement_values(self, property_id: str) -> list[str]:
++        """
++        Retrieve all string values associated with a given property from the
++        entity's statements. Scans the list of statement objects for the
++        requested property, extracts the nested content field when present,
++        preserves the original order, and skips any malformed or invalid
++        entries. If the property is missing or no valid values exist, returns
++        an empty list.
++        """
++        values: list[str] = []
++        for statement in self.statements.get(property_id, []):
++            try:
++                content = statement['value']['content']
++            except (TypeError, KeyError):
++                continue
++            if isinstance(content, str) and content:
++                values.append(content)
++        return values
++
+     @classmethod
+     def from_dict(cls, response: dict, updated: datetime):
+         return cls(
+diff --git a/openlibrary/tests/core/test_wikidata.py b/openlibrary/tests/core/test_wikidata.py
+index e448c7d85..8ff91b437 100644
+--- a/openlibrary/tests/core/test_wikidata.py
++++ b/openlibrary/tests/core/test_wikidata.py
+@@ -77,6 +77,31 @@ def test_get_wikidata_entity(
+             mock_get_from_cache.assert_not_called()
+ 
+ 
++def test_get_statement_values() -> None:
++    entity = createWikidataEntity()
++    entity.statements = {
++        'P31': [
++            {'value': {'content': 'Q5'}},
++            {'value': {'content': 'Q1234'}},
++            {'value': {}},
++            {},
++            {'value': {'content': ''}},
++            {'value': {'content': 123}},
++            {'value': {'content': 'Q6'}},
++        ],
++        'P123': [],
++    }
++
++    # Missing property returns empty list
++    assert entity.get_statement_values('P999') == []
++
++    # Empty statement list returns empty list
++    assert entity.get_statement_values('P123') == []
++
++    # Valid values are collected in order, invalid entries skipped
++    assert entity.get_statement_values('P31') == ['Q5', 'Q1234', 'Q6']
++
++
+ def test_get_wikipedia_link() -> None:
+     # Create entity with both English and Spanish Wikipedia links
+     entity = createWikidataEntity()

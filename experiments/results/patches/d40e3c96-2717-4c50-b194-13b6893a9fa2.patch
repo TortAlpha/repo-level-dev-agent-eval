@@ -1,0 +1,60 @@
+diff --git a/src/dotenv/parser.py b/src/dotenv/parser.py
+index eb100b4..58d3f49 100644
+--- a/src/dotenv/parser.py
++++ b/src/dotenv/parser.py
+@@ -69,6 +69,8 @@ class Error(Exception):
+ class Reader:
+     def __init__(self, stream: IO[str]) -> None:
+         self.string = stream.read()
++        if self.string.startswith("\ufeff"):
++            self.string = self.string[1:]
+         self.position = Position.start()
+         self.mark = Position.start()
+ 
+diff --git a/tests/test_bom.py b/tests/test_bom.py
+new file mode 100644
+index 0000000..456fa3a
+--- /dev/null
++++ b/tests/test_bom.py
+@@ -0,0 +1,41 @@
++import io
++
++from dotenv.parser import parse_stream
++
++
++def _bindings(text):
++    return list(parse_stream(io.StringIO(text)))
++
++
++def test_leading_utf8_bom_stripped_from_first_key():
++    text = "\ufeffFIRST=value1\nSECOND=value2\n"
++    bindings = _bindings(text)
++    assert bindings[0].key == "FIRST"
++    assert bindings[0].value == "value1"
++    assert bindings[1].key == "SECOND"
++    assert bindings[1].value == "value2"
++
++
++def test_leading_utf8_bom_excluded_from_original_string():
++    text = "\ufeffFIRST=value1\nSECOND=value2\n"
++    bindings = _bindings(text)
++    assert "\ufeff" not in bindings[0].original.string
++    assert bindings[0].original.string.startswith("FIRST")
++    assert bindings[0].original.line == 1
++
++
++def test_no_bom_unchanged():
++    text = "FIRST=value1\nSECOND=value2\n"
++    bindings = _bindings(text)
++    assert bindings[0].key == "FIRST"
++    assert bindings[0].value == "value1"
++    assert bindings[0].original.string == "FIRST=value1\n"
++    assert bindings[1].key == "SECOND"
++    assert bindings[1].value == "value2"
++
++
++def test_bom_not_stripped_when_not_at_start():
++    text = "FIRST=\ufeffvalue1\nSECOND=value2\n"
++    bindings = _bindings(text)
++    assert bindings[0].key == "FIRST"
++    assert bindings[0].value == "\ufeffvalue1"

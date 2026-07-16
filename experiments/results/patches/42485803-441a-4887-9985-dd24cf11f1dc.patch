@@ -1,0 +1,108 @@
+diff --git a/tenacity/wait.py b/tenacity/wait.py
+index b28b788..8d4ded9 100644
+--- a/tenacity/wait.py
++++ b/tenacity/wait.py
+@@ -240,26 +240,29 @@ class wait_random_exponential(wait_exponential):
+ class wait_exponential_jitter(wait_base):
+     """Wait strategy that applies exponential backoff and jitter.
+ 
+-    It allows for a customized initial wait, maximum wait and jitter.
++    It allows for a customized initial wait, maximum wait, jitter and minimum
++    wait.
+ 
+     This implements the strategy described here:
+     https://cloud.google.com/storage/docs/retry-strategy
+ 
+-    The wait time is min(initial * 2**n + random.uniform(0, jitter), maximum)
+-    where n is the retry count.
++    The wait time is max(min(initial * 2**n + random.uniform(0, jitter),
++    maximum), minimum) where n is the retry count.
+     """
+ 
+     def __init__(
+         self,
+         initial: float = 1,
+-        max: float = _utils.MAX_WAIT,
++        max: _utils.time_unit_type = _utils.MAX_WAIT,
+         exp_base: float = 2,
+-        jitter: float = 1,
++        jitter: _utils.time_unit_type = 1,
++        min: _utils.time_unit_type = 0,
+     ) -> None:
+         self.initial = initial
+-        self.max = max
++        self.min = _utils.to_seconds(min)
++        self.max = _utils.to_seconds(max)
+         self.exp_base = exp_base
+-        self.jitter = jitter
++        self.jitter = _utils.to_seconds(jitter)
+ 
+     def __call__(self, retry_state: "RetryCallState") -> float:
+         jitter = random.uniform(0, self.jitter)
+@@ -268,4 +271,4 @@ class wait_exponential_jitter(wait_base):
+             result = self.initial * exp + jitter
+         except OverflowError:
+             result = self.max
+-        return max(0, min(result, self.max))
++        return max(self.min, min(result, self.max))
+diff --git a/tests/test_wait_exponential_jitter_min.py b/tests/test_wait_exponential_jitter_min.py
+new file mode 100644
+index 0000000..dd4f415
+--- /dev/null
++++ b/tests/test_wait_exponential_jitter_min.py
+@@ -0,0 +1,55 @@
++import datetime
++import unittest
++
++import tenacity
++from tenacity import RetryCallState
++
++
++def make_retry_state(previous_attempt_number, delay_since_first_attempt=0):
++    retry_state = RetryCallState(None, None, (), {})  # type: ignore[arg-type]
++    retry_state.attempt_number = previous_attempt_number
++    retry_state.set_result(None)
++    retry_state.upcoming_sleep = 0
++    start = retry_state.start_time
++    retry_state.outcome_timestamp = start + delay_since_first_attempt
++    return retry_state
++
++
++class TestWaitExponentialJitterMin(unittest.TestCase):
++    def test_min_bound_enforced(self) -> None:
++        fn = tenacity.wait_exponential_jitter(initial=1, max=60, min=10)
++        for _ in range(1000):
++            self.assertEqual(fn(make_retry_state(1, 0)), 10)
++            self.assertEqual(fn(make_retry_state(2, 0)), 10)
++            self.assertEqual(fn(make_retry_state(3, 0)), 10)
++            self.assertEqual(fn(make_retry_state(4, 0)), 10)
++
++    def test_min_bound_with_max(self) -> None:
++        fn = tenacity.wait_exponential_jitter(initial=1, max=5, min=3)
++        for _ in range(1000):
++            self.assertGreaterEqual(fn(make_retry_state(1, 0)), 3)
++            self.assertLessEqual(fn(make_retry_state(1, 0)), 5)
++
++    def test_timedelta_min_max_jitter(self) -> None:
++        fn = tenacity.wait_exponential_jitter(
++            initial=1,
++            max=datetime.timedelta(seconds=60),
++            jitter=datetime.timedelta(seconds=1),
++            min=datetime.timedelta(seconds=10),
++        )
++        for _ in range(1000):
++            self.assertEqual(fn(make_retry_state(1, 0)), 10)
++            self.assertEqual(fn(make_retry_state(2, 0)), 10)
++            self.assertEqual(fn(make_retry_state(3, 0)), 10)
++            self.assertEqual(fn(make_retry_state(4, 0)), 10)
++
++    def test_plain_numbers_backward_compat(self) -> None:
++        fn = tenacity.wait_exponential_jitter(max=60)
++        for _ in range(1000):
++            self.assertGreaterEqual(fn(make_retry_state(1, 0)), 1)
++            self.assertLessEqual(fn(make_retry_state(1, 0)), 2)
++            self.assertEqual(fn(make_retry_state(7, 0)), 60)
++
++
++if __name__ == "__main__":
++    unittest.main()

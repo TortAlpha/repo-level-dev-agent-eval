@@ -1,0 +1,50 @@
+diff --git a/src/pydash/arrays.py b/src/pydash/arrays.py
+index fc393bb..0df63ac 100644
+--- a/src/pydash/arrays.py
++++ b/src/pydash/arrays.py
+@@ -2696,7 +2696,7 @@ def zip_object(keys, values=None):
+     """
+ 
+     if values is None:
+-        keys, values = unzip(keys)
++        keys, values = unzip(keys) or ([], [])
+ 
+     return dict(zip(keys, values))
+ 
+@@ -2723,7 +2723,7 @@ def zip_object_deep(
+     .. versionadded:: 4.0.0
+     """
+     if values is None:  # pragma: no cover
+-        keys, values = unzip(keys)
++        keys, values = unzip(keys) or ([], [])
+ 
+     obj: t.Dict[t.Any, t.Any] = {}
+     for idx, key in enumerate(keys):
+diff --git a/tests/test_zip_object_empty.py b/tests/test_zip_object_empty.py
+new file mode 100644
+index 0000000..ba29b3d
+--- /dev/null
++++ b/tests/test_zip_object_empty.py
+@@ -0,0 +1,22 @@
++import pydash as _
++
++
++def test_zip_object_empty_keys_only():
++    assert _.zip_object([]) == {}
++
++
++def test_zip_object_empty_keys_and_values():
++    assert _.zip_object([], []) == {}
++
++
++def test_zip_object_deep_empty_keys():
++    assert _.zip_object_deep([]) == {}
++
++
++def test_zip_object_deep_nonempty_unchanged():
++    assert _.zip_object_deep(['a.b.c', 'a.b.d'], [1, 2]) == {'a': {'b': {'c': 1, 'd': 2}}}
++
++
++def test_zip_object_nonempty_unchanged():
++    assert _.zip_object(['moe', 'larry'], [30, 40]) == {'moe': 30, 'larry': 40}
++    assert _.zip_object([['moe', 30], ['larry', 40]]) == {'moe': 30, 'larry': 40}

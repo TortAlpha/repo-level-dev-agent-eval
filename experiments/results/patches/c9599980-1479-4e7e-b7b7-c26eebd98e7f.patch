@@ -1,0 +1,28 @@
+diff --git a/h11/_headers.py b/h11/_headers.py
+index b97d020..bff17e3 100644
+--- a/h11/_headers.py
++++ b/h11/_headers.py
+@@ -173,6 +173,8 @@ def normalize_and_validate(
+                 raise LocalProtocolError("conflicting Content-Length headers")
+             value = lengths.pop()
+             validate(_content_length_re, value, "bad Content-Length")
++            if len(value) > 16:
++                raise LocalProtocolError("bad Content-Length")
+             if seen_content_length is None:
+                 seen_content_length = value
+                 new_headers.append((raw_name, name, value))
+diff --git a/h11/tests/test_headers.py b/h11/tests/test_headers.py
+index ba53d08..82ba62f 100644
+--- a/h11/tests/test_headers.py
++++ b/h11/tests/test_headers.py
+@@ -74,6 +74,10 @@ def test_normalize_and_validate() -> None:
+         )
+     with pytest.raises(LocalProtocolError):
+         normalize_and_validate([("Content-Length", "1 , 1,2")])
++    # Pathological Content-Length values are rejected promptly instead of
++    # being parsed as huge integers.
++    with pytest.raises(LocalProtocolError):
++        normalize_and_validate([("Content-Length", "1" * 100)])
+ 
+     # transfer-encoding
+     assert normalize_and_validate([("Transfer-Encoding", "chunked")]) == [

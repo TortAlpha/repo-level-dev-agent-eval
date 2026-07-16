@@ -1,0 +1,35 @@
+diff --git a/qutebrowser/utils/qtlog.py b/qutebrowser/utils/qtlog.py
+index e0b310d93..a3a77d5f7 100644
+--- a/qutebrowser/utils/qtlog.py
++++ b/qutebrowser/utils/qtlog.py
+@@ -68,6 +68,30 @@ def disable_qt_msghandler() -> Iterator[None]:
+         qtcore.qInstallMessageHandler(old_handler)
+ 
+ 
++@contextlib.contextmanager
++def hide_qt_warning(pattern: str, logger: str = 'qt') -> Iterator[None]:
++    """Hide Qt warnings matching the given pattern."""
++    log_filter = QtWarningFilter(pattern)
++    logger_obj = logging.getLogger(logger)
++    logger_obj.addFilter(log_filter)
++    try:
++        yield
++    finally:
++        logger_obj.removeFilter(log_filter)
++
++
++class QtWarningFilter(logging.Filter):
++    """Filter to hide Qt warnings matching a given prefix."""
++
++    def __init__(self, pattern: str) -> None:
++        super().__init__()
++        self._pattern = pattern
++
++    def filter(self, record: logging.LogRecord) -> bool:
++        """Determine if the specified record should be logged."""
++        return not record.msg.strip().startswith(self._pattern)
++
++
+ def qt_message_handler(msg_type: qtcore.QtMsgType,
+                        context: qtcore.QMessageLogContext,
+                        msg: Optional[str]) -> None:

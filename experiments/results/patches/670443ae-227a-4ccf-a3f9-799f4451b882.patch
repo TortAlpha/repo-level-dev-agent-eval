@@ -1,0 +1,109 @@
+diff --git a/freezegun/api.py b/freezegun/api.py
+index 0f11e0c..e1a317f 100644
+--- a/freezegun/api.py
++++ b/freezegun/api.py
+@@ -509,10 +509,10 @@ class TickingDateTimeFactory:
+     def __call__(self) -> datetime.datetime:
+         return self.time_to_freeze + (real_datetime.now() - self.start)
+ 
+-    def tick(self, delta: Union[datetime.timedelta, int]=datetime.timedelta(seconds=1)) -> datetime.datetime:
++    def tick(self, delta: Union[datetime.timedelta, numbers.Real]=datetime.timedelta(seconds=1)) -> datetime.datetime:
+         if isinstance(delta, numbers.Real):
+             # noinspection PyTypeChecker
+-            self.move_to(self.time_to_freeze + datetime.timedelta(seconds=delta))
++            self.move_to(self.time_to_freeze + datetime.timedelta(seconds=float(delta)))
+         else:
+             self.move_to(self.time_to_freeze + delta)  # type: ignore
+         return self.time_to_freeze
+@@ -531,10 +531,10 @@ class FrozenDateTimeFactory:
+     def __call__(self) -> datetime.datetime:
+         return self.time_to_freeze
+ 
+-    def tick(self, delta: Union[datetime.timedelta, int]=datetime.timedelta(seconds=1)) -> datetime.datetime:
++    def tick(self, delta: Union[datetime.timedelta, numbers.Real]=datetime.timedelta(seconds=1)) -> datetime.datetime:
+         if isinstance(delta, numbers.Real):
+             # noinspection PyTypeChecker
+-            self.time_to_freeze += datetime.timedelta(seconds=delta)
++            self.time_to_freeze += datetime.timedelta(seconds=float(delta))
+         else:
+             self.time_to_freeze += delta  # type: ignore
+         return self.time_to_freeze
+@@ -557,9 +557,11 @@ class StepTickTimeFactory:
+         self.tick()
+         return return_time
+ 
+-    def tick(self, delta: Union[datetime.timedelta, int, None]=None) -> datetime.datetime:
++    def tick(self, delta: Union[datetime.timedelta, numbers.Real, None]=None) -> datetime.datetime:
+         if not delta:
+             delta = datetime.timedelta(seconds=self.step_width)
++        elif isinstance(delta, numbers.Real):
++            delta = datetime.timedelta(seconds=float(delta))
+         self.time_to_freeze += delta  # type: ignore
+         return self.time_to_freeze
+ 
+diff --git a/tests/test_tick_numeric_delta.py b/tests/test_tick_numeric_delta.py
+new file mode 100644
+index 0000000..e73ce60
+--- /dev/null
++++ b/tests/test_tick_numeric_delta.py
+@@ -0,0 +1,60 @@
++import datetime
++import fractions
++
++from freezegun.api import FrozenDateTimeFactory, StepTickTimeFactory, TickingDateTimeFactory
++
++
++def test_frozen_datetime_factory_tick_fraction_delta() -> None:
++    initial = datetime.datetime(year=1, month=7, day=12, hour=15, minute=6, second=3)
++    factory = FrozenDateTimeFactory(initial)
++    expected = initial + datetime.timedelta(seconds=1.5)
++    assert factory.tick(fractions.Fraction(3, 2)) == expected
++    assert factory() == expected
++
++
++def test_ticking_datetime_factory_tick_fraction_delta() -> None:
++    initial = datetime.datetime(year=1, month=7, day=12, hour=15, minute=6, second=3)
++    start = datetime.datetime.now()
++    factory = TickingDateTimeFactory(initial, start)
++    expected = initial + datetime.timedelta(seconds=2.5)
++    assert factory.tick(fractions.Fraction(5, 2)) == expected
++
++
++def test_step_tick_time_factory_tick_numeric_delta() -> None:
++    initial = datetime.datetime(year=1, month=7, day=12, hour=15, minute=6, second=3)
++    factory = StepTickTimeFactory(initial, step_width=60.0)
++    expected = initial + datetime.timedelta(seconds=10)
++    assert factory.tick(10) == expected
++    assert factory() == expected
++
++
++def test_step_tick_time_factory_tick_fraction_delta() -> None:
++    initial = datetime.datetime(year=1, month=7, day=12, hour=15, minute=6, second=3)
++    factory = StepTickTimeFactory(initial, step_width=60.0)
++    expected = initial + datetime.timedelta(seconds=1.5)
++    assert factory.tick(fractions.Fraction(3, 2)) == expected
++    assert factory() == expected
++
++
++def test_step_tick_time_factory_tick_default_uses_step_width() -> None:
++    initial = datetime.datetime(year=1, month=7, day=12, hour=15, minute=6, second=3)
++    factory = StepTickTimeFactory(initial, step_width=60.0)
++    expected = initial + datetime.timedelta(seconds=60)
++    assert factory.tick() == expected
++    assert factory() == expected
++
++
++def test_frozen_datetime_factory_tick_timedelta_unchanged() -> None:
++    initial = datetime.datetime(year=1, month=7, day=12, hour=15, minute=6, second=3)
++    factory = FrozenDateTimeFactory(initial)
++    expected = initial + datetime.timedelta(seconds=10)
++    assert factory.tick(delta=datetime.timedelta(seconds=10)) == expected
++    assert factory() == expected
++
++
++def test_step_tick_time_factory_tick_timedelta_unchanged() -> None:
++    initial = datetime.datetime(year=1, month=7, day=12, hour=15, minute=6, second=3)
++    factory = StepTickTimeFactory(initial, step_width=60.0)
++    expected = initial + datetime.timedelta(seconds=10)
++    assert factory.tick(delta=datetime.timedelta(seconds=10)) == expected
++    assert factory() == expected

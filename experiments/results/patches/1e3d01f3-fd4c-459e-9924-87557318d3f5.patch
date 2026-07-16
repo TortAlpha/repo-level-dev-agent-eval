@@ -1,0 +1,40 @@
+diff --git a/h11/_headers.py b/h11/_headers.py
+index b97d020..9e221e9 100644
+--- a/h11/_headers.py
++++ b/h11/_headers.py
+@@ -68,6 +68,10 @@ except ImportError:
+ # Maybe a dict-of-lists would be better?
+ 
+ _content_length_re = re.compile(rb"[0-9]+")
++# Reject absurdly long Content-Length headers before attempting to parse them as
++# integers, to guard against crafted requests that would otherwise trigger
++# expensive arbitrary-precision conversions.
++_MAX_CONTENT_LENGTH_DIGITS = 19
+ _field_name_re = re.compile(field_name.encode("ascii"))
+ _field_value_re = re.compile(field_value.encode("ascii"))
+ 
+@@ -173,6 +177,8 @@ def normalize_and_validate(
+                 raise LocalProtocolError("conflicting Content-Length headers")
+             value = lengths.pop()
+             validate(_content_length_re, value, "bad Content-Length")
++            if len(value) > _MAX_CONTENT_LENGTH_DIGITS:
++                raise LocalProtocolError("Content-Length value too large")
+             if seen_content_length is None:
+                 seen_content_length = value
+                 new_headers.append((raw_name, name, value))
+diff --git a/h11/tests/test_headers.py b/h11/tests/test_headers.py
+index ba53d08..ff393e4 100644
+--- a/h11/tests/test_headers.py
++++ b/h11/tests/test_headers.py
+@@ -74,6 +74,11 @@ def test_normalize_and_validate() -> None:
+         )
+     with pytest.raises(LocalProtocolError):
+         normalize_and_validate([("Content-Length", "1 , 1,2")])
++    assert normalize_and_validate([("Content-Length", "9" * 19)]) == [
++        (b"content-length", b"9" * 19)
++    ]
++    with pytest.raises(LocalProtocolError):
++        normalize_and_validate([("Content-Length", "1" * 20)])
+ 
+     # transfer-encoding
+     assert normalize_and_validate([("Transfer-Encoding", "chunked")]) == [

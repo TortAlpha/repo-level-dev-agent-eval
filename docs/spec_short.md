@@ -42,8 +42,11 @@ Each task will include:
 A small repository is defined as a repository with approximately 500-3,000
 lines of Python code, excluding tests, and 5-30 source files. A medium
 repository is defined as a repository with 3,001-15,000 lines of Python code
-and 31-120 source files. Repositories below 500 lines of Python code will not
-be included.
+and 31-120 source files. A large repository has more than 15,000 lines of
+Python code or more than 120 source files; large tasks form an optional
+extension bucket reported separately from the core small/medium comparison.
+When LOC and file count disagree, the LOC bucket wins. Repositories below 500
+lines of Python code will not be included.
 
 Data collection will be semi-automated. A script will find and clone candidate
 repositories, measure repository size, check dependency files, identify or
@@ -112,8 +115,8 @@ The evaluation will include standard software engineering metrics and
 AI-agent-specific metrics:
 
 - pass@1 / resolved@1;
-- task success rate;
-- hidden or withheld test pass rate;
+- task success rate (visible + required hidden semantic/compat suites);
+- hidden or withheld test pass rate, with PR-parity checks reported separately;
 - patch validity rate;
 - tool-use validity rate;
 - number of hallucinated references;

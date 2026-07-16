@@ -1,0 +1,90 @@
+diff --git a/qutebrowser/browser/webengine/darkmode.py b/qutebrowser/browser/webengine/darkmode.py
+index 99bf58789..5d0562df4 100644
+--- a/qutebrowser/browser/webengine/darkmode.py
++++ b/qutebrowser/browser/webengine/darkmode.py
+@@ -110,6 +110,7 @@ class Variant(enum.Enum):
+     qt_515_2 = enum.auto()
+     qt_515_3 = enum.auto()
+     qt_63 = enum.auto()
++    qt_64 = enum.auto()
+ 
+ 
+ # Mapping from a colors.webpage.darkmode.algorithm setting value to
+@@ -280,6 +281,15 @@ _DEFINITIONS[Variant.qt_63] = _DEFINITIONS[Variant.qt_515_3].copy_add_setting(
+     _Setting('increase_text_contrast', 'IncreaseTextContrast', _INT_BOOLS),
+ )
+ 
++# Qt 6.4 renamed TextBrightnessThreshold to ForegroundBrightnessThreshold.
++_qt_64_settings = tuple(
++    _Setting('threshold.text', 'ForegroundBrightnessThreshold')
++    if s.option == 'threshold.text' else s
++    for s in _DEFINITIONS[Variant.qt_63]._settings  # noqa: SLF001
++)
++_DEFINITIONS[Variant.qt_64] = _DEFINITIONS[Variant.qt_63].copy_with(
++    '_settings', _qt_64_settings)
++
+ 
+ _SettingValType = Union[str, usertypes.Unset]
+ _PREFERRED_COLOR_SCHEME_DEFINITIONS: Mapping[Variant, Mapping[_SettingValType, str]] = {
+@@ -302,6 +312,11 @@ _PREFERRED_COLOR_SCHEME_DEFINITIONS: Mapping[Variant, Mapping[_SettingValType, s
+     Variant.qt_63: {
+         "dark": "0",
+         "light": "1",
++    },
++
++    Variant.qt_64: {
++        "dark": "0",
++        "light": "1",
+     }
+ }
+ 
+@@ -315,7 +330,9 @@ def _variant(versions: version.WebEngineVersions) -> Variant:
+         except KeyError:
+             log.init.warning(f"Ignoring invalid QUTE_DARKMODE_VARIANT={env_var}")
+ 
+-    if versions.webengine >= utils.VersionNumber(6, 3):
++    if versions.webengine >= utils.VersionNumber(6, 4):
++        return Variant.qt_64
++    elif versions.webengine >= utils.VersionNumber(6, 3):
+         return Variant.qt_63
+     elif (versions.webengine == utils.VersionNumber(5, 15, 2) and
+             versions.chromium_major == 87):
+diff --git a/tests/unit/browser/webengine/test_darkmode_qt64.py b/tests/unit/browser/webengine/test_darkmode_qt64.py
+new file mode 100644
+index 000000000..d1e273d6e
+--- /dev/null
++++ b/tests/unit/browser/webengine/test_darkmode_qt64.py
+@@ -0,0 +1,33 @@
++# SPDX-FileCopyrightText: Florian Bruhin (The Compiler) <mail@qutebrowser.org>
++#
++# SPDX-License-Identifier: GPL-3.0-or-later
++
++"""Regression tests for Qt 6.4 dark mode threshold key mapping."""
++
++from qutebrowser.browser.webengine import darkmode
++from qutebrowser.utils import usertypes, version
++from qutebrowser.misc import objects
++
++
++import pytest
++
++
++@pytest.fixture(autouse=True)
++def patch_backend(monkeypatch):
++    monkeypatch.setattr(objects, 'backend', usertypes.Backend.QtWebEngine)
++
++
++def test_qt64_variant():
++    versions = version.WebEngineVersions.from_pyqt('6.4.0')
++    assert darkmode._variant(versions) == darkmode.Variant.qt_64
++
++
++def test_qt64_threshold_text_key(config_stub):
++    config_stub.val.colors.webpage.darkmode.enabled = True
++    config_stub.set_obj('colors.webpage.darkmode.threshold.text', 100)
++
++    versions = version.WebEngineVersions.from_pyqt('6.4.0')
++    darkmode_settings = darkmode.settings(versions=versions, special_flags=[])
++
++    assert ('ForegroundBrightnessThreshold', '100') in darkmode_settings['dark-mode-settings']
++    assert ('TextBrightnessThreshold', '100') not in darkmode_settings['dark-mode-settings']

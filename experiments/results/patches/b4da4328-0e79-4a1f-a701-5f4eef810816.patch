@@ -1,0 +1,31 @@
+diff --git a/sqlparse/engine/grouping.py b/sqlparse/engine/grouping.py
+index 57d257e..c486318 100644
+--- a/sqlparse/engine/grouping.py
++++ b/sqlparse/engine/grouping.py
+@@ -360,6 +360,7 @@ def group_functions(tlist):
+         tidx, token = tlist.token_next_by(t=T.Name, idx=tidx)
+ 
+ 
++@recurse(sql.Identifier)
+ def group_order(tlist):
+     """Group together Identifier and Asc/Desc token"""
+     tidx, token = tlist.token_next_by(t=T.Keyword.Order)
+diff --git a/tests/test_grouping.py b/tests/test_grouping.py
+index 03d16c5..8988221 100644
+--- a/tests/test_grouping.py
++++ b/tests/test_grouping.py
+@@ -239,6 +239,14 @@ def test_grouping_identifiers_with_operators():
+     assert len([x for x in p.flatten() if x.ttype == T.Name]) == 5
+ 
+ 
++def test_grouping_parenthesis_with_order():
++    p = sqlparse.parse('(a desc)')[0]
++    assert isinstance(p.tokens[0], sql.Parenthesis)
++    assert len(p.tokens[0].tokens) == 3
++    assert isinstance(p.tokens[0].tokens[1], sql.Identifier)
++    assert str(p.tokens[0].tokens[1]) == 'a desc'
++
++
+ def test_grouping_identifier_list_with_order():
+     # issue101
+     p = sqlparse.parse('1, 2 desc, 3')[0]

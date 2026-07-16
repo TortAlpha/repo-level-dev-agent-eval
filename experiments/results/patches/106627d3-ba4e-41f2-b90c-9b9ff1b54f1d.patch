@@ -1,0 +1,43 @@
+diff --git a/src/pydash/arrays.py b/src/pydash/arrays.py
+index fc393bb..94c28be 100644
+--- a/src/pydash/arrays.py
++++ b/src/pydash/arrays.py
+@@ -2696,6 +2696,8 @@ def zip_object(keys, values=None):
+     """
+ 
+     if values is None:
++        if not keys:
++            return {}
+         keys, values = unzip(keys)
+ 
+     return dict(zip(keys, values))
+@@ -2723,6 +2725,8 @@ def zip_object_deep(
+     .. versionadded:: 4.0.0
+     """
+     if values is None:  # pragma: no cover
++        if not keys:
++            return {}
+         keys, values = unzip(keys)
+ 
+     obj: t.Dict[t.Any, t.Any] = {}
+diff --git a/tests/test_arrays.py b/tests/test_arrays.py
+index a0070cf..124fe75 100644
+--- a/tests/test_arrays.py
++++ b/tests/test_arrays.py
+@@ -915,6 +915,8 @@ def test_zip_(case, expected):
+     [
+         ((["moe", "larry"], [30, 40]), {"moe": 30, "larry": 40}),
+         (([["moe", 30], ["larry", 40]],), {"moe": 30, "larry": 40}),
++        (([],), {}),
++        (([], []), {}),
+     ],
+ )
+ def test_zip_object(case, expected):
+@@ -926,6 +928,7 @@ def test_zip_object(case, expected):
+     [
+         ((["a.b.c", "a.b.d"], [1, 2]), {"a": {"b": {"c": 1, "d": 2}}}),
+         ((["a.b[0].c", "a.b[1].d"], [1, 2]), {"a": {"b": [{"c": 1}, {"d": 2}]}}),
++        (([],), {}),
+     ],
+ )
+ def test_zip_object_deep(case, expected):

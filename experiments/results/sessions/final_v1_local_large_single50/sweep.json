@@ -1,0 +1,171 @@
+{
+  "schema_version": 1,
+  "session_id": "final_v1_local_large_single50",
+  "created_at": "2026-07-13T21:38:47.299016+00:00",
+  "task_set": "final-v1",
+  "task_set_path": "eval/task_sets/final_v1.json",
+  "task_set_sha256": "d892c96228ad300a3702bbd0e57fad8b19afc364a6079ae903c85cb5d7076d25",
+  "previously_exercised": [
+    "h11_pr_181",
+    "humanize_pr_329",
+    "pluggy_pr_646",
+    "w3lib_pr_272",
+    "parse_pr_165",
+    "parse_pr_227",
+    "cachetools_pr_57d2e48",
+    "tinydb_pr_616",
+    "python_dotenv_pr_640",
+    "toolz_pr_603",
+    "markdown_pr_1606",
+    "markdown_pr_1546",
+    "sqlparse_pr_642",
+    "sqlparse_pr_746",
+    "sqlparse_pr_664",
+    "more_itertools_pr_1166",
+    "more_itertools_pr_1153",
+    "boltons_pr_403",
+    "pydash_pr_cdd84b4",
+    "sqlglot_pr_7660486c",
+    "swepro_openlibrary_2abe28b4"
+  ],
+  "collection_sha256": "0d3d18079f06bc7bf62eeb93ed2681c99f74c25d689e57b4e08122645d2dc159",
+  "pricing_sha256": "ee2eebcdae576de8990552d704983dbd89114ded81bf06c187267e1060934373",
+  "tasks": [
+    "sqlglot_pr_7660486c",
+    "sqlglot_pr_45931d44"
+  ],
+  "task_inputs": {
+    "sqlglot_pr_7660486c": {
+      "base_commit": "cb91d9142a76234630b4e9dfbccf1fdb8076c830",
+      "task_sha256": "6215e3c6d09fe28508ba6a1afca9991e7f960cd904d413ab40802658cde348cc",
+      "hidden_tree_sha256": "f205f7a5094673a65debfd62d52c1a8f29e69694bcb7cc5089d66b6785b31ece",
+      "docker_image": "python:3.11-slim",
+      "visible_test_command": "python -m pytest tests/dialects/test_doris.py -o addopts=",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/dialects/test_doris.py -k test_date_add_sub -o addopts="
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests/dialects/test_doris.py -o addopts="
+        }
+      ]
+    },
+    "sqlglot_pr_45931d44": {
+      "base_commit": "6f97a23cefe6b6695b392b1fec81d808e06cd761",
+      "task_sha256": "59fcc6ce9151094f97edcae17d0ab818e75ed3afd54fa477b2b0182eb19b11a7",
+      "hidden_tree_sha256": "f7106717cea76a7fdf9addff30424f8ea0ddadaa6f9d6a77c45ab690edcb66d0",
+      "docker_image": "python:3.11-slim",
+      "visible_test_command": "python -m pytest tests/dialects/test_dremio.py -o addopts=",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/dialects/test_dremio.py -k test_regexp_like -o addopts="
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests/dialects/test_dremio.py -o addopts="
+        }
+      ]
+    }
+  },
+  "ordered_combinations": [
+    {
+      "task": "sqlglot_pr_7660486c",
+      "model": "z-ai/glm-5.2",
+      "agent": "single"
+    },
+    {
+      "task": "sqlglot_pr_45931d44",
+      "model": "z-ai/glm-5.2",
+      "agent": "single"
+    }
+  ],
+  "settings": {
+    "tasks": null,
+    "task_set": "final-v1",
+    "task_groups": "local_large",
+    "matrix": null,
+    "models": "z-ai/glm-5.2",
+    "agents": "single",
+    "session": "final_v1_local_large_single50",
+    "campaign": "final_v1_main",
+    "provider": "openrouter",
+    "action_transport": null,
+    "reasoning_effort": null,
+    "role_model": null,
+    "developer_escalation_model": null,
+    "developer_escalate_after_no_edit_episodes": null,
+    "developer_escalate_after_failed_tests": null,
+    "max_cost_usd": null,
+    "max_total_cost_usd": 50.0,
+    "context_budget_tokens": null,
+    "single_research_guard": null,
+    "single_research_warning_steps": null,
+    "single_research_hard_limit": null,
+    "single_post_plan_research_warning_steps": null,
+    "single_post_plan_research_hard_limit": null,
+    "single_compatibility_guard": null,
+    "max_subtasks": null,
+    "decomposition_implementation_warning_steps": null,
+    "decomposition_implementation_hard_limit": null,
+    "decomposition_verification_step_reserve": null,
+    "decomposition_max_repair_cycles": null,
+    "collection": "repositories/collection.csv",
+    "max_steps": 50,
+    "max_iterations": null,
+    "enable_review": false,
+    "no_score": false,
+    "no_regression": false,
+    "no_network": false,
+    "no_setup": false,
+    "order": "task-major",
+    "seed": 20260712,
+    "infrastructure_retries": 1,
+    "archive_patches": true,
+    "keep_workspaces": false,
+    "concurrency": 1
+  },
+  "resolved_config": {
+    "model_provider": "openrouter",
+    "provider_default_model": "z-ai/glm-5.2",
+    "temperature": 0.0,
+    "max_tokens": 16384,
+    "reasoning_effort": null,
+    "action_transport": "text_json",
+    "request_timeout_seconds": 600,
+    "max_retries": 2,
+    "max_iterations": 5,
+    "max_steps": 50,
+    "test_timeout_seconds": 600,
+    "shell_timeout_seconds": 300,
+    "compaction_mode": "summarize",
+    "context_budget_tokens": 48000,
+    "docker_network_disabled": true,
+    "single_research_guard_enabled": true,
+    "single_compatibility_guard_enabled": true,
+    "single_research_limits": {
+      "warning": 12,
+      "hard": 20,
+      "post_plan_warning": 5,
+      "post_plan_hard": 8
+    },
+    "role_models": {
+      "orchestrator": null,
+      "planner": null,
+      "developer": null,
+      "tester": null,
+      "reviewer": null
+    },
+    "developer_escalation_model": null
+  },
+  "harness": {
+    "git_commit": "d3caa470f5b18d6b5f7e03a65c12dc0bfad366ca",
+    "dirty": false,
+    "dirty_entries": [],
+    "tree_sha256": "6950a224ae23cdf304324ebb7e0115faf392d0da3ff60e822c533098c898e9ad",
+    "file_count": 65
+  },
+  "fingerprint": "221d156034357efef10b17e8b0bea7af9b03ad0c165545afba25ea0a163c9d84"
+}

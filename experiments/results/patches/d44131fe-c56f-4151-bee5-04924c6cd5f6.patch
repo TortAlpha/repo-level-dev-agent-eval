@@ -1,0 +1,82 @@
+diff --git a/more_itertools/more.py b/more_itertools/more.py
+index 12b4942..02156cf 100755
+--- a/more_itertools/more.py
++++ b/more_itertools/more.py
+@@ -143,6 +143,8 @@ __all__ = [
+     'rlocate',
+     'rstrip',
+     'run_length',
++    'running_max',
++    'running_min',
+     'sample',
+     'seekable',
+     'serialize',
+@@ -4835,6 +4837,68 @@ def minmax(iterable_or_value, *others, key=None, default=_marker):
+     return lo, hi
+ 
+ 
++def running_min(iterable, *, maxlen=None):
++    """Yield the running minimum of *iterable*.
++
++    Each output value is the smallest of the items seen so far unless
++    *maxlen* is specified, in which case the minimum is taken over the
++    sliding window of at most the last *maxlen* elements.
++
++    The *maxlen* argument must be a positive integer when provided.
++    """
++    if maxlen is None:
++        it = iter(iterable)
++        try:
++            current = next(it)
++        except StopIteration:
++            return
++        yield current
++        for item in it:
++            if item < current:
++                current = item
++            yield current
++        return
++
++    if maxlen <= 0:
++        raise ValueError('maxlen must be greater than zero')
++
++    window = deque(maxlen=maxlen)
++    for item in iterable:
++        window.append(item)
++        yield min(window)
++
++
++def running_max(iterable, *, maxlen=None):
++    """Yield the running maximum of *iterable*.
++
++    Each output value is the largest of the items seen so far unless
++    *maxlen* is specified, in which case the maximum is taken over the
++    sliding window of at most the last *maxlen* elements.
++
++    The *maxlen* argument must be a positive integer when provided.
++    """
++    if maxlen is None:
++        it = iter(iterable)
++        try:
++            current = next(it)
++        except StopIteration:
++            return
++        yield current
++        for item in it:
++            if current < item:
++                current = item
++            yield current
++        return
++
++    if maxlen <= 0:
++        raise ValueError('maxlen must be greater than zero')
++
++    window = deque(maxlen=maxlen)
++    for item in iterable:
++        window.append(item)
++        yield max(window)
++
++
+ def constrained_batches(
+     iterable, max_size, max_count=None, get_len=len, strict=True
+ ):

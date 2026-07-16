@@ -1,0 +1,57 @@
+diff --git a/src/humanize/filesize.py b/src/humanize/filesize.py
+index c495fed..31f88a5 100644
+--- a/src/humanize/filesize.py
++++ b/src/humanize/filesize.py
+@@ -98,5 +98,12 @@ def naturalsize(
+ 
+     exp = int(min(log(abs_bytes, base), len(suffix)))
+     space = "" if gnu else " "
+-    ret: str = format % (bytes_ / (base**exp)) + space + _(suffix[exp - 1])
++    formatted = format % (bytes_ / (base**exp))
++    # If rounding pushes the mantissa up to the next unit boundary, advance to
++    # the next suffix so values such as 999999 bytes show as "1.0 MB" instead of
++    # "1000.0 kB". Keep existing behavior at the largest supported suffix.
++    while exp < len(suffix) and abs(float(formatted)) >= base:
++        exp += 1
++        formatted = format % (bytes_ / (base**exp))
++    ret: str = formatted + space + _(suffix[exp - 1])
+     return ret
+diff --git a/tests/test_filesize.py b/tests/test_filesize.py
+index 04774d9..97f4650 100644
+--- a/tests/test_filesize.py
++++ b/tests/test_filesize.py
+@@ -94,3 +94,34 @@ def test_naturalsize(test_args: list[int] | list[int | bool], expected: str) ->
+         test_args[0] = f"-{test_args[0]}"
+ 
+     assert humanize.naturalsize(*test_args) == "-" + expected
++
++
++@pytest.mark.parametrize(
++    "test_args, expected",
++    [
++        # Decimal boundary rounding: 999999999 bytes rounds up to 1.0 GB.
++        ([999999999], "1.0 GB"),
++        ([999499999], "999.5 MB"),
++        # Binary boundary rounding: just below 1024 MiB rounds up to 1.0 GiB.
++        ([1024**3 - 1, True], "1.0 GiB"),
++        ([1024**2 * 1023.5, True], "1023.5 MiB"),
++        # GNU boundary rounding: just below 1024K rounds up to 1.0M.
++        ([1024**2 - 1, False, True], "1.0M"),
++        ([1024 * 1023.5, False, True], "1023.5K"),
++        # Largest supported suffix keeps existing behavior.
++        ([1000**10 * 999.999, False, False, "%.3f"], "999.999 QB"),
++        ([1024**10 * 1023.999, True, False, "%.3f"], "1023.999 QiB"),
++    ],
++)
++def test_naturalsize_rounding_boundary(
++    test_args: list[int] | list[int | bool], expected: str
++) -> None:
++    assert humanize.naturalsize(*test_args) == expected
++
++    # Retest with negative input
++    if isinstance(test_args[0], int):
++        test_args[0] *= -1
++    else:
++        test_args[0] = f"-{test_args[0]}"
++
++    assert humanize.naturalsize(*test_args) == "-" + expected

@@ -1,0 +1,32 @@
+{
+  "run_id": "21067d02-ec24-41ce-9b5b-929e93d81917",
+  "task_id": "more_itertools_pr_1166",
+  "model": "openai/gpt-5.1-codex-mini",
+  "status": "solved",
+  "hidden_tests_passed": true,
+  "quality_score": 5,
+  "metrics": {
+    "n_runs": 1,
+    "n_tasks": 1,
+    "resolved_at_1": 1.0,
+    "task_success_rate": 1.0,
+    "visible_test_pass_rate": 0.0,
+    "hidden_test_pass_rate": 1.0,
+    "patch_validity_rate": 1.0,
+    "handoff_rate": 0.0,
+    "repair_success_rate": null,
+    "regression_rate": 0.0,
+    "mean_regressions": 0.0,
+    "test_overfitting_rate": null,
+    "tool_use_validity_rate": 1.0,
+    "hallucinated_refs_per_run": 0.0,
+    "mean_iterations": 0.0,
+    "mean_steps": 24.0,
+    "mean_duration_s": 137.31,
+    "mean_llm_calls": 24.0,
+    "mean_total_tokens": 139325.0,
+    "mean_cost_usd": 0.03497825,
+    "total_cost_usd": 0.03497825,
+    "mean_quality_score": 5.0
+  }
+}

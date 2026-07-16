@@ -1,0 +1,175 @@
+diff --git a/openlibrary/catalog/utils/__init__.py b/openlibrary/catalog/utils/__init__.py
+index 36b2e9fc8..a8ec97d6f 100644
+--- a/openlibrary/catalog/utils/__init__.py
++++ b/openlibrary/catalog/utils/__init__.py
+@@ -445,9 +445,101 @@ class InvalidLanguage(Exception):
+         return f"invalid language code: '{self.code}'"
+ 
+ 
++# Native (endonym) language names that are not covered by get_marc21_language.
++# Maps a lower-cased native name to its MARC 21 three-letter code.
++_NATIVE_LANGUAGE_NAMES = {
++    'deutsch': 'ger',
++    'español': 'spa',
++    'espanol': 'spa',
++    'français': 'fre',
++    'francais': 'fre',
++    'italiano': 'ita',
++    'português': 'por',
++    'portugues': 'por',
++    'русский': 'rus',
++    'русский язык': 'rus',
++    '中文': 'chi',
++    '汉语': 'chi',
++    '日本語': 'jpn',
++    'العربية': 'ara',
++    'العربيه': 'ara',
++    'हिन्दी': 'hin',
++    'हिंदी': 'hin',
++    'polski': 'pol',
++    'nederlands': 'dut',
++    'svenska': 'swe',
++    'norsk': 'nor',
++    'dansk': 'dan',
++    'suomi': 'fin',
++    'český': 'cze',
++    'cesky': 'cze',
++    'čeština': 'cze',
++    'cestina': 'cze',
++    'magyar': 'hun',
++    'türkçe': 'tur',
++    'turkce': 'tur',
++    'ελληνικά': 'gre',
++    'ελληνικα': 'gre',
++    '한국어': 'kor',
++    '조선말': 'kor',
++    'tiếng việt': 'vie',
++    'tieng viet': 'vie',
++    'ภาษาไทย': 'tha',
++    'català': 'cat',
++    'catala': 'cat',
++    'українська': 'ukr',
++    'українська мова': 'ukr',
++    'עברית': 'heb',
++    'فارسی': 'per',
++    'română': 'rum',
++    'romana': 'rum',
++}
++
++
++def _normalize_language_code(language: str) -> str:
++    """Resolve an input language identifier to a MARC 21 three-letter code."""
++    candidate = language.lower()
++
++    # Direct MARC 3-letter codes are accepted as-is (case-insensitively).
++    if len(candidate) == 3:
++        return candidate
++
++    # Native language names not covered by the upstream map.
++    if candidate in _NATIVE_LANGUAGE_NAMES:
++        return _NATIVE_LANGUAGE_NAMES[candidate]
++
++    # ISO-639-1 two-letter codes and English language names.
++    from openlibrary.plugins.upstream.utils import get_marc21_language
++
++    mapped = get_marc21_language(candidate)
++    if mapped is not None:
++        return mapped
++
++    # Fall back to the lowercased token; it may still be a valid MARC code.
++    return candidate
++
++
++def _is_valid_language_code(code: str) -> bool:
++    """Whether a MARC 21 three-letter code is a known Open Library language."""
++    site = getattr(web.ctx, 'site', None)
++    if site is not None:
++        return site.get(f"/languages/{code}") is not None
++    # Outside of a request context (e.g. unit tests), fall back to the upstream
++    # language map so canonical MARC codes are still recognised.
++    from openlibrary.plugins.upstream.utils import get_marc21_language
++
++    return get_marc21_language(code) is not None
++
++
+ def format_languages(languages: Iterable) -> list[dict[str, str]]:
+     """
+     Format language data to match Open Library's expected format.
++
++    Accepts MARC 21 three-letter codes, ISO-639-1 two-letter codes, and full
++    language names (English or native) and resolves them to canonical Open
++    Library language keys. Inputs referring to the same language are
++    de-duplicated, preserving the order of first occurrence.
++
+     For an input of ["eng", "fre"], return:
+     [{'key': '/languages/eng'}, {'key': '/languages/fre'}]
+     """
+@@ -455,10 +547,15 @@ def format_languages(languages: Iterable) -> list[dict[str, str]]:
+         return []
+ 
+     formatted_languages = []
++    seen = set()
+     for language in languages:
+-        if web.ctx.site.get(f"/languages/{language.lower()}") is None:
+-            raise InvalidLanguage(language.lower())
++        code = _normalize_language_code(language)
++        if code in seen:
++            continue
++        if not _is_valid_language_code(code):
++            raise InvalidLanguage(code)
+ 
+-        formatted_languages.append({'key': f'/languages/{language.lower()}'})
++        seen.add(code)
++        formatted_languages.append({'key': f'/languages/{code}'})
+ 
+     return formatted_languages
+diff --git a/openlibrary/tests/catalog/test_format_languages_regression.py b/openlibrary/tests/catalog/test_format_languages_regression.py
+new file mode 100644
+index 000000000..0bc0f1eff
+--- /dev/null
++++ b/openlibrary/tests/catalog/test_format_languages_regression.py
+@@ -0,0 +1,44 @@
++import pytest
++
++from openlibrary.catalog.utils import InvalidLanguage, format_languages
++
++
++def test_iso639_1_two_letter_code_normalized_to_marc():
++    assert format_languages(["es"]) == [{"key": "/languages/spa"}]
++
++
++def test_english_language_name_normalized_to_marc():
++    assert format_languages(["German"]) == [{"key": "/languages/ger"}]
++
++
++def test_native_language_name_normalized_to_marc():
++    assert format_languages(["Deutsch"]) == [{"key": "/languages/ger"}]
++
++
++def test_marc_code_case_insensitive():
++    assert format_languages(["FRE"]) == [{"key": "/languages/fre"}]
++
++
++def test_deduplication_preserves_first_occurrence():
++    assert format_languages(["eng", "eng"]) == [{"key": "/languages/eng"}]
++
++
++def test_deduplication_across_alternate_identifiers():
++    assert format_languages(["German", "Deutsch", "es"]) == [
++        {"key": "/languages/ger"},
++        {"key": "/languages/spa"},
++    ]
++
++
++def test_empty_input_returns_empty_list():
++    assert format_languages([]) == []
++
++
++def test_invalid_language_raises():
++    with pytest.raises(InvalidLanguage):
++        format_languages(["wtf"])
++
++
++def test_invalid_language_raises_after_valid_one():
++    with pytest.raises(InvalidLanguage):
++        format_languages(["eng", "wtf"])

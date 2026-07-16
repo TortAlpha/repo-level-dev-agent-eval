@@ -1,0 +1,44 @@
+diff --git a/boltons/strutils.py b/boltons/strutils.py
+index 9763fc0..d98f3d1 100644
+--- a/boltons/strutils.py
++++ b/boltons/strutils.py
+@@ -562,7 +562,7 @@ def bytes2human(nbytes, ndigits=0):
+     """
+     abs_bytes = abs(nbytes)
+     for (size, symbol), (next_size, next_symbol) in _SIZE_RANGES:
+-        if abs_bytes <= next_size:
++        if abs_bytes < next_size:
+             break
+     hnbytes = float(nbytes) / size
+     return '{hnbytes:.{ndigits}f}{symbol}'.format(hnbytes=hnbytes,
+diff --git a/tests/test_bytes2human.py b/tests/test_bytes2human.py
+new file mode 100644
+index 0000000..9655edb
+--- /dev/null
++++ b/tests/test_bytes2human.py
+@@ -0,0 +1,25 @@
++from boltons.strutils import bytes2human
++
++
++def test_bytes2human_rollover():
++    assert bytes2human(1024) == '1K'
++    assert bytes2human(1024 ** 2) == '1M'
++    assert bytes2human(1024 ** 3) == '1G'
++
++
++def test_bytes2human_below_boundary():
++    assert bytes2human(1023) == '1023B'
++
++
++def test_bytes2human_mid_range():
++    assert bytes2human(2048) == '2K'
++
++
++def test_bytes2human_zero():
++    assert bytes2human(0) == '0B'
++    assert bytes2human(0, 2) == '0.00B'
++
++
++def test_bytes2human_doctests():
++    assert bytes2human(128991) == '126K'
++    assert bytes2human(100001221) == '95M'

@@ -1,0 +1,35 @@
+diff --git a/parse/__init__.py b/parse/__init__.py
+index 8922db3..bbc3220 100644
+--- a/parse/__init__.py
++++ b/parse/__init__.py
+@@ -727,7 +727,10 @@ class Parser(object):
+             self._group_index += 1
+             conv[group] = percentage
+         elif type == "f":
+-            s = r"\d*\.\d+"
++            if format.get("precision") == "0":
++                s = r"\d+(?:\.\d+)?"
++            else:
++                s = r"\d*\.\d+"
+             conv[group] = convert_first(float)
+         elif type == "F":
+             s = r"\d*\.\d+"
+diff --git a/test_float.py b/test_float.py
+new file mode 100644
+index 0000000..ac4d948
+--- /dev/null
++++ b/test_float.py
+@@ -0,0 +1,12 @@
++from parse import parse
++
++# Test precision-0 floats
++print(parse('a {:.0f} b', 'a 12 b')[0])  # Should print 12.0
++print(parse('foo_{:02.0f}t', 'foo_20t')[0])  # Should print 20.0
++
++# Test that decimal points still fail for precision-0
++print(parse('a {:.0f} b', 'a 12.0 b'))  # Should print None
++
++# Test normal float behavior
++print(parse('a {:.2f} b', 'a 12.34 b')[0])  # Should print 12.34
++print(parse('a {:.2f} b', 'a 12 b'))  # Should print None
+\ No newline at end of file

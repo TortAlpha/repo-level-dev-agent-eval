@@ -1,0 +1,91 @@
+diff --git a/src/pluggy/_hooks.py b/src/pluggy/_hooks.py
+index 7fde78c..3fc1ad2 100644
+--- a/src/pluggy/_hooks.py
++++ b/src/pluggy/_hooks.py
+@@ -440,11 +440,13 @@ class HookCaller:
+         return self._call_history is not None
+ 
+     def _remove_plugin(self, plugin: _Plugin) -> None:
+-        for i, method in enumerate(self._hookimpls):
+-            if method.plugin == plugin:
++        removed = False
++        for i in reversed(range(len(self._hookimpls))):
++            if self._hookimpls[i].plugin == plugin:
+                 del self._hookimpls[i]
+-                return
+-        raise ValueError(f"plugin {plugin!r} not found")
++                removed = True
++        if not removed:
++            raise ValueError(f"plugin {plugin!r} not found")
+ 
+     def get_hookimpls(self) -> list[HookImpl]:
+         """Get all registered hook implementations for this hook."""
+diff --git a/src/pluggy/_manager.py b/src/pluggy/_manager.py
+index 1b994f2..9e51a4f 100644
+--- a/src/pluggy/_manager.py
++++ b/src/pluggy/_manager.py
+@@ -445,6 +445,7 @@ class PluginManager:
+             for hookimpl in hookcaller.get_hookimpls():
+                 if hookimpl.plugin is plugin:
+                     hookcallers.append(hookcaller)
++                    break
+         return hookcallers
+ 
+     def add_hookcall_monitoring(
+diff --git a/testing/test_regression_multi_impl.py b/testing/test_regression_multi_impl.py
+new file mode 100644
+index 0000000..a13aeef
+--- /dev/null
++++ b/testing/test_regression_multi_impl.py
+@@ -0,0 +1,51 @@
++"""Regression tests for plugin removal with multiple hook implementations."""
++
++import pytest
++import pluggy
++
++
++hookspec = pluggy.HookspecMarker("project")
++hookimpl = pluggy.HookimplMarker("project")
++
++
++@pytest.fixture
++def pm():
++    return pluggy.PluginManager("project")
++
++
++class Spec:
++    @hookspec
++    def hook(self):
++        pass
++
++
++class Plugin:
++    @hookimpl
++    def hook(self):
++        return "a"
++
++    @hookimpl(specname="hook")
++    def other_hook(self):
++        return "b"
++
++
++def test_unregister_removes_all_implementations(pm):
++    pm.add_hookspecs(Spec)
++    plugin = Plugin()
++    pm.register(plugin)
++    # Both implementations should be registered.
++    assert len(pm.hook.hook.get_hookimpls()) == 2
++    pm.unregister(plugin)
++    # All implementations belonging to the plugin should be removed.
++    assert len(pm.hook.hook.get_hookimpls()) == 0
++
++
++def test_get_hookcallers_no_duplicates(pm):
++    pm.add_hookspecs(Spec)
++    plugin = Plugin()
++    pm.register(plugin)
++    callers = pm.get_hookcallers(plugin)
++    assert callers is not None
++    # Only one HookCaller for the single hook, despite two implementations.
++    assert len(callers) == 1
++    assert callers[0].name == "hook"

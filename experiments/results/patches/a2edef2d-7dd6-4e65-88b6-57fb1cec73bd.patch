@@ -1,0 +1,91 @@
+diff --git a/openlibrary/catalog/utils/__init__.py b/openlibrary/catalog/utils/__init__.py
+index 36b2e9fc8..96fc51290 100644
+--- a/openlibrary/catalog/utils/__init__.py
++++ b/openlibrary/catalog/utils/__init__.py
+@@ -450,15 +450,24 @@ def format_languages(languages: Iterable) -> list[dict[str, str]]:
+     Format language data to match Open Library's expected format.
+     For an input of ["eng", "fre"], return:
+     [{'key': '/languages/eng'}, {'key': '/languages/fre'}]
++
++    Accepts MARC 3-letter codes, ISO-639-1 2-letter codes, and full language
++    names (English or native). De-duplicates while preserving first occurrence.
+     """
+     if not languages:
+         return []
+ 
++    from openlibrary.plugins.upstream.utils import get_marc21_language
++
+     formatted_languages = []
++    seen = set()
+     for language in languages:
+-        if web.ctx.site.get(f"/languages/{language.lower()}") is None:
++        marc_code = get_marc21_language(language)
++        if marc_code is None:
+             raise InvalidLanguage(language.lower())
+ 
+-        formatted_languages.append({'key': f'/languages/{language.lower()}'})
++        if marc_code not in seen:
++            seen.add(marc_code)
++            formatted_languages.append({'key': f'/languages/{marc_code}'})
+ 
+     return formatted_languages
+diff --git a/openlibrary/plugins/upstream/utils.py b/openlibrary/plugins/upstream/utils.py
+index c3eab3931..eeb4b58ae 100644
+--- a/openlibrary/plugins/upstream/utils.py
++++ b/openlibrary/plugins/upstream/utils.py
+@@ -928,6 +928,8 @@ def get_marc21_language(language: str) -> str | None:
+         'fra': 'fre',
+         'fre': 'fre',
+         'french': 'fre',
++        'français': 'fre',
++        'francais': 'fre',
+         'fri': 'fri',
+         'frm': 'frm',
+         'fro': 'fro',
+@@ -939,6 +941,7 @@ def get_marc21_language(language: str) -> str | None:
+         'geo': 'geo',
+         'ger': 'ger',
+         'german': 'ger',
++        'deutsch': 'ger',
+         'gez': 'gez',
+         'gil': 'gil',
+         'gl': 'glg',
+diff --git a/openlibrary/tests/catalog/test_format_languages_new.py b/openlibrary/tests/catalog/test_format_languages_new.py
+new file mode 100644
+index 000000000..f9890b2fd
+--- /dev/null
++++ b/openlibrary/tests/catalog/test_format_languages_new.py
+@@ -0,0 +1,33 @@
++import pytest
++
++from openlibrary.catalog.utils import InvalidLanguage, format_languages
++
++
++@pytest.mark.parametrize(
++    ("languages", "expected"),
++    [
++        # Full language name (English)
++        (["German"], [{'key': '/languages/ger'}]),
++        # ISO-639-1 2-letter code
++        (["es"], [{'key': '/languages/spa'}]),
++        # Deduplication of identical MARC codes
++        (["eng", "eng"], [{'key': '/languages/eng'}]),
++        # Mixed names/native/ISO collapsing to same/different languages
++        (["German", "Deutsch", "es"], [{'key': '/languages/ger'}, {'key': '/languages/spa'}]),
++        # Case-insensitive name
++        (["ENGLISH"], [{'key': '/languages/eng'}]),
++        # Native name
++        (["Fran\u00e7ais"], [{'key': '/languages/fre'}]),
++        # Dedup across alternative identifiers for same language
++        (["de", "ger", "German", "Deutsch"], [{'key': '/languages/ger'}]),
++        # Empty still empty
++        ([], []),
++    ],
++)
++def test_format_languages_normalization(languages, expected):
++    assert format_languages(languages) == expected
++
++
++def test_format_languages_invalid_still_raises():
++    with pytest.raises(InvalidLanguage):
++        format_languages(["wtf"])

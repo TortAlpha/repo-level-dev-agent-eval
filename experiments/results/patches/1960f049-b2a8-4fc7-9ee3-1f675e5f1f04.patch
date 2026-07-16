@@ -1,0 +1,23 @@
+diff --git a/sqlparse/sql.py b/sqlparse/sql.py
+index def0679..fef416a 100644
+--- a/sqlparse/sql.py
++++ b/sqlparse/sql.py
+@@ -633,6 +633,18 @@ class Function(NameAliasMixin, TokenList):
+                 result.append(token)
+         return result
+ 
++    def get_window(self):
++        """Return the window clause associated with the function."""
++        for token in self.tokens:
++            if isinstance(token, Over):
++                for child in token.tokens:
++                    if child.is_whitespace:
++                        continue
++                    if child.match(T.Keyword, 'OVER'):
++                        continue
++                    return child
++        return None
++
+ 
+ class Begin(TokenList):
+     """A BEGIN/END block."""

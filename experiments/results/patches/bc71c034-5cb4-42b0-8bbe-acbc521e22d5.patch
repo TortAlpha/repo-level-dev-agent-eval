@@ -1,0 +1,60 @@
+diff --git a/parse/__init__.py b/parse/__init__.py
+index 8922db3..392585e 100644
+--- a/parse/__init__.py
++++ b/parse/__init__.py
+@@ -727,10 +727,16 @@ class Parser(object):
+             self._group_index += 1
+             conv[group] = percentage
+         elif type == "f":
+-            s = r"\d*\.\d+"
++            if format.get("precision") == "0":
++                s = r"\d+"
++            else:
++                s = r"\d*\.\d+"
+             conv[group] = convert_first(float)
+         elif type == "F":
+-            s = r"\d*\.\d+"
++            if format.get("precision") == "0":
++                s = r"\d+"
++            else:
++                s = r"\d*\.\d+"
+             conv[group] = convert_first(Decimal)
+         elif type == "e":
+             s = r"\d*\.\d+[eE][-+]?\d+|nan|NAN|[-+]?inf|[-+]?INF"
+diff --git a/tests/test_precision_zero_float.py b/tests/test_precision_zero_float.py
+new file mode 100644
+index 0000000..b604cb7
+--- /dev/null
++++ b/tests/test_precision_zero_float.py
+@@ -0,0 +1,31 @@
++import pytest
++
++import parse
++
++
++def test_precision_zero_float_no_decimal():
++    # precision-0 float renders without a decimal point; parse must accept it
++    r = parse.parse("a {:.0f} b", "a 12 b")
++    assert r is not None
++    assert r[0] == 12.0
++    assert isinstance(r[0], float)
++
++
++def test_precision_zero_float_zero_padded():
++    r = parse.parse("foo_{:02.0f}t", "foo_20t")
++    assert r is not None
++    assert r[0] == 20.0
++    assert isinstance(r[0], float)
++
++
++def test_precision_zero_float_rejects_decimal():
++    # input with a decimal point must not match a precision-0 float field
++    assert parse.parse("a {:.0f} b", "a 12.0 b") is None
++
++
++def test_default_float_unchanged():
++    # existing float parsing behavior must remain unchanged
++    r = parse.parse("{:f}", "12.5")
++    assert r is not None
++    assert r[0] == 12.5
++    assert isinstance(r[0], float)

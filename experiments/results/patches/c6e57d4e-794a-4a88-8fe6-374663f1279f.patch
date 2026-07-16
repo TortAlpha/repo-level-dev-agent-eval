@@ -1,0 +1,155 @@
+diff --git a/qutebrowser/utils/utils.py b/qutebrowser/utils/utils.py
+index beb6e2578..31e5a386b 100644
+--- a/qutebrowser/utils/utils.py
++++ b/qutebrowser/utils/utils.py
+@@ -193,13 +193,41 @@ def _resource_path(filename: str) -> pathlib.Path:
+     return importlib_resources.files(qutebrowser) / filename
+ 
+ 
++def _glob_resources(resource_path: Any, subdir: str,
++                     ext: str) -> Iterator[str]:
++    """Find resource files under a subdirectory matching an extension.
++
++    Args:
++        resource_path: The base resource path (a pathlib.Path when running from
++            a directory, or a zipfile.Path/importlib-resources path when
++            running from a .egg).
++        subdir: The subdirectory to search in (e.g. 'html').
++        ext: The file extension to match, including the dot (e.g. '.html').
++            Must not contain wildcards.
++
++    Return:
++        An iterable of POSIX-style relative path strings (e.g. 'html/test.html')
++        for files under the given subdir whose names end with ext.
++    """
++    assert ext.startswith('.'), ext
++    assert '*' not in ext, ext
++
++    directory = resource_path / subdir
++    if isinstance(resource_path, pathlib.Path):
++        for full_path in directory.glob('*' + ext):
++            yield full_path.relative_to(resource_path).as_posix()
++    else:
++        assert directory.is_dir(), directory
++        for entry in directory.iterdir():
++            if entry.name.endswith(ext):
++                yield '/'.join([subdir, entry.name])
++
++
+ def preload_resources() -> None:
+     """Load resource files into the cache."""
+     resource_path = _resource_path('')
+-    for subdir, pattern in [('html', '*.html'), ('javascript', '*.js')]:
+-        path = resource_path / subdir
+-        for full_path in path.glob(pattern):
+-            sub_path = full_path.relative_to(resource_path).as_posix()
++    for subdir, ext in [('html', '.html'), ('javascript', '.js')]:
++        for sub_path in _glob_resources(resource_path, subdir, ext):
+             _resource_cache[sub_path] = read_file(sub_path)
+ 
+ 
+diff --git a/tests/unit/utils/test_glob_resources.py b/tests/unit/utils/test_glob_resources.py
+new file mode 100644
+index 000000000..f62dbde93
+--- /dev/null
++++ b/tests/unit/utils/test_glob_resources.py
+@@ -0,0 +1,99 @@
++# vim: ft=python fileencoding=utf-8 sts=4 sw=4 et:
++
++# Copyright 2021 Florian Bruhin (The Compiler) <mail@qutebrowser.org>
++#
++# This file is part of qutebrowser.
++#
++# qutebrowser is free software: you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation, either version 3 of the License, or
++# (at your option) any later version.
++#
++# qutebrowser is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with qutebrowser.  If not, see <https://www.gnu.org/licenses/>.
++
++"""Tests for qutebrowser.utils.utils._glob_resources."""
++
++import pathlib
++
++import pytest
++
++from qutebrowser.utils import utils
++
++
++class FakeZipEntry:
++
++    """A minimal stand-in for a zipfile.Path entry."""
++
++    def __init__(self, name):
++        self.name = name
++
++
++class FakeZipPath:
++
++    """A minimal stand-in for a zipfile.Path directory."""
++
++    def __init__(self, names):
++        self._names = names
++
++    def __truediv__(self, other):
++        return FakeZipPath(self._names)
++
++    def is_dir(self):
++        return True
++
++    def iterdir(self):
++        for name in self._names:
++            yield FakeZipEntry(name)
++
++
++@pytest.fixture
++def dir_resource_path(tmp_path):
++    resource = tmp_path / 'resource'
++    (resource / 'html').mkdir(parents=True)
++    (resource / 'html' / 'test1.html').write_text('1')
++    (resource / 'html' / 'test2.html').write_text('2')
++    (resource / 'html' / 'README').write_text('readme')
++    (resource / 'html' / 'unrelatedhtml').write_text('nope')
++    (resource / 'javascript').mkdir()
++    (resource / 'javascript' / 'a.js').write_text('a')
++    (resource / 'javascript' / 'b.js').write_text('b')
++    (resource / 'javascript' / 'notjs.txt').write_text('txt')
++    return resource
++
++
++class TestGlobResources:
++
++    def test_directory_html(self, dir_resource_path):
++        result = sorted(utils._glob_resources(dir_resource_path, 'html', '.html'))
++        assert result == ['html/test1.html', 'html/test2.html']
++
++    def test_directory_javascript(self, dir_resource_path):
++        result = sorted(utils._glob_resources(dir_resource_path, 'javascript', '.js'))
++        assert result == ['javascript/a.js', 'javascript/b.js']
++
++    def test_directory_excludes_non_matching(self, dir_resource_path):
++        result = list(utils._glob_resources(dir_resource_path, 'html', '.html'))
++        assert 'html/README' not in result
++        assert 'html/unrelatedhtml' not in result
++
++    def test_zip_html(self):
++        resource_path = FakeZipPath(['test1.html', 'test2.html', 'README', 'unrelatedhtml'])
++        result = sorted(utils._glob_resources(resource_path, 'html', '.html'))
++        assert result == ['html/test1.html', 'html/test2.html']
++
++    def test_zip_javascript(self):
++        resource_path = FakeZipPath(['a.js', 'b.js', 'notjs.txt'])
++        result = sorted(utils._glob_resources(resource_path, 'javascript', '.js'))
++        assert result == ['javascript/a.js', 'javascript/b.js']
++
++    def test_zip_excludes_non_matching(self):
++        resource_path = FakeZipPath(['test1.html', 'README', 'unrelatedhtml'])
++        result = list(utils._glob_resources(resource_path, 'html', '.html'))
++        assert 'html/README' not in result
++        assert 'html/unrelatedhtml' not in result

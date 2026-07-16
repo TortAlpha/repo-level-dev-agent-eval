@@ -1,0 +1,32 @@
+{
+  "run_id": "3c345e1f-bc04-4b3a-b912-374953c715f2",
+  "task_id": "parse_pr_227",
+  "model": "openai/gpt-4o-mini",
+  "status": "solved",
+  "hidden_tests_passed": false,
+  "quality_score": 2,
+  "metrics": {
+    "n_runs": 1,
+    "n_tasks": 1,
+    "resolved_at_1": 0.0,
+    "task_success_rate": 0.0,
+    "visible_test_pass_rate": 0.0,
+    "hidden_test_pass_rate": 0.0,
+    "patch_validity_rate": 1.0,
+    "handoff_rate": 0.0,
+    "repair_success_rate": null,
+    "regression_rate": 1.0,
+    "mean_regressions": 2.0,
+    "test_overfitting_rate": null,
+    "tool_use_validity_rate": 1.0,
+    "hallucinated_refs_per_run": 0.0,
+    "mean_iterations": 0.0,
+    "mean_steps": 11.0,
+    "mean_duration_s": 52.3,
+    "mean_llm_calls": 11.0,
+    "mean_total_tokens": 110232.0,
+    "mean_cost_usd": 0.0168183,
+    "total_cost_usd": 0.0168183,
+    "mean_quality_score": 2.0
+  }
+}

@@ -1,0 +1,108 @@
+diff --git a/sqlparse/sql.py b/sqlparse/sql.py
+index def0679..2f0b869 100644
+--- a/sqlparse/sql.py
++++ b/sqlparse/sql.py
+@@ -623,7 +623,13 @@ class Function(NameAliasMixin, TokenList):
+ 
+     def get_parameters(self):
+         """Return a list of parameters."""
+-        parenthesis = self.tokens[-1]
++        parenthesis = None
++        for token in self.tokens:
++            if isinstance(token, Parenthesis):
++                parenthesis = token
++                break
++        if parenthesis is None:
++            return []
+         result = []
+         for token in parenthesis.tokens:
+             if isinstance(token, IdentifierList):
+@@ -633,6 +639,22 @@ class Function(NameAliasMixin, TokenList):
+                 result.append(token)
+         return result
+ 
++    def get_window(self):
++        """Return the window of the function if it has an OVER clause.
++
++        Returns the window identifier for a named window (e.g.
++        ``foo(5) OVER win1``), the parenthesised window definition for an
++        inline window (e.g. ``foo(5) OVER (PARTITION BY c1)``), or ``None``
++        when the function has no ``OVER`` clause.
++        """
++        for token in self.tokens:
++            if isinstance(token, Over):
++                # The window is the first non-whitespace token after OVER.
++                _, window = token.token_next_by(
++                    i=(Identifier, Parenthesis))
++                return window
++        return None
++
+ 
+ class Begin(TokenList):
+     """A BEGIN/END block."""
+diff --git a/tests/test_window_functions.py b/tests/test_window_functions.py
+new file mode 100644
+index 0000000..1f964a1
+--- /dev/null
++++ b/tests/test_window_functions.py
+@@ -0,0 +1,60 @@
++import sqlparse
++from sqlparse.sql import Function, Identifier, Parenthesis
++
++
++def parse_one(sql):
++    return sqlparse.parse(sql)[0]
++
++
++def find_function(stmt):
++    for token in stmt.tokens:
++        if isinstance(token, Function):
++            return token
++        if token.is_group:
++            func = find_function(token)
++            if func is not None:
++                return func
++    return None
++
++
++def test_get_window_none_without_over():
++    func = find_function(parse_one('SELECT foo(5) FROM t'))
++    assert func is not None
++    assert func.get_window() is None
++
++
++def test_get_window_named():
++    func = find_function(parse_one('SELECT foo(5) OVER win1 FROM t'))
++    assert func is not None
++    window = func.get_window()
++    assert isinstance(window, Identifier)
++    assert window.get_real_name() == 'win1'
++
++
++def test_get_window_inline():
++    func = find_function(parse_one('SELECT foo(5) OVER (PARTITION BY c1) FROM t'))
++    assert func is not None
++    window = func.get_window()
++    assert isinstance(window, Parenthesis)
++    assert 'PARTITION BY c1' in window.value
++
++
++def test_parameters_with_over_named():
++    func = find_function(parse_one('SELECT foo(5) OVER win1 FROM t'))
++    params = func.get_parameters()
++    assert len(params) == 1
++    assert params[0].value == '5'
++
++
++def test_parameters_with_over_inline():
++    func = find_function(parse_one('SELECT foo(5) OVER (PARTITION BY c1) FROM t'))
++    params = func.get_parameters()
++    assert len(params) == 1
++    assert params[0].value == '5'
++
++
++def test_parameters_without_over():
++    func = find_function(parse_one('SELECT foo(5) FROM t'))
++    params = func.get_parameters()
++    assert len(params) == 1
++    assert params[0].value == '5'

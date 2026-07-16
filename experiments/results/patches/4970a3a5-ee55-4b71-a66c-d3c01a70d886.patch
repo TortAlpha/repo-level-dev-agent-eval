@@ -1,0 +1,20 @@
+diff --git a/more_itertools/recipes.py b/more_itertools/recipes.py
+index 9f46be3..1e21d1f 100644
+--- a/more_itertools/recipes.py
++++ b/more_itertools/recipes.py
+@@ -8,6 +8,7 @@ Some backward-compatible usability improvements have been made.
+ 
+ """
+ 
++from collections import namedtuple
+ import random
+ 
+ from bisect import bisect_left, insort
+@@ -76,6 +77,7 @@ __all__ = [
+     'roundrobin',
+     'running_mean',
+     'running_median',
++    'running_statistics',
+     'sieve',
+     'sliding_window',
+     'subslices',

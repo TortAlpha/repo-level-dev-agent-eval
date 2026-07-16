@@ -1,0 +1,73 @@
+diff --git a/sqlparse/sql.py b/sqlparse/sql.py
+index def0679..bf4c9ec 100644
+--- a/sqlparse/sql.py
++++ b/sqlparse/sql.py
+@@ -621,9 +621,27 @@ class Case(TokenList):
+ class Function(NameAliasMixin, TokenList):
+     """A function or procedure call."""
+ 
++    def get_window(self):
++        """Return the window if the function has an ``OVER`` clause.
++
++        For a named window (``foo(5) OVER win1``) the window identifier
++        is returned. For an inline window (``foo(5) OVER (PARTITION BY c1)``)
++        the parenthesised window definition is returned. ``None`` is returned
++        when the function has no ``OVER`` clause.
++        """
++        _, over = self.token_next_by(i=Over)
++        if over is None:
++            return None
++        _, window = over.token_next_by(i=(Parenthesis, Identifier),
++                                       t=T.Name)
++        return window
++
+     def get_parameters(self):
+         """Return a list of parameters."""
+         parenthesis = self.tokens[-1]
++        if isinstance(parenthesis, Over):
++            _, parenthesis = self.token_next_by(i=Parenthesis,
++                                                idx=self.token_index(parenthesis) - 1)
+         result = []
+         for token in parenthesis.tokens:
+             if isinstance(token, IdentifierList):
+diff --git a/tests/test_window_functions.py b/tests/test_window_functions.py
+new file mode 100644
+index 0000000..d85795e
+--- /dev/null
++++ b/tests/test_window_functions.py
+@@ -0,0 +1,35 @@
++import sqlparse
++from sqlparse.sql import Function, Identifier, Parenthesis
++
++
++def test_get_window_named():
++    f = sqlparse.parse('foo(5) OVER win1')[0].tokens[0]
++    assert isinstance(f, Function)
++    w = f.get_window()
++    assert isinstance(w, Identifier)
++    assert str(w) == 'win1'
++
++
++def test_get_window_inline():
++    f = sqlparse.parse('foo(5) OVER (PARTITION BY c1)')[0].tokens[0]
++    assert isinstance(f, Function)
++    w = f.get_window()
++    assert isinstance(w, Parenthesis)
++
++
++def test_get_window_none():
++    f = sqlparse.parse('foo(5)')[0].tokens[0]
++    assert isinstance(f, Function)
++    assert f.get_window() is None
++
++
++def test_parameters_with_over_named():
++    f = sqlparse.parse('foo(5) OVER win1')[0].tokens[0]
++    params = f.get_parameters()
++    assert len(params) == 1
++
++
++def test_parameters_with_over_inline():
++    f = sqlparse.parse('foo(5) OVER (PARTITION BY c1)')[0].tokens[0]
++    params = f.get_parameters()
++    assert len(params) == 1

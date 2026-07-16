@@ -1,0 +1,41 @@
+diff --git a/boltons/strutils.py b/boltons/strutils.py
+index 9763fc0..8f70bee 100644
+--- a/boltons/strutils.py
++++ b/boltons/strutils.py
+@@ -561,9 +561,11 @@ def bytes2human(nbytes, ndigits=0):
+     '0.00B'
+     """
+     abs_bytes = abs(nbytes)
+-    for (size, symbol), (next_size, next_symbol) in _SIZE_RANGES:
+-        if abs_bytes <= next_size:
++    size, symbol = _SIZE_BOUNDS[0]
++    for next_size, next_symbol in _SIZE_BOUNDS[1:]:
++        if abs_bytes < next_size:
+             break
++        size, symbol = next_size, next_symbol
+     hnbytes = float(nbytes) / size
+     return '{hnbytes:.{ndigits}f}{symbol}'.format(hnbytes=hnbytes,
+                                                   ndigits=ndigits,
+diff --git a/tests/test_strutils.py b/tests/test_strutils.py
+index 1ffa916..a60b3a8 100644
+--- a/tests/test_strutils.py
++++ b/tests/test_strutils.py
+@@ -252,3 +252,18 @@ def test_roundzip():
+     assert strutils.gunzip_bytes(strutils.gzip_bytes(aaa)) == aaa
+ 
+     assert strutils.gunzip_bytes(strutils.gzip_bytes(b'')) == b''
++
++
++def test_bytes2human_rollover():
++    b2h = strutils.bytes2human
++
++    assert b2h(0) == '0B'
++    assert b2h(1023) == '1023B'
++    assert b2h(1024) == '1K'
++    assert b2h(1024 ** 2) == '1M'
++    assert b2h(1024 ** 3) == '1G'
++
++    assert b2h(2048) == '2K'
++    assert b2h(1024 ** 2 + 1) == '1M'
++
++    assert b2h(1024, ndigits=2) == '1.00K'

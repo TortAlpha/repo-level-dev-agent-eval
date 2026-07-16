@@ -1,0 +1,101 @@
+diff --git a/sqlparse/sql.py b/sqlparse/sql.py
+index def0679..2352b5e 100644
+--- a/sqlparse/sql.py
++++ b/sqlparse/sql.py
+@@ -440,6 +440,10 @@ class Statement(TokenList):
+         return 'UNKNOWN'
+ 
+ 
++class Name(TokenList):
++    """A name token, such as a table or column name."""
++
++
+ class Identifier(NameAliasMixin, TokenList):
+     """Represents an identifier.
+ 
+@@ -621,9 +625,31 @@ class Case(TokenList):
+ class Function(NameAliasMixin, TokenList):
+     """A function or procedure call."""
+ 
++    def get_window(self):
++        """Return the window clause of this function if present.
++
++        For a named window (``foo(5) OVER win1``) the window identifier is
++        returned. For an inline window (``foo(5) OVER (PARTITION BY c1)``)
++        the parenthesised window definition is returned. ``None`` is returned
++        when the function has no ``OVER`` clause.
++        """
++        _, over = self.token_next_by(i=Over)
++        if over is None:
++            return None
++
++        # The Over token contains the OVER keyword followed by either an
++        # Identifier (named window) or a Parenthesis (inline window).
++        _, window = over.token_next_by(i=(Identifier, Parenthesis),
++                                        t=T.Name)
++        return window
++
+     def get_parameters(self):
+         """Return a list of parameters."""
+         parenthesis = self.tokens[-1]
++        if not isinstance(parenthesis, Parenthesis):
++            # When an OVER clause is present the parenthesis is not the
++            # last token, so locate it explicitly.
++            _, parenthesis = self.token_next_by(i=Parenthesis)
+         result = []
+         for token in parenthesis.tokens:
+             if isinstance(token, IdentifierList):
+diff --git a/tests/test_window.py b/tests/test_window.py
+new file mode 100644
+index 0000000..19df571
+--- /dev/null
++++ b/tests/test_window.py
+@@ -0,0 +1,48 @@
++import sqlparse
++from sqlparse.sql import Function, Identifier, Parenthesis, Name
++
++
++def _func(sql):
++    return sqlparse.parse(sql)[0].tokens[0]
++
++
++def test_get_parameters_no_over():
++    f = _func('foo(5)')
++    assert isinstance(f, Function)
++    params = f.get_parameters()
++    assert len(params) == 1
++
++
++def test_get_parameters_named_window():
++    f = _func('foo(5) OVER win1')
++    assert isinstance(f, Function)
++    params = f.get_parameters()
++    assert len(params) == 1
++
++
++def test_get_parameters_inline_window():
++    f = _func('foo(5) OVER (PARTITION BY c1)')
++    assert isinstance(f, Function)
++    params = f.get_parameters()
++    assert len(params) == 1
++
++
++def test_get_window_none():
++    f = _func('foo(5)')
++    assert isinstance(f, Function)
++    assert f.get_window() is None
++
++
++def test_get_window_named():
++    f = _func('foo(5) OVER win1')
++    assert isinstance(f, Function)
++    w = f.get_window()
++    assert w is not None
++    assert w.normalized == 'win1'
++
++
++def test_get_window_inline():
++    f = _func('foo(5) OVER (PARTITION BY c1)')
++    assert isinstance(f, Function)
++    w = f.get_window()
++    assert isinstance(w, Parenthesis)

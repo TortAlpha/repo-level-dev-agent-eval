@@ -1,0 +1,114 @@
+diff --git a/more_itertools/more.py b/more_itertools/more.py
+index 12b4942..bb4d683 100755
+--- a/more_itertools/more.py
++++ b/more_itertools/more.py
+@@ -120,6 +120,8 @@ __all__ = [
+     'map_reduce',
+     'mark_ends',
+     'minmax',
++    'running_max',
++    'running_min',
+     'nth_or_last',
+     'nth_permutation',
+     'nth_prime',
+@@ -4835,6 +4837,60 @@ def minmax(iterable_or_value, *others, key=None, default=_marker):
+     return lo, hi
+ 
+ 
++def running_min(iterable, *, maxlen=None):
++    """Yield the running minimum while optionally constraining to a window."""
++    if maxlen is None:
++        initialized = False
++        current = None
++        for item in iterable:
++            if not initialized or item < current:
++                current = item
++                initialized = True
++            yield current
++        return
++    if maxlen <= 0:
++        raise ValueError('maxlen must be greater than zero')
++    window = deque()
++    minima = deque()
++    for item in iterable:
++        window.append(item)
++        while minima and minima[-1] > item:
++            minima.pop()
++        minima.append(item)
++        if len(window) > maxlen:
++            removed = window.popleft()
++            if minima and removed == minima[0]:
++                minima.popleft()
++        yield minima[0]
++
++
++def running_max(iterable, *, maxlen=None):
++    """Yield the running maximum while optionally constraining to a window."""
++    if maxlen is None:
++        initialized = False
++        current = None
++        for item in iterable:
++            if not initialized or current < item:
++                current = item
++                initialized = True
++            yield current
++        return
++    if maxlen <= 0:
++        raise ValueError('maxlen must be greater than zero')
++    window = deque()
++    maxima = deque()
++    for item in iterable:
++        window.append(item)
++        while maxima and maxima[-1] < item:
++            maxima.pop()
++        maxima.append(item)
++        if len(window) > maxlen:
++            removed = window.popleft()
++            if maxima and removed == maxima[0]:
++                maxima.popleft()
++        yield maxima[0]
++
++
+ def constrained_batches(
+     iterable, max_size, max_count=None, get_len=len, strict=True
+ ):
+diff --git a/tests/test_more.py b/tests/test_more.py
+index 2e0cc06..60ab2a4 100644
+--- a/tests/test_more.py
++++ b/tests/test_more.py
+@@ -695,6 +695,35 @@ class MinMaxTests(TestCase):
+         self.assertListEqual(mi.minmax([], default=[1, 'a']), [1, 'a'])
+ 
+ 
++class RunningMinMaxTests(TestCase):
++    def test_cumulative(self):
++        values = [8.5, 9.5, 7.5, 6.5]
++        self.assertEqual(
++            list(mi.running_min(values)), [8.5, 8.5, 7.5, 6.5]
++        )
++        self.assertEqual(
++            list(mi.running_max(values)), [8.5, 9.5, 9.5, 9.5]
++        )
++
++    def test_sliding_window(self):
++        values = [3, 1, 4, 2, 5]
++        self.assertEqual(
++            list(mi.running_min(values, maxlen=3)), [3, 1, 1, 1, 2]
++        )
++        self.assertEqual(
++            list(mi.running_max(values, maxlen=3)), [3, 3, 4, 4, 5]
++        )
++
++    def test_invalid_maxlen(self):
++        values = [1, 2, 3]
++        for func in (mi.running_min, mi.running_max):
++            with self.subTest(func=func):
++                with self.assertRaises(ValueError):
++                    list(func(values, maxlen=0))
++                with self.assertRaises(ValueError):
++                    list(func(values, maxlen=-1))
++
++
+ class WithIterTests(TestCase):
+     def test_with_iter(self):
+         s = StringIO('One fish\nTwo fish')

@@ -1,0 +1,95 @@
+diff --git a/markdown/extensions/footnotes.py b/markdown/extensions/footnotes.py
+index 30c0811..e77a21f 100644
+--- a/markdown/extensions/footnotes.py
++++ b/markdown/extensions/footnotes.py
+@@ -168,9 +168,43 @@ class FootnoteExtension(Extension):
+         else:
+             return self.unique_ref('fnref{}{}'.format(self.get_separator(), id), found)
+ 
++    def reorderFootnotes(self, root: etree.Element) -> None:
++        """ Reorder footnotes by order of first reference in the text. """
++        ref_order: list[str] = []
++        seen: set[str] = set()
++
++        def traverse(element: etree.Element) -> None:
++            if element.text:
++                for m in re.finditer(r'\[\^([^\]]*)\]', element.text):
++                    id = m.group(1)
++                    if id in self.footnotes and id not in seen:
++                        seen.add(id)
++                        ref_order.append(id)
++            for child in element:
++                traverse(child)
++                if child.tail:
++                    for m in re.finditer(r'\[\^([^\]]*)\]', child.tail):
++                        id = m.group(1)
++                        if id in self.footnotes and id not in seen:
++                            seen.add(id)
++                            ref_order.append(id)
++
++        traverse(root)
++
++        if ref_order:
++            new_footnotes: OrderedDict[str, str] = OrderedDict()
++            for id in ref_order:
++                new_footnotes[id] = self.footnotes[id]
++            for id in self.footnotes:
++                if id not in new_footnotes:
++                    new_footnotes[id] = self.footnotes[id]
++            self.footnotes = new_footnotes
++
+     def makeFootnotesDiv(self, root: etree.Element) -> etree.Element | None:
+         """ Return `div` of footnotes as `etree` Element. """
+ 
++        self.reorderFootnotes(root)
++
+         if not list(self.footnotes.keys()):
+             return None
+ 
+diff --git a/tests/test_syntax/extensions/test_footnote_order.py b/tests/test_syntax/extensions/test_footnote_order.py
+new file mode 100644
+index 0000000..fd6b01f
+--- /dev/null
++++ b/tests/test_syntax/extensions/test_footnote_order.py
+@@ -0,0 +1,41 @@
++"""
++Test that footnotes are numbered and listed by order of first reference,
++not by order of definition.
++"""
++
++from markdown.test_tools import TestCase
++
++
++class TestFootnoteOrder(TestCase):
++
++    default_kwargs = {'extensions': ['footnotes']}
++    maxDiff = None
++
++    def test_order_by_reference(self):
++        """Footnotes should be numbered by order of first reference in text,
++        not by order of definition."""
++        self.assertMarkdownRenders(
++            self.dedent(
++                """
++                paragraph with [^first] then [^last].
++
++                [^last]: Last footnote
++                [^first]: First footnote
++                """
++            ),
++            '<p>paragraph with <sup id="fnref:first"><a class="footnote-ref" href="#fn:first">1</a></sup>'
++            ' then <sup id="fnref:last"><a class="footnote-ref" href="#fn:last">2</a></sup>.</p>\n'
++            '<div class="footnote">\n'
++            '<hr />\n'
++            '<ol>\n'
++            '<li id="fn:first">\n'
++            '<p>First footnote&#160;<a class="footnote-backref" href="#fnref:first"'
++            ' title="Jump back to footnote 1 in the text">&#8617;</a></p>\n'
++            '</li>\n'
++            '<li id="fn:last">\n'
++            '<p>Last footnote&#160;<a class="footnote-backref" href="#fnref:last"'
++            ' title="Jump back to footnote 2 in the text">&#8617;</a></p>\n'
++            '</li>\n'
++            '</ol>\n'
++            '</div>'
++        )

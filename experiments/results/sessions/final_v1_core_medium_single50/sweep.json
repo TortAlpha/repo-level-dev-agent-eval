@@ -1,0 +1,401 @@
+{
+  "schema_version": 1,
+  "session_id": "final_v1_core_medium_single50",
+  "created_at": "2026-07-12T21:19:27.037485+00:00",
+  "task_set": "final-v1",
+  "task_set_path": "eval/task_sets/final_v1.json",
+  "task_set_sha256": "9e117886946d7ea184cf51a8deae0b188648f0aca85a6339340046c8aa9d7d8c",
+  "previously_exercised": [
+    "h11_pr_181",
+    "humanize_pr_329",
+    "pluggy_pr_646",
+    "w3lib_pr_272",
+    "parse_pr_165",
+    "parse_pr_227",
+    "cachetools_pr_57d2e48",
+    "tinydb_pr_616",
+    "python_dotenv_pr_640",
+    "toolz_pr_603",
+    "markdown_pr_1606",
+    "markdown_pr_1546",
+    "sqlparse_pr_642",
+    "sqlparse_pr_746",
+    "sqlparse_pr_664",
+    "more_itertools_pr_1166",
+    "more_itertools_pr_1153",
+    "boltons_pr_403",
+    "pydash_pr_cdd84b4",
+    "sqlglot_pr_7660486c",
+    "swepro_openlibrary_2abe28b4"
+  ],
+  "collection_sha256": "0d3d18079f06bc7bf62eeb93ed2681c99f74c25d689e57b4e08122645d2dc159",
+  "pricing_sha256": "ee2eebcdae576de8990552d704983dbd89114ded81bf06c187267e1060934373",
+  "tasks": [
+    "toolz_pr_603",
+    "markdown_pr_1606",
+    "markdown_pr_1546",
+    "sqlparse_pr_642",
+    "sqlparse_pr_749",
+    "sqlparse_pr_579",
+    "sqlparse_pr_746",
+    "sqlparse_pr_664",
+    "more_itertools_pr_1166",
+    "more_itertools_pr_1153",
+    "boltons_pr_403",
+    "pydash_pr_cdd84b4"
+  ],
+  "task_inputs": {
+    "toolz_pr_603": {
+      "base_commit": "1fb2b9f1b69ab664a264944f4eafc290acce127d",
+      "task_sha256": "a3ebccd5fcf3c4793ee1ec2c199df7a0f3f552e26c9ad31a529c9fdb300e4837",
+      "hidden_tree_sha256": "42c8e46e976cf0a9038ae276d1f63a4a7a6848650c67fa428a85d8fa322d2229",
+      "docker_image": "python:3.11-slim",
+      "visible_test_command": "python -m pytest toolz --deselect toolz/tests/test_package.py::test_has_version",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/toolz/tests/test_itertoolz.py::test_partition_all"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest toolz --deselect toolz/tests/test_package.py::test_has_version"
+        }
+      ]
+    },
+    "markdown_pr_1606": {
+      "base_commit": "e7a0efb3a7c36d6b8005403122705662bc17c904",
+      "task_sha256": "ba9ccce01982a129b82f0025156b8d08c4d7f6d1f9347ead6622b63375007123",
+      "hidden_tree_sha256": "1063eac0836bdf649f302eb30a0b8a504ad21bae6644ed005638f5c1d22f05f7",
+      "docker_image": "python:3.11-slim",
+      "visible_test_command": "python -m pytest tests/test_syntax",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_syntax/blocks/test_headers.py -k setext_mixed"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests/test_syntax"
+        }
+      ]
+    },
+    "markdown_pr_1546": {
+      "base_commit": "23c301de28e12426408656efdfa153b11d4ff558",
+      "task_sha256": "33740b96248ec2773d450e0dd4f11d64453e211648aed42c67ed14a9bd649fe8",
+      "hidden_tree_sha256": "efa42a190d9c4989f2be19bac8600f419037f6566629152bf0015e1f2d525a07",
+      "docker_image": "python:3.11-slim",
+      "visible_test_command": "python -m pytest tests/test_syntax",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_syntax/extensions/test_footnotes.py::TestFootnotes::test_footnote_order ../hidden_tests/tests/test_syntax/extensions/test_footnotes.py::TestFootnotes::test_footnote_order_tricky"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests/test_syntax"
+        }
+      ]
+    },
+    "sqlparse_pr_642": {
+      "base_commit": "a17248666f8bafaacf16016f797c830af4d0102e",
+      "task_sha256": "a7e1840ce4804db24850382e22aff78b4e268b7e9c61fc810e41bf5da9afd5af",
+      "hidden_tree_sha256": "552eebacdd2477e152be41b700e79e0bc3925d738012ffcc2e2bc2e35818052e",
+      "docker_image": "python:3.11-slim",
+      "visible_test_command": "python -m pytest tests",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_grouping.py::test_grouping_create_table"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests"
+        }
+      ]
+    },
+    "sqlparse_pr_749": {
+      "base_commit": "8d34105d39521f980e8e591eadfc73025996dc82",
+      "task_sha256": "d2b0c2f274686f6b9319547664f53a327787cf5edf375c45c901ef90de69fe0e",
+      "hidden_tree_sha256": "2a645e4b31bb747bc1e38414904e6b5cd65ac31fd1e1469e8bcf13c686924135",
+      "docker_image": "python:3.11-slim",
+      "visible_test_command": "python -m pytest tests",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_parse.py::test_parse_casted_params"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests"
+        }
+      ]
+    },
+    "sqlparse_pr_579": {
+      "base_commit": "1499cffcd7c4d635b4297b44d48fb4fe94cf988e",
+      "task_sha256": "bc691963446757b3fee54553bfa3889d89a169d4e1b91fe932b83db7ba39661d",
+      "hidden_tree_sha256": "86df3e2e8bbc7d469881d48deace548bc462358275c12c02e85efa197ae6cd4e",
+      "docker_image": "python:3.11-slim",
+      "visible_test_command": "python -m pytest tests",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_tokenize.py::test_parse_window_as"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests"
+        }
+      ]
+    },
+    "sqlparse_pr_746": {
+      "base_commit": "b97387ceab38ea724cb715f8a43050b1693d1d36",
+      "task_sha256": "9081015eef69e30b2e91dd375fe5251e581de3382fa07a226746886a0cbc5a6f",
+      "hidden_tree_sha256": "65b905d2b033018dae899fd3afe1a3ec899a5ed98b214b4bfc8c4f4c25b00c09",
+      "docker_image": "python:3.11-slim",
+      "visible_test_command": "python -m pytest tests",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_grouping.py::test_grouping_nested_identifier_with_order"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests"
+        }
+      ]
+    },
+    "sqlparse_pr_664": {
+      "base_commit": "049634a6e6d4d06483f85866d300263672ff68bf",
+      "task_sha256": "c4cea6f61426582a2babaf6ca91007db2caf90c7a923df141006de9c088ea708",
+      "hidden_tree_sha256": "f2c71609fa543a76fa3eb55820e0fc11e288870afb56a9408a3bb7ee92e3a02f",
+      "docker_image": "python:3.11-slim",
+      "visible_test_command": "python -m pytest tests",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_parse.py::test_parse_div_operator"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests"
+        }
+      ]
+    },
+    "more_itertools_pr_1166": {
+      "base_commit": "0c48044a70bae53fed919526bb1229d459a3e496",
+      "task_sha256": "75dc6209ec10ca0b44c254e1212b4b12946474c9b2961e02b4be41b6a52b43fb",
+      "hidden_tree_sha256": "8c320ab36a2c2da34a522246ea9958ccbefbdb76542ea44175dbe913bb77929e",
+      "docker_image": "python:3.11-slim",
+      "visible_test_command": "python -m pytest tests",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_more.py::TestSubfactorial"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests"
+        }
+      ]
+    },
+    "more_itertools_pr_1153": {
+      "base_commit": "247e15b3a489d5805375c95dfa79486c9bd0eb1b",
+      "task_sha256": "f874f965ba55c35a2b42f88e28e0dbdb574a3c419adcb33e4f4d3ea3308cbb5e",
+      "hidden_tree_sha256": "7670caf1dddb6965512b90f4b9bac7732e77caeabd12734973f603fc187908fe",
+      "docker_image": "python:3.11-slim",
+      "visible_test_command": "python -m pytest tests",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_more.py -k test_empty_reversed"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests"
+        }
+      ]
+    },
+    "boltons_pr_403": {
+      "base_commit": "8a2a93d8213e1fa4da30c8167ab1a18caad17a17",
+      "task_sha256": "f564692cea6c4a7f7e2aec911cbc1fe90f31ec744e5b074b111c7108d1ba6ae4",
+      "hidden_tree_sha256": "cd6bbeed56da9ff94ca06a708092c47a346c4df5f783472d92d75ffe1b3ffce8",
+      "docker_image": "python:3.11-slim",
+      "visible_test_command": "python -m pytest tests",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_strutils.py::test_bytes2human"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests"
+        }
+      ]
+    },
+    "pydash_pr_cdd84b4": {
+      "base_commit": "1c63bda9248e2d5194889012f715c5c22dae6687",
+      "task_sha256": "ec2fd87454426edce128761dd8e668e830e3492061dfff6bbf2b5c5c92b59e98",
+      "hidden_tree_sha256": "004976294daa87b7dca1c2d5217347e2f0efd8e440fbfaab546008824524bbdf",
+      "docker_image": "python:3.11-slim",
+      "visible_test_command": "python -m pytest tests --ignore=tests/pytest_mypy_testing -o addopts=",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_arrays.py -k zip_object -o addopts="
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests --ignore=tests/pytest_mypy_testing -o addopts="
+        }
+      ]
+    }
+  },
+  "ordered_combinations": [
+    {
+      "task": "toolz_pr_603",
+      "model": "z-ai/glm-5.2",
+      "agent": "single"
+    },
+    {
+      "task": "markdown_pr_1606",
+      "model": "z-ai/glm-5.2",
+      "agent": "single"
+    },
+    {
+      "task": "markdown_pr_1546",
+      "model": "z-ai/glm-5.2",
+      "agent": "single"
+    },
+    {
+      "task": "sqlparse_pr_642",
+      "model": "z-ai/glm-5.2",
+      "agent": "single"
+    },
+    {
+      "task": "sqlparse_pr_749",
+      "model": "z-ai/glm-5.2",
+      "agent": "single"
+    },
+    {
+      "task": "sqlparse_pr_579",
+      "model": "z-ai/glm-5.2",
+      "agent": "single"
+    },
+    {
+      "task": "sqlparse_pr_746",
+      "model": "z-ai/glm-5.2",
+      "agent": "single"
+    },
+    {
+      "task": "sqlparse_pr_664",
+      "model": "z-ai/glm-5.2",
+      "agent": "single"
+    },
+    {
+      "task": "more_itertools_pr_1166",
+      "model": "z-ai/glm-5.2",
+      "agent": "single"
+    },
+    {
+      "task": "more_itertools_pr_1153",
+      "model": "z-ai/glm-5.2",
+      "agent": "single"
+    },
+    {
+      "task": "boltons_pr_403",
+      "model": "z-ai/glm-5.2",
+      "agent": "single"
+    },
+    {
+      "task": "pydash_pr_cdd84b4",
+      "model": "z-ai/glm-5.2",
+      "agent": "single"
+    }
+  ],
+  "settings": {
+    "tasks": null,
+    "task_set": "final-v1",
+    "task_groups": "core_medium",
+    "matrix": null,
+    "models": "z-ai/glm-5.2",
+    "agents": "single",
+    "session": "final_v1_core_medium_single50",
+    "campaign": "final_v1_main",
+    "provider": "openrouter",
+    "action_transport": null,
+    "reasoning_effort": null,
+    "role_model": null,
+    "developer_escalation_model": null,
+    "developer_escalate_after_no_edit_episodes": null,
+    "developer_escalate_after_failed_tests": null,
+    "max_cost_usd": null,
+    "max_total_cost_usd": 50.0,
+    "context_budget_tokens": null,
+    "single_research_guard": null,
+    "single_research_warning_steps": null,
+    "single_research_hard_limit": null,
+    "single_post_plan_research_warning_steps": null,
+    "single_post_plan_research_hard_limit": null,
+    "single_compatibility_guard": null,
+    "max_subtasks": null,
+    "decomposition_implementation_warning_steps": null,
+    "decomposition_implementation_hard_limit": null,
+    "decomposition_verification_step_reserve": null,
+    "decomposition_max_repair_cycles": null,
+    "collection": "repositories/collection.csv",
+    "max_steps": 50,
+    "max_iterations": null,
+    "enable_review": false,
+    "no_score": false,
+    "no_regression": false,
+    "no_network": false,
+    "no_setup": false,
+    "order": "task-major",
+    "seed": 20260712,
+    "infrastructure_retries": 1,
+    "archive_patches": true,
+    "keep_workspaces": false,
+    "concurrency": 1
+  },
+  "resolved_config": {
+    "model_provider": "openrouter",
+    "provider_default_model": "z-ai/glm-5.2",
+    "temperature": 0.0,
+    "max_tokens": 16384,
+    "reasoning_effort": null,
+    "action_transport": "text_json",
+    "request_timeout_seconds": 600,
+    "max_retries": 2,
+    "max_iterations": 5,
+    "max_steps": 50,
+    "test_timeout_seconds": 600,
+    "shell_timeout_seconds": 300,
+    "compaction_mode": "summarize",
+    "context_budget_tokens": 48000,
+    "docker_network_disabled": true,
+    "single_research_guard_enabled": true,
+    "single_compatibility_guard_enabled": true,
+    "single_research_limits": {
+      "warning": 12,
+      "hard": 20,
+      "post_plan_warning": 5,
+      "post_plan_hard": 8
+    },
+    "role_models": {
+      "orchestrator": null,
+      "planner": null,
+      "developer": null,
+      "tester": null,
+      "reviewer": null
+    },
+    "developer_escalation_model": null
+  },
+  "harness": {
+    "git_commit": "6c0af80e6b8465548073079afae7ce5c0673a9f6",
+    "dirty": false,
+    "dirty_entries": [],
+    "tree_sha256": "ad00fe28d77da6222f7786fc09fc8948c659933f12c37e69a6da104325d2087b",
+    "file_count": 65
+  },
+  "fingerprint": "7e3a61e2f8cfd5624c1efa52be48c412de4aed7b051eacb6ad578f979d516f3d"
+}

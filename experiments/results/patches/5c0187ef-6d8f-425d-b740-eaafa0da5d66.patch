@@ -1,0 +1,113 @@
+diff --git a/docs/api.rst b/docs/api.rst
+index 4e4c01d..d1188aa 100644
+--- a/docs/api.rst
++++ b/docs/api.rst
+@@ -247,6 +247,7 @@ These tools yield combinatorial arrangements of items from iterables.
+ .. autofunction:: permutation_index
+ .. autofunction:: combination_with_replacement_index
+ .. autofunction:: derangements
++.. autofunction:: subfactorial
+ .. autofunction:: gray_product
+ .. autofunction:: outer_product
+ .. autofunction:: powerset_of_sets
+diff --git a/more_itertools/more.py b/more_itertools/more.py
+index 1986250..5559949 100755
+--- a/more_itertools/more.py
++++ b/more_itertools/more.py
+@@ -161,6 +161,7 @@ __all__ = [
+     'stagger',
+     'strip',
+     'strictly_n',
++    'subfactorial',
+     'substrings',
+     'substrings_indexes',
+     'synchronized',
+@@ -951,6 +952,31 @@ def derangements(iterable, r=None):
+     )
+ 
+ 
++def subfactorial(n):
++    """Return the subfactorial of *n*, the number of derangements of *n* items.
++
++    The subfactorial of a non-negative integer *n* gives the number of
++    permutations of *n* elements that leave no element in its original
++    position (OEIS A000166).
++
++        >>> [subfactorial(n) for n in range(10)]
++        [1, 0, 1, 2, 9, 44, 265, 1854, 14833, 133496]
++
++    Non-integer input raises a :exc:`TypeError`, and negative input raises a
++    :exc:`ValueError`.
++    """
++    if not isinstance(n, int) or isinstance(n, bool):
++        raise TypeError('n must be an integer')
++    if n < 0:
++        raise ValueError('n must be non-negative')
++    if n == 0:
++        return 1
++    a, b = 1, 0  # subfactorial(0), subfactorial(1)
++    for k in range(2, n + 1):
++        a, b = b, (k - 1) * (b + a)
++    return b
++
++
+ def intersperse(e, iterable, n=1):
+     """Intersperse filler element *e* among the items in *iterable*, leaving
+     *n* items between each filler element.
+diff --git a/more_itertools/more.pyi b/more_itertools/more.pyi
+index 31ca1c9..6539cd1 100644
+--- a/more_itertools/more.pyi
++++ b/more_itertools/more.pyi
+@@ -246,6 +246,7 @@ def distinct_permutations(
+ def derangements(
+     iterable: Iterable[_T], r: int | None = None
+ ) -> Iterator[tuple[_T, ...]]: ...
++def subfactorial(n: int) -> int: ...
+ def intersperse(
+     e: _U, iterable: Iterable[_T], n: int = ...
+ ) -> Iterator[_T | _U]: ...
+diff --git a/tests/test_subfactorial.py b/tests/test_subfactorial.py
+new file mode 100644
+index 0000000..db58d57
+--- /dev/null
++++ b/tests/test_subfactorial.py
+@@ -0,0 +1,39 @@
++import unittest
++
++import more_itertools
++from more_itertools import derangements, subfactorial
++
++
++class SubfactorialTests(unittest.TestCase):
++    def test_known_values(self):
++        expected = [1, 0, 1, 2, 9, 44, 265, 1854, 14833, 133496]
++        for n, want in enumerate(expected):
++            self.assertEqual(subfactorial(n), want, msg="n=%d" % n)
++
++    def test_public_api(self):
++        self.assertIs(more_itertools.subfactorial, subfactorial)
++
++    def test_agrees_with_derangements(self):
++        for n in range(8):
++            count = sum(1 for _ in derangements("." * n))
++            self.assertEqual(subfactorial(n), count, msg="n=%d" % n)
++
++    def test_large_value(self):
++        # !20 = 895014631192902121
++        self.assertEqual(subfactorial(20), 895014631192902121)
++
++    def test_float_raises_type_error(self):
++        with self.assertRaises(TypeError):
++            subfactorial(3.0)
++
++    def test_str_raises_type_error(self):
++        with self.assertRaises(TypeError):
++            subfactorial("3")
++
++    def test_negative_raises_value_error(self):
++        with self.assertRaises(ValueError):
++            subfactorial(-1)
++
++
++if __name__ == "__main__":
++    unittest.main()

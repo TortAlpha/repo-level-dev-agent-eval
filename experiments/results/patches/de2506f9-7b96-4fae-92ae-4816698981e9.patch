@@ -1,0 +1,53 @@
+diff --git a/sqlglot/generators/clickhouse.py b/sqlglot/generators/clickhouse.py
+index eef1a97a..44ad0d43 100644
+--- a/sqlglot/generators/clickhouse.py
++++ b/sqlglot/generators/clickhouse.py
+@@ -29,6 +29,14 @@ from collections import defaultdict
+ DATETIME_DELTA = t.Union[exp.DateAdd, exp.DateDiff, exp.DateSub, exp.TimestampSub, exp.TimestampAdd]
+ 
+ 
++def _groupconcat_sql(self: ClickHouseGenerator, expression: exp.GroupConcat) -> str:
++    this = self.sql(expression, "this")
++    separator = self.sql(expression, "separator")
++    if separator:
++        return f"groupConcat({separator})({this})"
++    return self.func("groupConcat", expression.this)
++
++
+ def _unix_to_time_sql(self: ClickHouseGenerator, expression: exp.UnixToTime) -> str:
+     scale = expression.args.get("scale")
+     timestamp = expression.this
+@@ -378,6 +386,7 @@ class ClickHouseGenerator(generator.Generator):
+             rename_func("editDistance")
+         ),
+         exp.ParseDatetime: rename_func("parseDateTime"),
++        exp.GroupConcat: _groupconcat_sql,
+     }
+ 
+     PROPERTIES_LOCATION = {
+diff --git a/sqlglot/parsers/clickhouse.py b/sqlglot/parsers/clickhouse.py
+index 592ecc70..d710121e 100644
+--- a/sqlglot/parsers/clickhouse.py
++++ b/sqlglot/parsers/clickhouse.py
+@@ -364,6 +364,7 @@ class ClickHouseParser(parser.Parser):
+         "ARRAYJOIN": lambda self: self.expression(exp.Explode(this=self._parse_expression())),
+         "QUANTILE": lambda self: self._parse_quantile(),
+         "MEDIAN": lambda self: self._parse_quantile(),
++        "GROUPCONCAT": lambda self: self._parse_group_concat(),
+         "COLUMNS": lambda self: self._parse_columns(),
+         "TUPLE": lambda self: exp.Struct.from_arg_list(self._parse_function_args(alias=True)),
+         "AND": lambda self: exp.and_(*self._parse_function_args(alias=False)),
+@@ -736,6 +737,13 @@ class ClickHouseParser(parser.Parser):
+             return self.expression(exp.Quantile(this=params[0], quantile=this))
+         return self.expression(exp.Quantile(this=this, quantile=exp.Literal.number(0.5)))
+ 
++    def _parse_group_concat(self) -> exp.GroupConcat:
++        separator = self._parse_lambda()
++        params = self._parse_func_params()
++        if params:
++            return self.expression(exp.GroupConcat(this=params[0], separator=separator))
++        return self.expression(exp.GroupConcat(this=separator))
++
+     def _parse_wrapped_id_vars(self, optional: bool = False) -> list[exp.Expr]:
+         return super()._parse_wrapped_id_vars(optional=True)
+ 

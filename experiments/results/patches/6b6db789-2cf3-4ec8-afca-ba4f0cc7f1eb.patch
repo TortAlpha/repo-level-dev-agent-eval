@@ -1,0 +1,134 @@
+diff --git a/lib/ansible/module_utils/common/text/formatters.py b/lib/ansible/module_utils/common/text/formatters.py
+index 3096abec7c..1879190960 100644
+--- a/lib/ansible/module_utils/common/text/formatters.py
++++ b/lib/ansible/module_utils/common/text/formatters.py
+@@ -20,6 +20,16 @@ SIZE_RANGES = {
+     'B': 1,
+ }
+ 
++BYTE_WORDS = {
++    'byte', 'kilobyte', 'megabyte', 'gigabyte', 'terabyte',
++    'petabyte', 'exabyte', 'zettabyte', 'yottabyte',
++}
++
++BIT_WORDS = {
++    'bit', 'kilobit', 'megabit', 'gigabit', 'terabit',
++    'petabit', 'exabit', 'zettabit', 'yottabit',
++}
++
+ 
+ def lenient_lowercase(lst):
+     """Lowercase elements of a list.
+@@ -53,7 +63,7 @@ def human_to_bytes(number, default_unit=None, isbits=False):
+         The function expects 'b' (lowercase) as a bit identifier, e.g. 'Mb'/'Kb'/etc.
+         if 'MB'/'KB'/... is passed, the ValueError will be rased.
+     """
+-    m = re.search(r'^\s*(\d*\.?\d*)\s*([A-Za-z]+)?', str(number), flags=re.IGNORECASE)
++    m = re.search(r'^\s*([0-9]*\.?[0-9]+)\s*([A-Za-z]+)?\s*$', str(number))
+     if m is None:
+         raise ValueError("human_to_bytes() can't interpret following string: %s" % str(number))
+     try:
+@@ -68,12 +78,13 @@ def human_to_bytes(number, default_unit=None, isbits=False):
+     if unit is None:
+         # No unit given, returning raw number
+         return int(round(num))
++
+     range_key = unit[0].upper()
+-    try:
+-        limit = SIZE_RANGES[range_key]
+-    except Exception:
++    if range_key not in SIZE_RANGES:
+         raise ValueError("human_to_bytes() failed to convert %s (unit = %s). The suffix must be one of %s" % (number, unit, ", ".join(SIZE_RANGES.keys())))
+ 
++    limit = SIZE_RANGES[range_key]
++
+     # default value
+     unit_class = 'B'
+     unit_class_name = 'byte'
+@@ -82,14 +93,22 @@ def human_to_bytes(number, default_unit=None, isbits=False):
+         unit_class = 'b'
+         unit_class_name = 'bit'
+     # check unit value if more than one character (KB, MB)
+-    if len(unit) > 1:
++    if len(unit) == 2:
+         expect_message = 'expect %s%s or %s' % (range_key, unit_class, range_key)
+         if range_key == 'B':
+             expect_message = 'expect %s or %s' % (unit_class, unit_class_name)
+ 
+-        if unit_class_name in unit.lower():
+-            pass
+-        elif unit[1] != unit_class:
++        if unit[1] != unit_class:
++            raise ValueError("human_to_bytes() failed to convert %s. Value is not a valid string (%s)" % (number, expect_message))
++    elif len(unit) > 2:
++        # Full word unit (e.g. kilobyte, megabit)
++        expect_message = 'expect %s or %s' % (unit_class, unit_class_name)
++        word = unit.lower()
++        if isbits:
++            valid_words = BIT_WORDS
++        else:
++            valid_words = BYTE_WORDS
++        if word not in valid_words:
+             raise ValueError("human_to_bytes() failed to convert %s. Value is not a valid string (%s)" % (number, expect_message))
+ 
+     return int(round(num * limit))
+diff --git a/test/units/module_utils/common/text/formatters/test_human_to_bytes_strict.py b/test/units/module_utils/common/text/formatters/test_human_to_bytes_strict.py
+new file mode 100644
+index 0000000000..f8c1864831
+--- /dev/null
++++ b/test/units/module_utils/common/text/formatters/test_human_to_bytes_strict.py
+@@ -0,0 +1,54 @@
++# -*- coding: utf-8 -*-
++# Copyright (c) 2024 Ansible Project
++# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
++
++from __future__ import annotations
++
++import pytest
++
++from ansible.module_utils.common.text.formatters import human_to_bytes
++
++
++@pytest.mark.parametrize(
++    'test_input',
++    [
++        '10 BBQ sticks please',
++        '1 EBOOK please',
++        '3 prettybytes',
++        '12,000 MB',
++        u'1\u200b000 MB',  # zero-width space
++        u'8\U00016B5BB',
++        u'\u1B54 MB',  # Balinese digit
++    ]
++)
++def test_human_to_bytes_rejects_malformed_input(test_input):
++    """Malformed inputs must raise ValueError, not silently parse a prefix."""
++    with pytest.raises(ValueError):
++        human_to_bytes(test_input)
++
++
++@pytest.mark.parametrize(
++    'test_input',
++    [
++        '10 BBQ sticks please',
++        '1 EBOOK please',
++        '12,000 MB',
++        u'1\u200b000 MB',  # zero-width space
++    ]
++)
++def test_human_to_bytes_malformed_number_message(test_input):
++    """Malformed numbers should raise a ValueError mentioning interpretation."""
++    with pytest.raises(ValueError, match="can't interpret following string"):
++        human_to_bytes(test_input)
++
++
++@pytest.mark.parametrize(
++    'test_input',
++    [
++        '3 prettybytes',
++    ]
++)
++def test_human_to_bytes_malformed_unit_message(test_input):
++    """Malformed units should raise a ValueError mentioning a valid string."""
++    with pytest.raises(ValueError, match="Value is not a valid string"):
++        human_to_bytes(test_input)

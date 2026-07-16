@@ -1,0 +1,115 @@
+diff --git a/docs/api.rst b/docs/api.rst
+index 4e4c01d..631b25c 100644
+--- a/docs/api.rst
++++ b/docs/api.rst
+@@ -323,6 +323,7 @@ The tools focus on math with integers.
+ ----
+ 
+ .. autofunction:: nth_prime
++.. autofunction:: subfactorial
+ 
+ ----
+ 
+diff --git a/more_itertools/more.py b/more_itertools/more.py
+index 1986250..32cdc43 100755
+--- a/more_itertools/more.py
++++ b/more_itertools/more.py
+@@ -161,6 +161,7 @@ __all__ = [
+     'stagger',
+     'strip',
+     'strictly_n',
++    'subfactorial',
+     'substrings',
+     'substrings_indexes',
+     'synchronized',
+@@ -5252,6 +5253,38 @@ def nth_prime(n, *, approximate=False):
+     return first_true(count(odd, step=2), pred=is_prime)
+ 
+ 
++def subfactorial(n):
++    """Return the subfactorial of *n*, the number of derangements of *n* items.
++
++    The subfactorial of *n* counts the number of permutations of *n*
++    elements that leave no element in its original position (OEIS A000166).
++
++        >>> subfactorial(0)
++        1
++        >>> subfactorial(1)
++        0
++        >>> subfactorial(2)
++        1
++        >>> subfactorial(3)
++        2
++        >>> subfactorial(4)
++        9
++        >>> subfactorial(5)
++        44
++
++    Non-integer input raises a :exc:`TypeError`; negative input raises a
++    :exc:`ValueError`.
++    """
++    if not isinstance(n, int) or isinstance(n, bool):
++        raise TypeError(f'expected int, got {type(n).__name__}')
++    if n < 0:
++        raise ValueError('n must be non-negative')
++    a, b = 1, 0  # !0, !1
++    for k in range(2, n + 1):
++        a, b = b, (k - 1) * (a + b)
++    return b if n >= 1 else a
++
++
+ def argmin(iterable, *, key=None):
+     """
+     Index of the first occurrence of a minimum value in an iterable.
+diff --git a/more_itertools/more.pyi b/more_itertools/more.pyi
+index 31ca1c9..7c1bb2f 100644
+--- a/more_itertools/more.pyi
++++ b/more_itertools/more.pyi
+@@ -938,6 +938,7 @@ def dft(xarr: Sequence[complex]) -> Iterator[complex]: ...
+ def idft(Xarr: Sequence[complex]) -> Iterator[complex]: ...
+ def _nth_prime_ub(n: int) -> float: ...
+ def nth_prime(n: int, *, approximate: bool = ...) -> int: ...
++def subfactorial(n: int) -> int: ...
+ def argmin(
+     iterable: Iterable[_T], *, key: Callable[[_T], _U] | None = ...
+ ) -> int: ...
+diff --git a/tests/test_subfactorial.py b/tests/test_subfactorial.py
+new file mode 100644
+index 0000000..027faad
+--- /dev/null
++++ b/tests/test_subfactorial.py
+@@ -0,0 +1,34 @@
++from __future__ import annotations
++
++from unittest import TestCase
++
++import more_itertools as mi
++
++
++class TestSubfactorial(TestCase):
++    """Tests for ``subfactorial()``."""
++
++    def test_known_values(self):
++        self.assertEqual(mi.subfactorial(0), 1)
++        self.assertEqual(mi.subfactorial(1), 0)
++        self.assertEqual(mi.subfactorial(2), 1)
++        self.assertEqual(mi.subfactorial(3), 2)
++        self.assertEqual(mi.subfactorial(4), 9)
++        self.assertEqual(mi.subfactorial(5), 44)
++
++    def test_cross_check_derangements(self):
++        for n in range(0, 9):
++            expected = sum(1 for _ in mi.derangements(range(n)))
++            self.assertEqual(mi.subfactorial(n), expected)
++
++    def test_type_error_float(self):
++        with self.assertRaises(TypeError):
++            mi.subfactorial(1.0)
++
++    def test_type_error_str(self):
++        with self.assertRaises(TypeError):
++            mi.subfactorial('1')
++
++    def test_value_error_negative(self):
++        with self.assertRaises(ValueError):
++            mi.subfactorial(-1)

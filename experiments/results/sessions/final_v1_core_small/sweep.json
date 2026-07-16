@@ -1,0 +1,521 @@
+{
+  "schema_version": 1,
+  "session_id": "final_v1_core_small",
+  "created_at": "2026-07-12T12:38:04.933625+00:00",
+  "task_set": "final-v1",
+  "task_set_path": "eval/task_sets/final_v1.json",
+  "task_set_sha256": "9e117886946d7ea184cf51a8deae0b188648f0aca85a6339340046c8aa9d7d8c",
+  "previously_exercised": [
+    "h11_pr_181",
+    "humanize_pr_329",
+    "pluggy_pr_646",
+    "w3lib_pr_272",
+    "parse_pr_165",
+    "parse_pr_227",
+    "cachetools_pr_57d2e48",
+    "tinydb_pr_616",
+    "python_dotenv_pr_640",
+    "toolz_pr_603",
+    "markdown_pr_1606",
+    "markdown_pr_1546",
+    "sqlparse_pr_642",
+    "sqlparse_pr_746",
+    "sqlparse_pr_664",
+    "more_itertools_pr_1166",
+    "more_itertools_pr_1153",
+    "boltons_pr_403",
+    "pydash_pr_cdd84b4",
+    "sqlglot_pr_7660486c",
+    "swepro_openlibrary_2abe28b4"
+  ],
+  "collection_sha256": "0d3d18079f06bc7bf62eeb93ed2681c99f74c25d689e57b4e08122645d2dc159",
+  "pricing_sha256": "ee2eebcdae576de8990552d704983dbd89114ded81bf06c187267e1060934373",
+  "tasks": [
+    "h11_pr_181",
+    "humanize_pr_329",
+    "pluggy_pr_646",
+    "w3lib_pr_272",
+    "parse_pr_165",
+    "parse_pr_227",
+    "cachetools_pr_57d2e48",
+    "tinydb_pr_616",
+    "python_dotenv_pr_640",
+    "tenacity_pr_628",
+    "freezegun_pr_546",
+    "croniter_pr_235"
+  ],
+  "task_inputs": {
+    "h11_pr_181": {
+      "base_commit": "31e626c64e1e28db3cd73a6aa0ac057f1b915c18",
+      "task_sha256": "a434b5941e38375cdf6128a3ad15ceb78cce40da3b9fd963c8b5019b7f4112e6",
+      "hidden_tree_sha256": "105b08f3904da351658eebe46f195faa3946af731aea3ac2f23360f7998ba91a",
+      "docker_image": "python:3.11-slim",
+      "visible_test_command": "python -m pytest h11",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/h11/tests/test_headers.py::test_normalize_and_validate"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest h11"
+        }
+      ]
+    },
+    "humanize_pr_329": {
+      "base_commit": "976484a655df046aa6849f440a4f0cd44fc4918c",
+      "task_sha256": "dd5b9268582b621372a82fe485f56f0fd52f76f652b8e084b6df062ba8a693c0",
+      "hidden_tree_sha256": "81afa250618f52ff131e6a1c5e2c76550f6af923f82d8eedf385cd08ca8685cf",
+      "docker_image": "python:3.11-slim",
+      "visible_test_command": "python -m pytest tests",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_filesize.py::test_naturalsize"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests"
+        }
+      ]
+    },
+    "pluggy_pr_646": {
+      "base_commit": "6ab917ba3b2dc1dceba6a260a0c30cb947f6a69c",
+      "task_sha256": "1551def34b55a37bfda37e45b9e670b177eca436a8639008b7fc480fd4c15f9c",
+      "hidden_tree_sha256": "bfcb6e502be34ef3165184f2bc38157d9047d41b9c05d2376a6d416dbe047d4c",
+      "docker_image": "python:3.11-slim",
+      "visible_test_command": "python -m pytest testing",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/testing/test_pluginmanager.py::test_unregister_plugin_with_multi_hookimpls ../hidden_tests/testing/test_pluginmanager.py::test_get_hookcallers_no_duplicates"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest testing"
+        }
+      ]
+    },
+    "w3lib_pr_272": {
+      "base_commit": "012208453dfcc26ba0f7adc96f5b4981b9fd3687",
+      "task_sha256": "ac216a3620bf4bcdcb4deb5bd584717a618ec1055aabf3226a75eb8bf73f3f3b",
+      "hidden_tree_sha256": "7220d9f9315e29fada3b980f5b6bad5e3a3ebb32b9d7bd5aaa3f7ca90d7d71bd",
+      "docker_image": "python:3.11-slim",
+      "visible_test_command": "python -m pytest w3lib tests",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_url.py::TestCanonicalizeUrl::test_remove_fragments_ipv6_host"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest w3lib tests"
+        }
+      ]
+    },
+    "parse_pr_165": {
+      "base_commit": "04314d815703ecab7b00a160085d82ebfa724447",
+      "task_sha256": "658915523ad8310e4c9ec97396f39474d99652c1e05c5a730bc407ba41489073",
+      "hidden_tree_sha256": "1ddbaa09c22fb816a9731f231002e3f3347d43d2392b664b8e3b11198d55c0b6",
+      "docker_image": "python:3.11-slim",
+      "visible_test_command": "python -m pytest tests -o addopts=",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_parse.py -k flexible_datetime -o addopts="
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests -o addopts="
+        }
+      ]
+    },
+    "parse_pr_227": {
+      "base_commit": "71b443f4de2e9c82e117f935e347a1ab7fefdee1",
+      "task_sha256": "14fad603d1b3ddacfb8aabb24beea2df710159e901105c15891249f069c7bb97",
+      "hidden_tree_sha256": "8584351ba2ed7ffa3a04e8170ce889bd302f73d11b67204b4dc66c0ea072f770",
+      "docker_image": "python:3.11-slim",
+      "visible_test_command": "python -m pytest tests -o addopts=",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_parse.py::test_numbers -o addopts="
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests -o addopts="
+        }
+      ]
+    },
+    "cachetools_pr_57d2e48": {
+      "base_commit": "8011b71949e8d8d81a71359cca9477d67a2c9c0b",
+      "task_sha256": "927f358963a39c90aeb2fa0485103721c196b3f50063e2e4103feb0930e2c307",
+      "hidden_tree_sha256": "65430f90fc2569ddf273545114d27377e723a81878585efc2a573bbd4fa5d29c",
+      "docker_image": "python:3.11-slim",
+      "visible_test_command": "python -m pytest tests -o addopts=",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_cachedmethod.py -k autospec_no_warnings -o addopts="
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests -o addopts="
+        }
+      ]
+    },
+    "tinydb_pr_616": {
+      "base_commit": "8a2dc204c265c07ce8506a3599a28e720b6dcdd7",
+      "task_sha256": "25c115b1f1b220eb864c9411820071bc6b85873165781b67f249f870ee549a1f",
+      "hidden_tree_sha256": "f2dcdd960139a46241544114be22e092e9ad48b452a89060c30b75b8822174f5",
+      "docker_image": "python:3.11-slim",
+      "visible_test_command": "python -m pytest tests",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_tinydb.py::test_update_ids_missing ../hidden_tests/tests/test_tinydb.py::test_update_ids_mixed ../hidden_tests/tests/test_tinydb.py::test_remove_ids_missing ../hidden_tests/tests/test_tinydb.py::test_remove_ids_mixed ../hidden_tests/tests/test_tinydb.py::test_doc_id_missing_consistency"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests"
+        }
+      ]
+    },
+    "python_dotenv_pr_640": {
+      "base_commit": "68ea2d10dd8e97e6dea67c32742085f27729e3fe",
+      "task_sha256": "b836a897463147840611797b123795efdedb7e67c89a101ad8a4e6f3dae0dd3b",
+      "hidden_tree_sha256": "97d1f933a07a0c1498869b234e1e3667db42fd519ec42d9135e5b8d86280dca9",
+      "docker_image": "python:3.11-slim",
+      "visible_test_command": "python -m pytest tests",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_parser.py"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests"
+        }
+      ]
+    },
+    "tenacity_pr_628": {
+      "base_commit": "21189c74a98552a3efa96e538b9ef2f25668d094",
+      "task_sha256": "cf3d4573be8788f0fd3854da43f1b1e719439fa713fd3094709f40190fe9ca30",
+      "hidden_tree_sha256": "122dd12176cc15a9903c06063b34aa5b032431485c48730ae25b6d32a3177979",
+      "docker_image": "python:3.11-slim",
+      "visible_test_command": "python -m pytest tests/test_tenacity.py",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_tenacity.py::TestWaitConditions::test_wait_exponential_jitter_min ../hidden_tests/tests/test_tenacity.py::TestWaitConditions::test_wait_exponential_jitter_timedelta"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests/test_tenacity.py"
+        }
+      ]
+    },
+    "freezegun_pr_546": {
+      "base_commit": "17ea422800fc72a6e507755f1cfbf6ec75ba0359",
+      "task_sha256": "0f93390a79a744690c413d62ba6db55ad2fcec1292dfe0f0f0cf51c738542a4f",
+      "hidden_tree_sha256": "0b102292cf225e423ca1563762aef42bc081f357575f5f6c1adca6b38c98f656",
+      "docker_image": "python:3.11-slim",
+      "visible_test_command": "python -m pytest tests",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_datetimes.py::test_manual_increment ../hidden_tests/tests/test_operations.py::test_auto_and_manual_tick"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests"
+        }
+      ]
+    },
+    "croniter_pr_235": {
+      "base_commit": "9810279c20030954e2f1ed2cf5f1d34b98c6b07f",
+      "task_sha256": "efd128fa13994ecf1341a65880722913f1366401dc2ffd6369fc55044a315265",
+      "hidden_tree_sha256": "8ae1508c4cb59ce44c23f4d4d478f4d50fa3ee5d428371f48cc13e17bf964fb6",
+      "docker_image": "python:3.11-slim",
+      "visible_test_command": "python -m pytest src/croniter/tests",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/src/croniter/tests/test_croniter.py::CroniterTest::test_expand_from_start_time_month_divisible"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest src/croniter/tests"
+        }
+      ]
+    }
+  },
+  "ordered_combinations": [
+    {
+      "task": "h11_pr_181",
+      "model": "z-ai/glm-5.2",
+      "agent": "single"
+    },
+    {
+      "task": "h11_pr_181",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-graph"
+    },
+    {
+      "task": "h11_pr_181",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-orch-guarded"
+    },
+    {
+      "task": "humanize_pr_329",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-graph"
+    },
+    {
+      "task": "humanize_pr_329",
+      "model": "z-ai/glm-5.2",
+      "agent": "single"
+    },
+    {
+      "task": "humanize_pr_329",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-orch-guarded"
+    },
+    {
+      "task": "pluggy_pr_646",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-graph"
+    },
+    {
+      "task": "pluggy_pr_646",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-orch-guarded"
+    },
+    {
+      "task": "pluggy_pr_646",
+      "model": "z-ai/glm-5.2",
+      "agent": "single"
+    },
+    {
+      "task": "w3lib_pr_272",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-orch-guarded"
+    },
+    {
+      "task": "w3lib_pr_272",
+      "model": "z-ai/glm-5.2",
+      "agent": "single"
+    },
+    {
+      "task": "w3lib_pr_272",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-graph"
+    },
+    {
+      "task": "parse_pr_165",
+      "model": "z-ai/glm-5.2",
+      "agent": "single"
+    },
+    {
+      "task": "parse_pr_165",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-orch-guarded"
+    },
+    {
+      "task": "parse_pr_165",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-graph"
+    },
+    {
+      "task": "parse_pr_227",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-graph"
+    },
+    {
+      "task": "parse_pr_227",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-orch-guarded"
+    },
+    {
+      "task": "parse_pr_227",
+      "model": "z-ai/glm-5.2",
+      "agent": "single"
+    },
+    {
+      "task": "cachetools_pr_57d2e48",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-orch-guarded"
+    },
+    {
+      "task": "cachetools_pr_57d2e48",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-graph"
+    },
+    {
+      "task": "cachetools_pr_57d2e48",
+      "model": "z-ai/glm-5.2",
+      "agent": "single"
+    },
+    {
+      "task": "tinydb_pr_616",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-orch-guarded"
+    },
+    {
+      "task": "tinydb_pr_616",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-graph"
+    },
+    {
+      "task": "tinydb_pr_616",
+      "model": "z-ai/glm-5.2",
+      "agent": "single"
+    },
+    {
+      "task": "python_dotenv_pr_640",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-graph"
+    },
+    {
+      "task": "python_dotenv_pr_640",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-orch-guarded"
+    },
+    {
+      "task": "python_dotenv_pr_640",
+      "model": "z-ai/glm-5.2",
+      "agent": "single"
+    },
+    {
+      "task": "tenacity_pr_628",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-graph"
+    },
+    {
+      "task": "tenacity_pr_628",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-orch-guarded"
+    },
+    {
+      "task": "tenacity_pr_628",
+      "model": "z-ai/glm-5.2",
+      "agent": "single"
+    },
+    {
+      "task": "freezegun_pr_546",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-graph"
+    },
+    {
+      "task": "freezegun_pr_546",
+      "model": "z-ai/glm-5.2",
+      "agent": "single"
+    },
+    {
+      "task": "freezegun_pr_546",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-orch-guarded"
+    },
+    {
+      "task": "croniter_pr_235",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-graph"
+    },
+    {
+      "task": "croniter_pr_235",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-orch-guarded"
+    },
+    {
+      "task": "croniter_pr_235",
+      "model": "z-ai/glm-5.2",
+      "agent": "single"
+    }
+  ],
+  "settings": {
+    "tasks": null,
+    "task_set": "final-v1",
+    "task_groups": null,
+    "matrix": "core-small",
+    "models": "z-ai/glm-5.2",
+    "agents": "single,multi-graph,multi-orch-guarded",
+    "session": "final_v1_core_small",
+    "campaign": "final_v1_main",
+    "provider": "openrouter",
+    "action_transport": null,
+    "reasoning_effort": null,
+    "role_model": null,
+    "developer_escalation_model": null,
+    "developer_escalate_after_no_edit_episodes": null,
+    "developer_escalate_after_failed_tests": null,
+    "max_cost_usd": null,
+    "max_total_cost_usd": 50.0,
+    "context_budget_tokens": null,
+    "single_research_guard": null,
+    "single_research_warning_steps": null,
+    "single_research_hard_limit": null,
+    "single_post_plan_research_warning_steps": null,
+    "single_post_plan_research_hard_limit": null,
+    "single_compatibility_guard": null,
+    "max_subtasks": null,
+    "decomposition_implementation_warning_steps": null,
+    "decomposition_implementation_hard_limit": null,
+    "decomposition_verification_step_reserve": null,
+    "decomposition_max_repair_cycles": null,
+    "collection": "repositories/collection.csv",
+    "max_steps": null,
+    "max_iterations": null,
+    "enable_review": false,
+    "no_score": false,
+    "no_regression": false,
+    "no_network": false,
+    "no_setup": false,
+    "order": "task-major",
+    "seed": 20260712,
+    "infrastructure_retries": 1,
+    "archive_patches": true,
+    "keep_workspaces": false,
+    "concurrency": 1
+  },
+  "resolved_config": {
+    "model_provider": "openrouter",
+    "provider_default_model": "z-ai/glm-5.2",
+    "temperature": 0.0,
+    "max_tokens": 16384,
+    "reasoning_effort": null,
+    "action_transport": "text_json",
+    "request_timeout_seconds": 600,
+    "max_retries": 2,
+    "max_iterations": 5,
+    "max_steps": 50,
+    "test_timeout_seconds": 600,
+    "shell_timeout_seconds": 300,
+    "compaction_mode": "summarize",
+    "context_budget_tokens": 48000,
+    "docker_network_disabled": true,
+    "single_research_guard_enabled": true,
+    "single_compatibility_guard_enabled": true,
+    "single_research_limits": {
+      "warning": 12,
+      "hard": 20,
+      "post_plan_warning": 5,
+      "post_plan_hard": 8
+    },
+    "role_models": {
+      "orchestrator": null,
+      "planner": null,
+      "developer": null,
+      "tester": null,
+      "reviewer": null
+    },
+    "developer_escalation_model": null
+  },
+  "harness": {
+    "git_commit": "6c0af80e6b8465548073079afae7ce5c0673a9f6",
+    "dirty": false,
+    "dirty_entries": [],
+    "tree_sha256": "ad00fe28d77da6222f7786fc09fc8948c659933f12c37e69a6da104325d2087b",
+    "file_count": 65
+  },
+  "fingerprint": "9c0fc3855180df8ac17a4399164d59eb4e9c14ef0e652691d643211e21697253"
+}

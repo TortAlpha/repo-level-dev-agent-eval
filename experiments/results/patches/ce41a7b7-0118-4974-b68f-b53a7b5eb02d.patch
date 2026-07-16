@@ -1,0 +1,138 @@
+diff --git a/sqlparse/sql.py b/sqlparse/sql.py
+index def0679..e143dfb 100644
+--- a/sqlparse/sql.py
++++ b/sqlparse/sql.py
+@@ -623,7 +623,17 @@ class Function(NameAliasMixin, TokenList):
+ 
+     def get_parameters(self):
+         """Return a list of parameters."""
+-        parenthesis = self.tokens[-1]
++        # Find the Parenthesis token (parameters), not assuming it's at the end
++        # since an Over clause might follow
++        parenthesis = None
++        for token in self.tokens:
++            if isinstance(token, Parenthesis):
++                parenthesis = token
++                break
++        
++        if parenthesis is None:
++            return []
++        
+         result = []
+         for token in parenthesis.tokens:
+             if isinstance(token, IdentifierList):
+@@ -632,6 +642,37 @@ class Function(NameAliasMixin, TokenList):
+                      t=T.Literal):
+                 result.append(token)
+         return result
++    
++    def get_window(self):
++        """Return the window specification if present.
++        
++        Returns:
++        - For named windows (e.g., OVER win1): the window identifier
++        - For inline windows (e.g., OVER (PARTITION BY c1)): the parenthesis
++        - None if no OVER clause is present
++        """
++        # Find the Over token in the function
++        over_token = None
++        for token in self.tokens:
++            if isinstance(token, Over):
++                over_token = token
++                break
++        
++        if over_token is None:
++            return None
++        
++        # Extract the window specification from the Over token
++        # Skip the OVER keyword and whitespace, return the first meaningful token
++        for token in over_token.tokens:
++            if token.ttype is T.Keyword:  # Skip OVER keyword
++                continue
++            if token.is_whitespace:  # Skip whitespace
++                continue
++            # Return the first non-keyword, non-whitespace token
++            # This will be either an Identifier/Name (named window) or Parenthesis (inline window)
++            return token
++        
++        return None
+ 
+ 
+ class Begin(TokenList):
+diff --git a/tests/test_window_function.py b/tests/test_window_function.py
+new file mode 100644
+index 0000000..8c619fb
+--- /dev/null
++++ b/tests/test_window_function.py
+@@ -0,0 +1,71 @@
++"""Tests for Function.get_window() and get_parameters() with OVER clauses."""
++
++import sqlparse
++import sqlparse.sql as sql
++
++
++def _find_function(token):
++    """Recursively find the first Function token in the parsed statement."""
++    if isinstance(token, sql.Function):
++        return token
++    if isinstance(token, sql.TokenList):
++        for t in token.tokens:
++            found = _find_function(t)
++            if found is not None:
++                return found
++    return None
++
++
++def test_get_window_named():
++    p = sqlparse.parse('foo(5) OVER win1')[0]
++    func = _find_function(p)
++    assert isinstance(func, sql.Function)
++    win = func.get_window()
++    assert win is not None
++    assert isinstance(win, sql.Identifier)
++    assert win.get_name() == 'win1'
++    params = func.get_parameters()
++    assert len(params) == 1
++
++
++def test_get_window_inline():
++    p = sqlparse.parse('foo(5) OVER (PARTITION BY c1)')[0]
++    func = _find_function(p)
++    assert isinstance(func, sql.Function)
++    win = func.get_window()
++    assert win is not None
++    assert isinstance(win, sql.Parenthesis)
++    params = func.get_parameters()
++    assert len(params) == 1
++
++
++def test_get_window_none():
++    p = sqlparse.parse('foo(5)')[0]
++    func = _find_function(p)
++    assert isinstance(func, sql.Function)
++    assert func.get_window() is None
++    params = func.get_parameters()
++    assert len(params) == 1
++
++
++def test_get_window_named_with_alias():
++    p = sqlparse.parse('foo(c1) over win1 as bar')[0]
++    func = _find_function(p)
++    assert isinstance(func, sql.Function)
++    win = func.get_window()
++    assert win is not None
++    assert isinstance(win, sql.Identifier)
++    assert win.get_name() == 'win1'
++    params = func.get_parameters()
++    assert len(params) == 1
++
++
++def test_get_window_inline_with_alias():
++    p = sqlparse.parse('foo(c1) over (partition by c2 order by c3) as bar')[0]
++    func = _find_function(p)
++    assert isinstance(func, sql.Function)
++    win = func.get_window()
++    assert win is not None
++    assert isinstance(win, sql.Parenthesis)
++    params = func.get_parameters()
++    assert len(params) == 1

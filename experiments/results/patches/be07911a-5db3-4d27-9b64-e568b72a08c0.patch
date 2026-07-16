@@ -1,0 +1,167 @@
+diff --git a/more_itertools/more.py b/more_itertools/more.py
+index 12b4942..0b5ec0f 100755
+--- a/more_itertools/more.py
++++ b/more_itertools/more.py
+@@ -1,5 +1,6 @@
+ import math
+ 
++from bisect import bisect_left, insort
+ from collections import Counter, defaultdict, deque
+ from collections.abc import Sequence
+ from contextlib import suppress
+@@ -39,6 +40,80 @@ from operator import (
+ from sys import maxsize
+ from time import monotonic
+ from threading import Lock
++from typing import NamedTuple
++
++class Stats(NamedTuple):
++    size: int
++    minimum: object
++    median: object
++    maximum: object
++    mean: float
++
++
++def running_statistics(iterable, *, maxlen=None):
++    """Yield stats summarizing the running window of *iterable*."""
++    if maxlen is not None:
++        if not isinstance(maxlen, int):
++            raise TypeError('maxlen must be an integer')
++        if maxlen <= 0:
++            raise ValueError('maxlen must be positive')
++    window = deque()
++    sorted_window = []
++    total = 0.0
++    iterator = iter(iterable)
++    for value in iterator:
++        window.append(value)
++        insort(sorted_window, value)
++        total += float(value)
++        if maxlen is not None and len(window) > maxlen:
++            removed = window.popleft()
++            idx = bisect_left(sorted_window, removed)
++            sorted_window.pop(idx)
++            total -= float(removed)
++        size = len(window)
++        if size % 2 == 1:
++            median = sorted_window[size // 2]
++        else:
++            middle = size // 2
++            median = (sorted_window[middle - 1] + sorted_window[middle]) / 2
++        mean = total / size
++        yield Stats(
++            size=size,
++            minimum=sorted_window[0],
++            median=median,
++            maximum=sorted_window[-1],
++            mean=mean,
++        )
++
++
++# math.sumprod is available for Python 3.12+
++try:
++    from math import sumprod as _fsumprod
++except ImportError:  # pragma: no cover
++    # Extended precision algorithms from T. J. Dekker,
++    # "A Floating-Point Technique for Extending the Available Precision"
++    # https://csclub.uwaterloo.ca/~pbarfuss/dekker1971.pdf
++    # Formulas: (5.5) (5.6) and (5.8).  Code: mul12()
++
++    def dl_split(x: float):
++        "Split a float into two half-precision components."
++        t = x * 134217729.0  # Veltkamp constant = 2.0 ** 27 + 1
++        hi = t - (t - x)
++        lo = x - hi
++        return hi, lo
++
++    def dl_mul(x, y):
++        "Lossless multiplication."
++        xx_hi, xx_lo = dl_split(x)
++        yy_hi, yy_lo = dl_split(y)
++        p = xx_hi * yy_hi
++        q = xx_hi * yy_lo + xx_lo * yy_hi
++        z = p + q
++        zz = p - z + q + xx_lo * yy_lo
++        return z, zz
++
++    def _fsumprod(p, q):
++        return fsum(chain.from_iterable(map(dl_mul, p, q)))
+ 
+ from .recipes import (
+     _marker,
+@@ -58,6 +133,7 @@ from .recipes import (
+ __all__ = [
+     'AbortThread',
+     'SequenceView',
++    'Stats',
+     'adjacent',
+     'all_unique',
+     'always_iterable',
+@@ -143,6 +219,7 @@ __all__ = [
+     'rlocate',
+     'rstrip',
+     'run_length',
++    'running_statistics',
+     'sample',
+     'seekable',
+     'serialize',
+@@ -176,6 +253,13 @@ __all__ = [
+     'zip_offset',
+ ]
+ 
++class Stats(NamedTuple):
++    size: int
++    minimum: object
++    median: object
++    maximum: object
++    mean: float
++
+ # math.sumprod is available for Python 3.12+
+ try:
+     from math import sumprod as _fsumprod
+diff --git a/tests/test_more.py b/tests/test_more.py
+index 2e0cc06..2c3e41c 100644
+--- a/tests/test_more.py
++++ b/tests/test_more.py
+@@ -191,6 +191,40 @@ class LastTests(TestCase):
+         self.assertEqual(mi.last(ReversedIsNone()), 1)
+ 
+ 
++class RunningStatisticsTests(TestCase):
++    def test_unbounded_window(self):
++        iterator = mi.running_statistics([4, 3, 7])
++        self.assertEqual(
++            next(iterator),
++            mi.Stats(size=1, minimum=4, median=4, maximum=4, mean=4.0),
++        )
++        self.assertEqual(
++            next(iterator),
++            mi.Stats(size=2, minimum=3, median=3.5, maximum=4, mean=3.5),
++        )
++        self.assertEqual(
++            next(iterator),
++            mi.Stats(size=3, minimum=3, median=4, maximum=7, mean=14 / 3),
++        )
++
++    def test_bounded_window(self):
++        iterator = mi.running_statistics(range(1, 6), maxlen=3)
++        expected = [
++            mi.Stats(size=1, minimum=1, median=1, maximum=1, mean=1.0),
++            mi.Stats(size=2, minimum=1, median=1.5, maximum=2, mean=1.5),
++            mi.Stats(size=3, minimum=1, median=2, maximum=3, mean=2.0),
++            mi.Stats(size=3, minimum=2, median=3, maximum=4, mean=3.0),
++            mi.Stats(size=3, minimum=3, median=4, maximum=5, mean=4.0),
++        ]
++        self.assertEqual(list(iterator), expected)
++
++    def test_invalid_maxlen(self):
++        with self.assertRaises(TypeError):
++            list(mi.running_statistics([1], maxlen=2.5))
++        with self.assertRaises(ValueError):
++            list(mi.running_statistics([1], maxlen=0))
++
++
+ class NthOrLastTests(TestCase):
+     """Tests for ``nth_or_last()``"""
+ 

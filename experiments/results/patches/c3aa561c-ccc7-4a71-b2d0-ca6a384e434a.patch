@@ -1,0 +1,221 @@
+diff --git a/lib/ansible/module_utils/facts/network/linux.py b/lib/ansible/module_utils/facts/network/linux.py
+index b7ae97656b..16dbe950a1 100644
+--- a/lib/ansible/module_utils/facts/network/linux.py
++++ b/lib/ansible/module_utils/facts/network/linux.py
+@@ -25,6 +25,7 @@ import struct
+ from ansible.module_utils.facts.network.base import Network, NetworkCollector
+ 
+ from ansible.module_utils.facts.utils import get_file_content
++from ansible.module_utils.common.text.converters import to_text
+ 
+ 
+ class LinuxNetwork(Network):
+@@ -59,8 +60,107 @@ class LinuxNetwork(Network):
+         network_facts['default_ipv6'] = default_ipv6
+         network_facts['all_ipv4_addresses'] = ips['all_ipv4_addresses']
+         network_facts['all_ipv6_addresses'] = ips['all_ipv6_addresses']
++        network_facts['locally_reachable_ips'] = self.get_locally_reachable_ips(ip_path)
+         return network_facts
+ 
++    def get_locally_reachable_ips(self, ip_path):
++        """Return locally reachable (scope host) IP ranges for IPv4 and IPv6.
++
++        :param ip_path: path to the ``ip`` command.
++        :returns: a dict with ``ipv4`` and ``ipv6`` keys, each a sorted,
++                  de-duplicated list of canonical locally reachable prefixes
++                  and addresses.
++        """
++        reachable = {'ipv4': [], 'ipv6': []}
++        if ip_path is None:
++            return reachable
++
++        commands = {
++            'ipv4': [ip_path, '-4', 'route', 'show', 'table', 'local'],
++            'ipv6': [ip_path, '-6', 'route', 'show', 'table', 'local'],
++        }
++
++        for family, command in commands.items():
++            try:
++                rc, out, err = self.module.run_command(command)
++            except (OSError, IOError) as e:
++                self.module.warn('Unable to read local route table for %s: %s' % (family, to_text(e)))
++                continue
++            if rc != 0:
++                self.module.warn('Unable to read local route table for %s: %s' % (family, to_text(err or 'unknown error')))
++                continue
++
++            entries = set()
++            for line in out.splitlines():
++                line = line.strip()
++                if not line:
++                    continue
++                # Only consider routes that are local to the host (scope host).
++                if 'scope host' not in line and not line.startswith('local '):
++                    continue
++                if 'scope host' not in line:
++                    continue
++                # The destination is the first token after 'local' if present,
++                # otherwise the first token of the route line.
++                tokens = line.split()
++                if tokens and tokens[0] == 'local':
++                    dest = tokens[1] if len(tokens) > 1 else None
++                else:
++                    dest = tokens[0] if tokens else None
++                if not dest:
++                    continue
++                # Normalize to canonical CIDR/IP form.
++                normalized = self._normalize_route_dest(dest, family)
++                if normalized is not None:
++                    entries.add(normalized)
++
++            reachable[family] = sorted(entries)
++
++        return reachable
++
++    @staticmethod
++    def _normalize_route_dest(dest, family):
++        """Normalize a route destination to canonical CIDR or single IP form."""
++        if '/' in dest:
++            network, sep, prefix = dest.partition('/')
++            if not prefix:
++                return None
++            try:
++                prefix_len = int(prefix)
++            except ValueError:
++                return None
++            try:
++                if family == 'ipv4':
++                    packed = socket.inet_pton(socket.AF_INET, LinuxNetwork._strip_ipv4_leading_zeros(network))
++                    canonical = socket.inet_ntop(socket.AF_INET, packed)
++                else:
++                    packed = socket.inet_pton(socket.AF_INET6, network)
++                    canonical = socket.inet_ntop(socket.AF_INET6, packed)
++            except socket.error:
++                return None
++            return '%s/%d' % (canonical, prefix_len)
++        else:
++            try:
++                if family == 'ipv4':
++                    packed = socket.inet_pton(socket.AF_INET, LinuxNetwork._strip_ipv4_leading_zeros(dest))
++                    return socket.inet_ntop(socket.AF_INET, packed)
++                else:
++                    packed = socket.inet_pton(socket.AF_INET6, dest)
++                    return socket.inet_ntop(socket.AF_INET6, packed)
++            except socket.error:
++                return None
++
++    @staticmethod
++    def _strip_ipv4_leading_zeros(addr):
++        """Strip leading zeros from each octet of an IPv4 address string."""
++        parts = addr.split('.')
++        if len(parts) != 4:
++            return addr
++        try:
++            return '.'.join(str(int(p)) for p in parts)
++        except ValueError:
++            return addr
++
+     def get_default_interfaces(self, ip_path, collected_facts=None):
+         collected_facts = collected_facts or {}
+         # Use the commands:
+diff --git a/test/units/module_utils/facts/test_locally_reachable_ips.py b/test/units/module_utils/facts/test_locally_reachable_ips.py
+new file mode 100644
+index 0000000000..9c828f187c
+--- /dev/null
++++ b/test/units/module_utils/facts/test_locally_reachable_ips.py
+@@ -0,0 +1,95 @@
++# -*- coding: utf-8 -*-
++from __future__ import (absolute_import, division, print_function)
++__metaclass__ = type
++
++from units.compat.mock import Mock
++
++from ansible.module_utils.facts.network.linux import LinuxNetwork
++
++
++IPV4_LOCAL = """broadcast 127.0.0.0 dev lo proto kernel scope link src 127.0.0.1
++local 127.0.0.0/8 dev lo proto kernel scope host src 127.0.0.1
++local 127.0.0.1 dev lo proto kernel scope host src 127.0.0.1
++local 192.168.0.1 dev eth0 proto kernel scope host src 192.168.0.1
++local 192.168.1.0/24 dev eth0 proto kernel scope host src 192.168.1.1
++broadcast 192.168.0.255 dev eth0 proto kernel scope link src 192.168.0.1
++"""
++
++IPV6_LOCAL = """local ::1 dev lo proto kernel scope host src ::1
++local fe80::/64 dev eth0 proto kernel scope host src fe80::1
++local 2001:db8::1 dev eth0 proto kernel scope host src 2001:db8::1
++"""
++
++
++def _make_network(ipv4_out=IPV4_LOCAL, ipv6_out=IPV6_LOCAL, rc=0, err=''):
++    module = Mock()
++    module.get_bin_path.return_value = '/sbin/ip'
++
++    def run_command(cmd):
++        if '-4' in cmd:
++            return (rc, ipv4_out, err)
++        if '-6' in cmd:
++            return (rc, ipv6_out, err)
++        return (1, '', 'unexpected command')
++
++    module.run_command = Mock(side_effect=run_command)
++    return LinuxNetwork(module, load_on_init=False)
++
++
++def test_get_locally_reachable_ips_structure():
++    net = _make_network()
++    result = net.get_locally_reachable_ips('/sbin/ip')
++    assert isinstance(result, dict)
++    assert set(result.keys()) == {'ipv4', 'ipv6'}
++    assert isinstance(result['ipv4'], list)
++    assert isinstance(result['ipv6'], list)
++
++
++def test_get_locally_reachable_ips_ipv4_contents():
++    net = _make_network()
++    result = net.get_locally_reachable_ips('/sbin/ip')
++    assert '127.0.0.0/8' in result['ipv4']
++    assert '127.0.0.1' in result['ipv4']
++    assert '192.168.0.1' in result['ipv4']
++    assert '192.168.1.0/24' in result['ipv4']
++    # broadcast/scope link routes are not locally reachable (scope host)
++    assert '127.0.0.0' not in result['ipv4']
++    assert '192.168.0.255' not in result['ipv4']
++
++
++def test_get_locally_reachable_ips_ipv6_contents():
++    net = _make_network()
++    result = net.get_locally_reachable_ips('/sbin/ip')
++    assert '::1' in result['ipv6']
++    assert 'fe80::/64' in result['ipv6']
++    assert '2001:db8::1' in result['ipv6']
++
++
++def test_get_locally_reachable_ips_dedup_and_sorted():
++    net = _make_network()
++    result = net.get_locally_reachable_ips('/sbin/ip')
++    assert len(result['ipv4']) == len(set(result['ipv4']))
++    assert result['ipv4'] == sorted(result['ipv4'])
++    assert result['ipv6'] == sorted(result['ipv6'])
++
++
++def test_get_locally_reachable_ips_none_path():
++    net = _make_network()
++    result = net.get_locally_reachable_ips(None)
++    assert result == {'ipv4': [], 'ipv6': []}
++
++
++def test_get_locally_reachable_ips_command_failure():
++    net = _make_network(rc=1, err='nope')
++    result = net.get_locally_reachable_ips('/sbin/ip')
++    assert result == {'ipv4': [], 'ipv6': []}
++    assert net.module.warn.called
++
++
++def test_get_locally_reachable_ips_canonicalization():
++    ipv4 = "local 192.168.000.001 dev eth0 proto kernel scope host src 192.168.0.1\n"
++    ipv6 = "local 2001:0db8:0000:0000:0000:0000:0000:0001 dev eth0 proto kernel scope host src 2001:db8::1\n"
++    net = _make_network(ipv4_out=ipv4, ipv6_out=ipv6)
++    result = net.get_locally_reachable_ips('/sbin/ip')
++    assert '192.168.0.1' in result['ipv4']
++    assert '2001:db8::1' in result['ipv6']

@@ -1,0 +1,21 @@
+diff --git a/h11/_headers.py b/h11/_headers.py
+index b97d020..24ed06e 100644
+--- a/h11/_headers.py
++++ b/h11/_headers.py
+@@ -68,6 +68,7 @@ except ImportError:
+ # Maybe a dict-of-lists would be better?
+ 
+ _content_length_re = re.compile(rb"[0-9]+")
++MAX_CONTENT_LENGTH_DIGITS = 20
+ _field_name_re = re.compile(field_name.encode("ascii"))
+ _field_value_re = re.compile(field_value.encode("ascii"))
+ 
+@@ -172,6 +173,8 @@ def normalize_and_validate(
+             if len(lengths) != 1:
+                 raise LocalProtocolError("conflicting Content-Length headers")
+             value = lengths.pop()
++            if len(value) > MAX_CONTENT_LENGTH_DIGITS:
++                raise LocalProtocolError("Content-Length value too large")
+             validate(_content_length_re, value, "bad Content-Length")
+             if seen_content_length is None:
+                 seen_content_length = value

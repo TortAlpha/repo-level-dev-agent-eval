@@ -1,0 +1,46 @@
+diff --git a/src/humanize/filesize.py b/src/humanize/filesize.py
+index c495fed..e45e8c1 100644
+--- a/src/humanize/filesize.py
++++ b/src/humanize/filesize.py
+@@ -98,5 +98,11 @@ def naturalsize(
+ 
+     exp = int(min(log(abs_bytes, base), len(suffix)))
+     space = "" if gnu else " "
++
++    if exp < len(suffix):
++        mantissa = abs_bytes / (base**exp)
++        if float(format % mantissa) >= base:
++            exp += 1
++
+     ret: str = format % (bytes_ / (base**exp)) + space + _(suffix[exp - 1])
+     return ret
+diff --git a/tests/test_filesize_boundary.py b/tests/test_filesize_boundary.py
+new file mode 100644
+index 0000000..feb756b
+--- /dev/null
++++ b/tests/test_filesize_boundary.py
+@@ -0,0 +1,24 @@
++#!/usr/bin/env python
++
++"""Tests for naturalsize unit-boundary rounding carry-over."""
++
++from __future__ import annotations
++
++import pytest
++
++import humanize
++
++
++@pytest.mark.parametrize(
++    "test_args, expected",
++    [
++        ([999999], "1.0 MB"),
++        ([1048575, True], "1.0 MiB"),
++        ([1048575, False, True], "1.0M"),
++        ([999999, False, False, "%.0f"], "1 MB"),
++        ([999999 * 1000**9], "1000.0 QB"),
++        ([-999999], "-1.0 MB"),
++    ],
++)
++def test_naturalsize_boundary(test_args: list, expected: str) -> None:
++    assert humanize.naturalsize(*test_args) == expected

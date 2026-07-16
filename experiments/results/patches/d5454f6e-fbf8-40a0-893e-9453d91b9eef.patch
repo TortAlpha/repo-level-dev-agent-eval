@@ -1,0 +1,59 @@
+diff --git a/more_itertools/more.py b/more_itertools/more.py
+index 12b4942..c929116 100755
+--- a/more_itertools/more.py
++++ b/more_itertools/more.py
+@@ -4835,6 +4835,54 @@ def minmax(iterable_or_value, *others, key=None, default=_marker):
+     return lo, hi
+ 
+ 
++def _running_minmax(iterable, *, maxlen, compare):
++    """Yield cumulative min/max values using *compare* to select.
++
++    If *maxlen* is ``None`` the accumulation considers all values seen so far.
++    Otherwise it uses a sliding window of at most *maxlen* recent items.
++    """
++    if maxlen is None:
++        current = None
++        has_current = False
++        for item in iterable:
++            if not has_current or compare(item, current):
++                current = item
++                has_current = True
++            yield current
++        return
++
++    if maxlen <= 0:
++        raise ValueError('maxlen must be None or a positive integer')
++
++    window = deque()
++    for item in iterable:
++        window.append(item)
++        if len(window) > maxlen:
++            window.popleft()
++        best = None
++        for candidate in window:
++            if best is None or compare(candidate, best):
++                best = candidate
++        yield best
++
++
++def running_min(iterable, *, maxlen=None):
++    """Yield the running minimum across *iterable* with an optional window.
++
++    >>> list(running_min([8.5, 9.5, 7.5, 6.5]))
++    [8.5, 8.5, 7.5, 6.5]
++    """
++    return _running_minmax(iterable, maxlen=maxlen, compare=lt)
++
++
++def running_max(iterable, *, maxlen=None):
++    """Yield the running maximum across *iterable* with an optional window.
++
++    >>> list(running_max([8.5, 9.5, 7.5, 6.5]))
++    [8.5, 9.5, 9.5, 9.5]
++    """
++    return _running_minmax(iterable, maxlen=maxlen, compare=gt)
++
+ def constrained_batches(
+     iterable, max_size, max_count=None, get_len=len, strict=True
+ ):

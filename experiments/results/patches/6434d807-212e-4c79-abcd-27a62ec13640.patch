@@ -1,0 +1,157 @@
+diff --git a/tests/test_missing_docids.py b/tests/test_missing_docids.py
+new file mode 100644
+index 0000000..4e8cc01
+--- /dev/null
++++ b/tests/test_missing_docids.py
+@@ -0,0 +1,85 @@
++import pytest
++
++from tinydb import TinyDB, where
++
++
++@pytest.fixture
++def db(tmp_path):
++    db = TinyDB(tmp_path / 'test.json')
++    db.truncate()
++    db.insert({'a': 1})
++    db.insert({'a': 2})
++    yield db
++    db.close()
++
++
++def test_update_missing_doc_ids_skipped(db):
++    updated = db.update({'a': 99}, doc_ids=[1, 99])
++    assert updated == [1]
++    assert db.get(doc_id=1)['a'] == 99
++    assert db.get(doc_id=2)['a'] == 2
++
++
++def test_update_missing_doc_ids_first(db):
++    updated = db.update({'a': 99}, doc_ids=[99, 1])
++    assert updated == [1]
++    assert db.get(doc_id=1)['a'] == 99
++    assert db.get(doc_id=2)['a'] == 2
++
++
++def test_update_all_missing_doc_ids(db):
++    updated = db.update({'a': 99}, doc_ids=[98, 99])
++    assert updated == []
++    assert db.get(doc_id=1)['a'] == 1
++    assert db.get(doc_id=2)['a'] == 2
++
++
++def test_update_callable_missing_doc_ids_skipped(db):
++    def inc(doc):
++        doc['a'] += 10
++
++    updated = db.update(inc, doc_ids=[1, 99])
++    assert updated == [1]
++    assert db.get(doc_id=1)['a'] == 11
++    assert db.get(doc_id=2)['a'] == 2
++
++
++def test_remove_missing_doc_ids_skipped(db):
++    removed = db.remove(doc_ids=[1, 99])
++    assert removed == [1]
++    assert db.get(doc_id=1) is None
++    assert db.get(doc_id=2)['a'] == 2
++
++
++def test_remove_missing_doc_ids_first(db):
++    removed = db.remove(doc_ids=[99, 1])
++    assert removed == [1]
++    assert db.get(doc_id=1) is None
++    assert db.get(doc_id=2)['a'] == 2
++
++
++def test_remove_all_missing_doc_ids(db):
++    removed = db.remove(doc_ids=[98, 99])
++    assert removed == []
++    assert db.get(doc_id=1)['a'] == 1
++    assert db.get(doc_id=2)['a'] == 2
++
++
++def test_update_query_unchanged(db):
++    updated = db.update({'a': 99}, where('a') == 1)
++    assert updated == [1]
++    assert db.get(doc_id=1)['a'] == 99
++
++
++def test_update_all_unchanged(db):
++    updated = db.update({'a': 99})
++    assert sorted(updated) == [1, 2]
++    assert db.get(doc_id=1)['a'] == 99
++    assert db.get(doc_id=2)['a'] == 99
++
++
++def test_remove_query_unchanged(db):
++    removed = db.remove(where('a') == 1)
++    assert removed == [1]
++    assert db.get(doc_id=1) is None
++    assert db.get(doc_id=2)['a'] == 2
+diff --git a/tinydb/table.py b/tinydb/table.py
+index 5641d22..c39c8d8 100644
+--- a/tinydb/table.py
++++ b/tinydb/table.py
+@@ -421,6 +421,10 @@ class Table:
+         :param cond: which documents to update
+         :param doc_ids: a list of document IDs
+         :returns: a list containing the updated document's ID
++
++        Missing document IDs in ``doc_ids`` are skipped instead of raising a
++        ``KeyError``. The returned list contains only the IDs of documents
++        that were actually updated.
+         """
+ 
+         # Define the function that will perform the update
+@@ -438,12 +442,16 @@ class Table:
+             # Perform the update operation for documents specified by a list
+             # of document IDs
+ 
+-            updated_ids = list(doc_ids)
++            requested_ids = list(doc_ids)
++            updated_ids: List[int] = []
+ 
+             def updater(table: dict):
+-                # Call the processing callback with all document IDs
+-                for doc_id in updated_ids:
+-                    perform_update(table, doc_id)
++                # Call the processing callback with all document IDs,
++                # skipping any IDs that do not exist in the table
++                for doc_id in requested_ids:
++                    if doc_id in table:
++                        updated_ids.append(doc_id)
++                        perform_update(table, doc_id)
+ 
+             # Perform the update operation (see _update_table for details)
+             self._update_table(updater)
+@@ -605,6 +613,10 @@ class Table:
+         :param cond: the condition to check against
+         :param doc_ids: a list of document IDs
+         :returns: a list containing the removed documents' ID
++
++        Missing document IDs in ``doc_ids`` are skipped instead of raising a
++        ``KeyError``. The returned list contains only the IDs of documents
++        that were actually removed.
+         """
+         if doc_ids is not None:
+             # This function returns the list of IDs for the documents that have
+@@ -614,11 +626,15 @@ class Table:
+             # We convert the document ID iterator into a list, so we can both
+             # use the document IDs to remove the specified documents and
+             # to return the list of affected document IDs
+-            removed_ids = list(doc_ids)
++            requested_ids = list(doc_ids)
++            removed_ids: List[int] = []
+ 
+             def updater(table: dict):
+-                for doc_id in removed_ids:
+-                    table.pop(doc_id)
++                for doc_id in requested_ids:
++                    # Skip document IDs that do not exist in the table instead
++                    # of raising a KeyError
++                    if table.pop(doc_id, None) is not None:
++                        removed_ids.append(doc_id)
+ 
+             # Perform the remove operation
+             self._update_table(updater)

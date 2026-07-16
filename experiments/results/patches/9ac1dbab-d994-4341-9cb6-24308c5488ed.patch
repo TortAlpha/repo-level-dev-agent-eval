@@ -1,0 +1,40 @@
+diff --git a/sqlparse/sql.py b/sqlparse/sql.py
+index def0679..1aa6ebf 100644
+--- a/sqlparse/sql.py
++++ b/sqlparse/sql.py
+@@ -623,7 +623,7 @@ class Function(NameAliasMixin, TokenList):
+ 
+     def get_parameters(self):
+         """Return a list of parameters."""
+-        parenthesis = self.tokens[-1]
++        parenthesis = self._get_parenthesis()
+         result = []
+         for token in parenthesis.tokens:
+             if isinstance(token, IdentifierList):
+@@ -633,6 +633,26 @@ class Function(NameAliasMixin, TokenList):
+                 result.append(token)
+         return result
+ 
++    def get_window(self):
++        """Return the window of this function if any.
++
++        Returns the window identifier for a named window
++        (e.g. ``foo(5) OVER win1``), the parenthesised window definition
++        for an inline window (e.g. ``foo(5) OVER (PARTITION BY c1)``) or
++        ``None`` if the function has no ``OVER`` clause.
++        """
++        _, over = self.token_next_by(i=Over)
++        if over is None:
++            return None
++        _, window = over.token_next_by(i=(Parenthesis, Identifier),
++                                       t=T.Name)
++        return window
++
++    def _get_parenthesis(self):
++        """Return the parenthesis containing the function's parameters."""
++        _, parenthesis = self.token_next_by(i=Parenthesis)
++        return parenthesis
++
+ 
+ class Begin(TokenList):
+     """A BEGIN/END block."""

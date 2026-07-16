@@ -1,0 +1,142 @@
+diff --git a/lib/ansible/module_utils/facts/hardware/aix.py b/lib/ansible/module_utils/facts/hardware/aix.py
+index 20f09232bb..c4882444d6 100644
+--- a/lib/ansible/module_utils/facts/hardware/aix.py
++++ b/lib/ansible/module_utils/facts/hardware/aix.py
+@@ -32,6 +32,8 @@ class AIXHardware(Hardware):
+     - processor (a list)
+     - processor_cores
+     - processor_count
++    - processor_threads_per_core
++    - processor_vcpus
+     """
+     platform = 'AIX'
+ 
+@@ -61,6 +63,7 @@ class AIXHardware(Hardware):
+         rc, out, err = self.module.run_command("/usr/sbin/lsdev -Cc processor")
+         if out:
+             i = 0
++            cpudev = None
+             for line in out.splitlines():
+ 
+                 if 'Available' in line:
+@@ -69,17 +72,25 @@ class AIXHardware(Hardware):
+                         cpudev = data[0]
+ 
+                     i += 1
+-            cpu_facts['processor_count'] = int(i)
++            cpu_facts['processor_count'] = 1
++            cpu_facts['processor_cores'] = int(i)
+ 
+-            rc, out, err = self.module.run_command("/usr/sbin/lsattr -El " + cpudev + " -a type")
++            if cpudev is not None:
++                rc, out, err = self.module.run_command("/usr/sbin/lsattr -El " + cpudev + " -a type")
+ 
+-            data = out.split(' ')
+-            cpu_facts['processor'] = data[1]
+-
+-            rc, out, err = self.module.run_command("/usr/sbin/lsattr -El " + cpudev + " -a smt_threads")
+-            if out:
+                 data = out.split(' ')
+-                cpu_facts['processor_cores'] = int(data[1])
++                cpu_facts['processor'].append(data[1])
++
++                rc, out, err = self.module.run_command("/usr/sbin/lsattr -El " + cpudev + " -a smt_threads")
++                if out:
++                    data = out.split(' ')
++                    cpu_facts['processor_threads_per_core'] = int(data[1])
++                else:
++                    cpu_facts['processor_threads_per_core'] = 1
++            else:
++                cpu_facts['processor_threads_per_core'] = 1
++
++            cpu_facts['processor_vcpus'] = cpu_facts['processor_cores'] * cpu_facts['processor_threads_per_core']
+ 
+         return cpu_facts
+ 
+diff --git a/test/units/module_utils/facts/hardware/test_aix_get_cpu_facts.py b/test/units/module_utils/facts/hardware/test_aix_get_cpu_facts.py
+new file mode 100644
+index 0000000000..eecd929dfd
+--- /dev/null
++++ b/test/units/module_utils/facts/hardware/test_aix_get_cpu_facts.py
+@@ -0,0 +1,81 @@
++# -*- coding: utf-8 -*-
++# Copyright (c) 2019 Ansible Project
++# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
++
++from __future__ import absolute_import, division, print_function
++__metaclass__ = type
++
++from ansible.module_utils.facts.hardware import aix
++
++
++LSDEV_PROCESSOR = """proc0 Available 00-00 Processor
++proc1 Available 00-01 Processor
++proc2 Available 00-02 Processor
++proc3 Available 00-03 Processor
++proc4 Available 00-04 Processor
++proc5 Available 00-05 Processor
++proc6 Available 00-06 Processor
++proc7 Available 00-07 Processor
++proc8 Available 00-08 Processor
++proc9 Available 00-09 Processor
++proc10 Available 00-10 Processor
++proc11 Available 00-11 Processor
++"""
++
++LSATTR_TYPE = "type PowerPC_POWER7 Processor type True\n"
++
++LSATTR_SMT_THREADS = "smt_threads 4 SMT threads per core True\n"
++
++LSATTR_SMT_THREADS_EMPTY = ""
++
++
++def run_command(cmd):
++    if 'lsdev' in cmd:
++        return (0, LSDEV_PROCESSOR, '')
++    if 'smt_threads' in cmd:
++        return (0, LSATTR_SMT_THREADS, '')
++    if 'type' in cmd:
++        return (0, LSATTR_TYPE, '')
++    return (0, '', '')
++
++
++def run_command_no_smt(cmd):
++    if 'lsdev' in cmd:
++        return (0, LSDEV_PROCESSOR, '')
++    if 'smt_threads' in cmd:
++        return (0, LSATTR_SMT_THREADS_EMPTY, '')
++    if 'type' in cmd:
++        return (0, LSATTR_TYPE, '')
++    return (0, '', '')
++
++
++def test_get_cpu_facts(mocker):
++    module = mocker.Mock()
++    inst = aix.AIXHardware(module)
++    module.run_command.side_effect = run_command
++
++    result = inst.get_cpu_facts()
++
++    assert result == {
++        'processor': ['PowerPC_POWER7'],
++        'processor_count': 1,
++        'processor_cores': 12,
++        'processor_threads_per_core': 4,
++        'processor_vcpus': 48,
++    }
++
++
++def test_get_cpu_facts_no_smt_threads(mocker):
++    module = mocker.Mock()
++    inst = aix.AIXHardware(module)
++    module.run_command.side_effect = run_command_no_smt
++
++    result = inst.get_cpu_facts()
++
++    assert result == {
++        'processor': ['PowerPC_POWER7'],
++        'processor_count': 1,
++        'processor_cores': 12,
++        'processor_threads_per_core': 1,
++        'processor_vcpus': 12,
++    }

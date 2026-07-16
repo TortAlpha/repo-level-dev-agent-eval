@@ -1,0 +1,22 @@
+diff --git a/tests/dialects/test_group_concat_parametric.py b/tests/dialects/test_group_concat_parametric.py
+new file mode 100644
+index 00000000..d70f17e9
+--- /dev/null
++++ b/tests/dialects/test_group_concat_parametric.py
+@@ -0,0 +1,16 @@
++import unittest
++import sqlglot
++from sqlglot import exp
++
++class TestGroupConcatParametric(unittest.TestCase):
++    def test_group_concat_parametric(self):
++        sql = "SELECT groupConcat(', ')(part_name) FROM system.parts"
++        expr = sqlglot.parse_one(sql, read="clickhouse")
++        group_concat = expr.find(exp.GroupConcat)
++        self.assertIsNotNone(group_concat, "Expected a GroupConcat expression")
++        self.assertEqual(group_concat.this.name, "part_name")
++        self.assertEqual(group_concat.args["separator"].name, ", ")
++        self.assertEqual(expr.sql(dialect="clickhouse"), sql)
++
++if __name__ == "__main__":
++    unittest.main()

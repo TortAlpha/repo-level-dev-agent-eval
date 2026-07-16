@@ -1,0 +1,50 @@
+diff --git a/sqlparse/engine/grouping.py b/sqlparse/engine/grouping.py
+index 57d257e..7868d0d 100644
+--- a/sqlparse/engine/grouping.py
++++ b/sqlparse/engine/grouping.py
+@@ -360,6 +360,7 @@ def group_functions(tlist):
+         tidx, token = tlist.token_next_by(t=T.Name, idx=tidx)
+ 
+ 
++@recurse()
+ def group_order(tlist):
+     """Group together Identifier and Asc/Desc token"""
+     tidx, token = tlist.token_next_by(t=T.Keyword.Order)
+diff --git a/tests/test_ordered_identifier_parenthesis.py b/tests/test_ordered_identifier_parenthesis.py
+new file mode 100644
+index 0000000..a3cee69
+--- /dev/null
++++ b/tests/test_ordered_identifier_parenthesis.py
+@@ -0,0 +1,32 @@
++import sqlparse
++from sqlparse import sql
++
++
++def test_ordered_identifier_in_parenthesis():
++    s = '(a desc)'
++    parsed = sqlparse.parse(s)[0]
++    assert str(parsed) == s
++    assert isinstance(parsed.tokens[0], sql.Parenthesis)
++    par = parsed.tokens[0]
++    assert len(par.tokens) == 3
++    assert isinstance(par.tokens[1], sql.Identifier)
++    assert str(par.tokens[1]) == 'a desc'
++
++
++def test_ordered_identifier_in_parenthesis_asc():
++    s = '(b asc)'
++    parsed = sqlparse.parse(s)[0]
++    assert str(parsed) == s
++    assert isinstance(parsed.tokens[0], sql.Parenthesis)
++    par = parsed.tokens[0]
++    assert len(par.tokens) == 3
++    assert isinstance(par.tokens[1], sql.Identifier)
++    assert str(par.tokens[1]) == 'b asc'
++
++
++def test_ordered_identifier_list_unchanged():
++    s = 'order by a desc, b asc'
++    parsed = sqlparse.parse(s)[0]
++    assert str(parsed) == s
++    assert isinstance(parsed.tokens[-1], sql.IdentifierList)
++    assert str(parsed.tokens[-1]) == 'a desc, b asc'

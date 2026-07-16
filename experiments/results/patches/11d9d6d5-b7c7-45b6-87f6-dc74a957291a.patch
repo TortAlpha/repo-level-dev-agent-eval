@@ -1,0 +1,137 @@
+diff --git a/sqlglot/parsers/doris.py b/sqlglot/parsers/doris.py
+index 215731e1..97e10227 100644
+--- a/sqlglot/parsers/doris.py
++++ b/sqlglot/parsers/doris.py
+@@ -2,11 +2,23 @@ from __future__ import annotations
+ 
+ 
+ from sqlglot import exp
++from sqlglot.dialects.dialect import build_date_delta_with_interval
+ from sqlglot.helper import seq_get
+ from sqlglot.parsers.mysql import MySQLParser
+ from sqlglot.tokens import TokenType
+ 
+ 
++def _build_date_delta(expression_class):
++    interval_builder = build_date_delta_with_interval(expression_class)
++
++    def _builder(args):
++        if len(args) == 2 and not isinstance(args[1], exp.Interval):
++            return expression_class(this=args[0], expression=args[1], unit=exp.var("DAY"))
++        return interval_builder(args)
++
++    return _builder
++
++
+ # Accept both DATE_TRUNC(datetime, unit) and DATE_TRUNC(unit, datetime)
+ def _build_date_trunc(args: list[exp.Expr]) -> exp.Expr:
+     a0, a1 = seq_get(args, 0), seq_get(args, 1)
+@@ -26,11 +38,15 @@ def _build_date_trunc(args: list[exp.Expr]) -> exp.Expr:
+ class DorisParser(MySQLParser):
+     FUNCTIONS = {
+         **MySQLParser.FUNCTIONS,
++        "ADDDATE": _build_date_delta(exp.DateAdd),
+         "COLLECT_SET": exp.ArrayUniqueAgg.from_arg_list,
++        "DATE_ADD": _build_date_delta(exp.DateAdd),
++        "DATE_SUB": _build_date_delta(exp.DateSub),
+         "DATE_TRUNC": _build_date_trunc,
+         "L2_DISTANCE": exp.EuclideanDistance.from_arg_list,
+         "MONTHS_ADD": exp.AddMonths.from_arg_list,
+         "REGEXP": exp.RegexpLike.from_arg_list,
++        "SUBDATE": _build_date_delta(exp.DateSub),
+         "TO_DATE": exp.TsOrDsToDate.from_arg_list,
+     }
+ 
+diff --git a/sqlglot/parsers/starrocks.py b/sqlglot/parsers/starrocks.py
+index 00426429..248521b4 100644
+--- a/sqlglot/parsers/starrocks.py
++++ b/sqlglot/parsers/starrocks.py
+@@ -2,14 +2,29 @@ from __future__ import annotations
+ 
+ 
+ from sqlglot import exp
+-from sqlglot.dialects.dialect import build_timestamp_trunc
++from sqlglot.dialects.dialect import build_date_delta_with_interval, build_timestamp_trunc
+ from sqlglot.helper import seq_get
+ from sqlglot.parsers.mysql import MySQLParser
+ 
+ 
++def _build_date_delta(expression_class):
++    interval_builder = build_date_delta_with_interval(expression_class)
++
++    def _builder(args):
++        if len(args) == 2 and not isinstance(args[1], exp.Interval):
++            return expression_class(this=args[0], expression=args[1], unit=exp.var("DAY"))
++        return interval_builder(args)
++
++    return _builder
++
++
+ class StarRocksParser(MySQLParser):
+     FUNCTIONS = {
+         **MySQLParser.FUNCTIONS,
++        "ADDDATE": _build_date_delta(exp.DateAdd),
++        "DATE_ADD": _build_date_delta(exp.DateAdd),
++        "DATE_SUB": _build_date_delta(exp.DateSub),
++        "SUBDATE": _build_date_delta(exp.DateSub),
+         "DATE_TRUNC": build_timestamp_trunc,
+         "DATEDIFF": lambda args: exp.DateDiff(
+             this=seq_get(args, 0), expression=seq_get(args, 1), unit=exp.Literal.string("DAY")
+diff --git a/tests/dialects/test_doris_date_add.py b/tests/dialects/test_doris_date_add.py
+new file mode 100644
+index 00000000..cda00e08
+--- /dev/null
++++ b/tests/dialects/test_doris_date_add.py
+@@ -0,0 +1,52 @@
++from tests.dialects.test_dialect import Validator
++
++
++class TestDorisDateAdd(Validator):
++    dialect = "doris"
++
++    def test_two_arg_date_add_sub(self):
++        # Two-argument DATE_ADD/DATE_SUB/ADDDATE/SUBDATE with a plain integer number of days
++        self.validate_all(
++            "SELECT DATE_ADD(x, INTERVAL 7 DAY)",
++            read={"doris": "SELECT DATE_ADD(x, 7)"},
++        )
++        self.validate_all(
++            "SELECT DATE_SUB(x, INTERVAL 3 DAY)",
++            read={"doris": "SELECT DATE_SUB(x, 3)"},
++        )
++        self.validate_all(
++            "SELECT DATE_ADD(x, INTERVAL 7 DAY)",
++            read={"doris": "SELECT ADDDATE(x, 7)"},
++        )
++        self.validate_all(
++            "SELECT DATE_SUB(x, INTERVAL 3 DAY)",
++            read={"doris": "SELECT SUBDATE(x, 3)"},
++        )
++        # Explicit interval form must round-trip unchanged
++        self.validate_identity("SELECT DATE_ADD(x, INTERVAL '3' DAY)")
++        self.validate_identity("SELECT DATE_SUB(x, INTERVAL '3' DAY)")
++
++
++class TestStarRocksDateAdd(Validator):
++    dialect = "starrocks"
++
++    def test_two_arg_date_add_sub(self):
++        self.validate_all(
++            "SELECT DATE_ADD(x, INTERVAL 7 DAY)",
++            read={"starrocks": "SELECT DATE_ADD(x, 7)"},
++        )
++        self.validate_all(
++            "SELECT DATE_SUB(x, INTERVAL 3 DAY)",
++            read={"starrocks": "SELECT DATE_SUB(x, 3)"},
++        )
++        self.validate_all(
++            "SELECT DATE_ADD(x, INTERVAL 7 DAY)",
++            read={"starrocks": "SELECT ADDDATE(x, 7)"},
++        )
++        self.validate_all(
++            "SELECT DATE_SUB(x, INTERVAL 3 DAY)",
++            read={"starrocks": "SELECT SUBDATE(x, 3)"},
++        )
++        # Explicit interval form must round-trip unchanged
++        self.validate_identity("SELECT DATE_ADD(x, INTERVAL '3' DAY)")
++        self.validate_identity("SELECT DATE_SUB(x, INTERVAL '3' DAY)")

@@ -1,0 +1,56 @@
+diff --git a/markdown/blockprocessors.py b/markdown/blockprocessors.py
+index 3ed4cf0..f90127e 100644
+--- a/markdown/blockprocessors.py
++++ b/markdown/blockprocessors.py
+@@ -494,7 +494,7 @@ class SetextHeaderProcessor(BlockProcessor):
+     """ Process Setext-style Headers. """
+ 
+     # Detect Setext-style header. Must be first 2 lines of block.
+-    RE = re.compile(r'^.*?\n[=-]+[ ]*(\n|$)', re.MULTILINE)
++    RE = re.compile(r'^.*?\n(=+|-+)[ ]*(\n|$)', re.MULTILINE)
+ 
+     def test(self, parent: etree.Element, block: str) -> bool:
+         return bool(self.RE.match(block))
+diff --git a/tests/test_syntax/blocks/test_headers.py b/tests/test_syntax/blocks/test_headers.py
+index da2ca14..8e677ff 100644
+--- a/tests/test_syntax/blocks/test_headers.py
++++ b/tests/test_syntax/blocks/test_headers.py
+@@ -73,6 +73,38 @@ class TestSetextHeaders(TestCase):
+             '<h2>This is an H2</h2>'
+         )
+ 
++    def test_setext_mixed_underline_not_heading(self):
++        self.assertMarkdownRenders(
++            self.dedent(
++                """
++                Some text
++                =-=-
++                """
++            ),
++            self.dedent(
++                """
++                <p>Some text
++                =-=-</p>
++                """
++            )
++        )
++
++    def test_setext_mixed_underline_dash_equal_not_heading(self):
++        self.assertMarkdownRenders(
++            self.dedent(
++                """
++                Some text
++                -=-=
++                """
++            ),
++            self.dedent(
++                """
++                <p>Some text
++                -=-=</p>
++                """
++            )
++        )
++
+     def test_setext_h1_followed_by_p(self):
+         self.assertMarkdownRenders(
+             self.dedent(

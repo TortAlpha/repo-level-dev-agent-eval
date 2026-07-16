@@ -1,0 +1,80 @@
+diff --git a/sqlparse/sql.py b/sqlparse/sql.py
+index def0679..3cc4cbb 100644
+--- a/sqlparse/sql.py
++++ b/sqlparse/sql.py
+@@ -623,7 +623,7 @@ class Function(NameAliasMixin, TokenList):
+ 
+     def get_parameters(self):
+         """Return a list of parameters."""
+-        parenthesis = self.tokens[-1]
++        parenthesis = self.token_next_by(i=Parenthesis)[1]
+         result = []
+         for token in parenthesis.tokens:
+             if isinstance(token, IdentifierList):
+@@ -633,6 +633,20 @@ class Function(NameAliasMixin, TokenList):
+                 result.append(token)
+         return result
+ 
++    def get_window(self):
++        """Return the window of the function, or ``None`` if none.
++
++        For a named window (``foo(5) OVER win1``) the window
++        identifier is returned. For an inline window
++        (``foo(5) OVER (PARTITION BY c1)``) the parenthesised
++        window definition is returned.
++        """
++        over = self.token_next_by(i=Over)[1]
++        if over is None:
++            return None
++        over_kw_idx = over.token_next_by(m=Over.M_OPEN)[0]
++        return over.token_next(over_kw_idx)[1]
++
+ 
+ class Begin(TokenList):
+     """A BEGIN/END block."""
+diff --git a/tests/test_window_functions.py b/tests/test_window_functions.py
+new file mode 100644
+index 0000000..ca1b2b6
+--- /dev/null
++++ b/tests/test_window_functions.py
+@@ -0,0 +1,40 @@
++import sqlparse
++from sqlparse.sql import Identifier, Parenthesis
++
++
++def parse_function(sql):
++    stmt = sqlparse.parse(sql)[0]
++    return stmt.tokens[0]
++
++
++def test_get_window_none():
++    f = parse_function('foo(5)')
++    assert f.get_window() is None
++
++
++def test_get_window_named():
++    f = parse_function('foo(5) OVER win1')
++    win = f.get_window()
++    assert isinstance(win, Identifier)
++    assert win.value == 'win1'
++
++
++def test_get_window_inline():
++    f = parse_function('foo(5) OVER (PARTITION BY c1)')
++    win = f.get_window()
++    assert isinstance(win, Parenthesis)
++    assert 'PARTITION BY c1' in win.value
++
++
++def test_parameters_with_over_named():
++    f = parse_function('foo(5) OVER win1')
++    params = f.get_parameters()
++    assert len(params) == 1
++    assert params[0].value == '5'
++
++
++def test_parameters_with_over_inline():
++    f = parse_function('foo(5) OVER (PARTITION BY c1)')
++    params = f.get_parameters()
++    assert len(params) == 1
++    assert params[0].value == '5'

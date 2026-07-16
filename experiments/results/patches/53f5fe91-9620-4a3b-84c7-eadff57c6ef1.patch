@@ -1,0 +1,73 @@
+diff --git a/sqlparse/sql.py b/sqlparse/sql.py
+index def0679..8ffdd59 100644
+--- a/sqlparse/sql.py
++++ b/sqlparse/sql.py
+@@ -623,7 +623,9 @@ class Function(NameAliasMixin, TokenList):
+ 
+     def get_parameters(self):
+         """Return a list of parameters."""
+-        parenthesis = self.tokens[-1]
++        parenthesis = self._get_parenthesis()
++        if parenthesis is None:
++            return []
+         result = []
+         for token in parenthesis.tokens:
+             if isinstance(token, IdentifierList):
+@@ -633,6 +635,21 @@ class Function(NameAliasMixin, TokenList):
+                 result.append(token)
+         return result
+ 
++    def get_window(self):
++        """Return the window attached to this function, if any."""
++        if self.tokens and isinstance(self.tokens[-1], Over):
++            return self.tokens[-1]
++        return None
++
++    def _get_parenthesis(self):
++        for token in self.tokens:
++            if isinstance(token, Over):
++                break
++            if isinstance(token, Parenthesis):
++                return token
++        return None
++
++
+ 
+ class Begin(TokenList):
+     """A BEGIN/END block."""
+diff --git a/tests/test_parse.py b/tests/test_parse.py
+index b49dcca..1f69592 100644
+--- a/tests/test_parse.py
++++ b/tests/test_parse.py
+@@ -138,6 +138,31 @@ def test_parse_casted_params():
+     assert len(t) == 2
+ 
+ 
++def test_parse_function_named_window():
++    func = sqlparse.parse('foo(5) OVER win1')[0].tokens[0]
++    params = func.get_parameters()
++    assert len(params) == 1
++    assert params[0].ttype is T.Number.Integer
++    window = func.get_window()
++    assert isinstance(window, sql.Over)
++    assert window.tokens[-1].get_real_name() == 'win1'
++
++
++def test_parse_function_inline_window():
++    func = sqlparse.parse('foo(col) OVER (PARTITION BY col2)')[0].tokens[0]
++    params = func.get_parameters()
++    assert len(params) == 1
++    assert params[0].get_real_name() == 'col'
++    window = func.get_window()
++    assert isinstance(window, sql.Over)
++    assert window.tokens[-1].value == '(PARTITION BY col2)'
++
++
++def test_parse_function_without_window():
++    func = sqlparse.parse('foo(5)')[0].tokens[0]
++    assert func.get_window() is None
++
++
+ def test_parse_div_operator():
+     p = sqlparse.parse('col1 DIV 5 AS div_col1')[0].tokens
+     assert p[0].tokens[0].tokens[2].ttype is T.Operator

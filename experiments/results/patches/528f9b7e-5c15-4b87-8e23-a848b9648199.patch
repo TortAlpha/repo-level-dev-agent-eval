@@ -1,0 +1,64 @@
+diff --git a/sqlparse/engine/grouping.py b/sqlparse/engine/grouping.py
+index a63f4da..af34004 100644
+--- a/sqlparse/engine/grouping.py
++++ b/sqlparse/engine/grouping.py
+@@ -13,9 +13,22 @@ T_NUMERICAL = (T.Number, T.Number.Integer, T.Number.Float)
+ T_STRING = (T.String, T.String.Single, T.String.Symbol)
+ T_NAME = (T.Name, T.Name.Placeholder)
+ 
++# Limits for grouping depth and token count
++MAX_GROUP_DEPTH = 100
++MAX_GROUP_TOKENS = 1000
++
+ 
+ def _group_matching(tlist, cls):
+     """Groups Tokens that have beginning and end."""
++    # enforce limits: skip grouping if depth or token count exceeds limits
++    depth = 0
++    parent = tlist
++    while getattr(parent, 'parent', None):
++        depth += 1
++        parent = parent.parent
++    if depth > MAX_GROUP_DEPTH or len(getattr(tlist, 'tokens', [])) > MAX_GROUP_TOKENS:
++        return
++
+     opens = []
+     tidx_offset = 0
+     for idx, token in enumerate(list(tlist)):
+diff --git a/tests/test_grouping.py b/tests/test_grouping.py
+index bf27881..a6bd417 100644
+--- a/tests/test_grouping.py
++++ b/tests/test_grouping.py
+@@ -677,3 +677,18 @@ def test_grouping_as_cte():
+ def test_grouping_create_table():
+     p = sqlparse.parse("create table db.tbl (a string)")[0].tokens
+     assert p[4].value == "db.tbl"
++
++
++def test_deep_parenthesis_nesting():
++    # Pathological deep nesting should not crash or RecursionError
++    s = "SELECT " + "(" * 200 + "1" + ")" * 200
++    parsed = sqlparse.parse(s)[0]
++    assert str(parsed) == s
++
++
++def test_large_flat_token_list():
++    # Pathological large token list should not crash or hang
++    items = ["x"] * 2000
++    s = "SELECT " + ",".join(items)
++    parsed = sqlparse.parse(s)[0]
++    assert str(parsed) == s
+diff --git a/tests/test_regressions.py b/tests/test_regressions.py
+index 15ac9ee..77057dd 100644
+--- a/tests/test_regressions.py
++++ b/tests/test_regressions.py
+@@ -463,5 +463,7 @@ def limit_recursion():
+ 
+ 
+ def test_max_recursion(limit_recursion):
+-    with pytest.raises(SQLParseError):
+-        sqlparse.parse('[' * 1000 + ']' * 1000)
++    # Pathological deep nesting should not crash
++    s = '[' * 1000 + ']' * 1000
++    parsed = sqlparse.parse(s)[0]
++    assert str(parsed) == s

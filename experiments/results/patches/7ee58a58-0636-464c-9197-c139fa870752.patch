@@ -1,0 +1,129 @@
+diff --git a/sqlparse/sql.py b/sqlparse/sql.py
+index def0679..3e740f4 100644
+--- a/sqlparse/sql.py
++++ b/sqlparse/sql.py
+@@ -633,6 +633,21 @@ class Function(NameAliasMixin, TokenList):
+                 result.append(token)
+         return result
+ 
++    def get_window(self):
++        """Return the window of the function.
++        
++        For a named window (foo(5) OVER win1), returns the window identifier.
++        For an inline window (foo(5) OVER (PARTITION BY c1)), returns the 
++        parenthesised window definition.
++        Returns None when the function has no OVER clause.
++        """
++        # Look for OVER clause after the function call
++        for i, token in enumerate(self.tokens):
++            if isinstance(token, Over):
++                # Return the Over token which contains the window definition
++                return token
++        return None
++
+ 
+ class Begin(TokenList):
+     """A BEGIN/END block."""
+diff --git a/tests/test_window_functions.py b/tests/test_window_functions.py
+new file mode 100644
+index 0000000..4d32475
+--- /dev/null
++++ b/tests/test_window_functions.py
+@@ -0,0 +1,96 @@
++import sqlparse
++
++
++def test_function_with_named_window():
++    """Test function with named window."""
++    sql = "SELECT foo(5) OVER win1 FROM t1"
++    parsed = sqlparse.parse(sql)[0]
++    
++    # Find the function
++    func = None
++    for token in parsed.flatten():
++        if isinstance(token, sqlparse.sql.Function):
++            func = token
++            break
++    
++    assert func is not None
++    assert func.get_window() is not None
++    assert str(func.get_window()) == 'OVER win1'
++    
++    # Check that parameters still work
++    params = func.get_parameters()
++    assert len(params) == 1
++    assert str(params[0]) == '5'
++
++
++def test_function_with_inline_window():
++    """Test function with inline window definition."""
++    sql = "SELECT foo(5) OVER (PARTITION BY c1) FROM t1"
++    parsed = sqlparse.parse(sql)[0]
++    
++    # Find the function
++    func = None
++    for token in parsed.flatten():
++        if isinstance(token, sqlparse.sql.Function):
++            func = token
++            break
++    
++    assert func is not None
++    assert func.get_window() is not None
++    assert str(func.get_window()) == 'OVER (PARTITION BY c1)'
++    
++    # Check that parameters still work
++    params = func.get_parameters()
++    assert len(params) == 1
++    assert str(params[0]) == '5'
++
++
++def test_function_without_window():
++    """Test function without window clause."""
++    sql = "SELECT foo(5) FROM t1"
++    parsed = sqlparse.parse(sql)[0]
++    
++    # Find the function
++    func = None
++    for token in parsed.flatten():
++        if isinstance(token, sqlparse.sql.Function):
++            func = token
++            break
++    
++    assert func is not None
++    assert func.get_window() is None
++    
++    # Check that parameters still work
++    params = func.get_parameters()
++    assert len(params) == 1
++    assert str(params[0]) == '5'
++
++
++def test_multiple_functions():
++    """Test multiple functions with and without windows."""
++    sql = "SELECT foo(5) OVER win1, bar(10), baz(15) OVER (ORDER BY c1) FROM t1"
++    parsed = sqlparse.parse(sql)[0]
++    
++    # Find all functions
++    functions = []
++    for token in parsed.flatten():
++        if isinstance(token, sqlparse.sql.Function):
++            functions.append(token)
++    
++    assert len(functions) == 3
++    
++    # Check first function (named window)
++    assert functions[0].get_window() is not None
++    assert str(functions[0].get_window()) == 'OVER win1'
++    
++    # Check second function (no window)
++    assert functions[1].get_window() is None
++    
++    # Check third function (inline window)
++    assert functions[2].get_window() is not None
++    assert str(functions[2].get_window()) == 'OVER (ORDER BY c1)'
++    
++    # Check parameters
++    assert len(functions[0].get_parameters()) == 1
++    assert len(functions[1].get_parameters()) == 1
++    assert len(functions[2].get_parameters()) == 1
+\ No newline at end of file

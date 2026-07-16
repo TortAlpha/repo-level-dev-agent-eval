@@ -1,0 +1,28 @@
+diff --git a/src/dotenv/parser.py b/src/dotenv/parser.py
+index eb100b4..b36a150 100644
+--- a/src/dotenv/parser.py
++++ b/src/dotenv/parser.py
+@@ -69,6 +69,8 @@ class Error(Exception):
+ class Reader:
+     def __init__(self, stream: IO[str]) -> None:
+         self.string = stream.read()
++        if self.string.startswith('\ufeff'):
++            self.string = self.string[1:]
+         self.position = Position.start()
+         self.mark = Position.start()
+ 
+diff --git a/tests/test_parser.py b/tests/test_parser.py
+index 43386e5..37abfed 100644
+--- a/tests/test_parser.py
++++ b/tests/test_parser.py
+@@ -551,3 +551,10 @@ def test_parse_stream(test_input, expected):
+     result = parse_stream(io.StringIO(test_input))
+ 
+     assert list(result) == expected
++
++
++def test_bom_stripped():
++    stream = io.StringIO('\ufeffFIRST=value1\nSECOND=value2\n')
++    bindings = list(parse_stream(stream))
++    assert [b.key for b in bindings] == ['FIRST', 'SECOND']
++    assert '\ufeff' not in bindings[0].original.string

@@ -1,0 +1,27 @@
+diff --git a/sqlparse/keywords.py b/sqlparse/keywords.py
+index 68ced92..648ddc1 100644
+--- a/sqlparse/keywords.py
++++ b/sqlparse/keywords.py
+@@ -618,6 +618,7 @@ KEYWORDS = {
+ 
+     'WEEK': tokens.Keyword,
+     'WHENEVER': tokens.Keyword,
++    'WINDOW': tokens.Keyword,
+     'WITH': tokens.Keyword.CTE,
+     'WITHOUT': tokens.Keyword,
+     'WORK': tokens.Keyword,
+diff --git a/tests/test_window_keyword.py b/tests/test_window_keyword.py
+new file mode 100644
+index 0000000..651f532
+--- /dev/null
++++ b/tests/test_window_keyword.py
+@@ -0,0 +1,9 @@
++import sqlparse
++from sqlparse import tokens
++
++
++def test_window_is_keyword():
++    parsed = sqlparse.parse('WINDOW w AS')[0]
++    first = parsed.tokens[0]
++    assert first.ttype is tokens.Keyword
++    assert first.value.upper() == 'WINDOW'

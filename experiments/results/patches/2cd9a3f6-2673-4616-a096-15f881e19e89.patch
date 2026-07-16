@@ -1,0 +1,80 @@
+diff --git a/sqlparse/engine/grouping.py b/sqlparse/engine/grouping.py
+index 57d257e..01bc374 100644
+--- a/sqlparse/engine/grouping.py
++++ b/sqlparse/engine/grouping.py
+@@ -276,7 +276,7 @@ def group_operator(tlist):
+ def group_identifier_list(tlist):
+     m_role = T.Keyword, ('null', 'role')
+     sqlcls = (sql.Function, sql.Case, sql.Identifier, sql.Comparison,
+-              sql.IdentifierList, sql.Operation)
++              sql.IdentifierList, sql.Operation, sql.TypedLiteral)
+     ttypes = (T_NUMERICAL + T_STRING + T_NAME
+               + (T.Keyword, T.Comment, T.Wildcard))
+ 
+diff --git a/sqlparse/sql.py b/sqlparse/sql.py
+index 1ccfbdb..8a138e9 100644
+--- a/sqlparse/sql.py
++++ b/sqlparse/sql.py
+@@ -622,7 +622,7 @@ class Function(NameAliasMixin, TokenList):
+         for token in parenthesis.tokens:
+             if isinstance(token, IdentifierList):
+                 return token.get_identifiers()
+-            elif imt(token, i=(Function, Identifier), t=T.Literal):
++            elif imt(token, i=(Function, Identifier, TypedLiteral), t=T.Literal):
+                 return [token, ]
+         return []
+ 
+diff --git a/tests/test_typed_literal_params.py b/tests/test_typed_literal_params.py
+new file mode 100644
+index 0000000..598b63e
+--- /dev/null
++++ b/tests/test_typed_literal_params.py
+@@ -0,0 +1,48 @@
++import sqlparse
++from sqlparse.sql import Function, TypedLiteral
++
++
++def _function(sql_text):
++    parsed = sqlparse.parse(sql_text)[0]
++    stack = [parsed]
++    while stack:
++        tok = stack.pop()
++        if isinstance(tok, Function):
++            return tok
++        if isinstance(tok, sqlparse.sql.TokenList):
++            stack.extend(tok.tokens)
++    raise AssertionError('No Function token found in: %r' % sql_text)
++
++
++def test_single_typed_literal_parameter():
++    func = _function("foo(DATE '2023-11-14')")
++    params = list(func.get_parameters())
++    assert len(params) == 1
++    assert isinstance(params[0], TypedLiteral)
++
++
++def test_two_typed_literal_parameters():
++    func = _function("foo(DATE '2023-11-14', TIMESTAMP '2023-11-15')")
++    params = list(func.get_parameters())
++    assert len(params) == 2
++    assert isinstance(params[0], TypedLiteral)
++    assert isinstance(params[1], TypedLiteral)
++
++
++def test_mixed_parameters():
++    func = _function("foo(DATE '2023-11-14', bar)")
++    params = list(func.get_parameters())
++    assert len(params) == 2
++    assert isinstance(params[0], TypedLiteral)
++
++
++def test_plain_identifier_still_works():
++    func = _function('foo(bar)')
++    params = list(func.get_parameters())
++    assert len(params) == 1
++
++
++def test_plain_literal_still_works():
++    func = _function("foo('2023-11-14')")
++    params = list(func.get_parameters())
++    assert len(params) == 1

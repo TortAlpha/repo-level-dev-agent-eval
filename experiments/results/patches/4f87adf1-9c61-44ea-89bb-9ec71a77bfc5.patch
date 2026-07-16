@@ -1,0 +1,50 @@
+diff --git a/sqlparse/keywords.py b/sqlparse/keywords.py
+index 68ced92..bf1e103 100644
+--- a/sqlparse/keywords.py
++++ b/sqlparse/keywords.py
+@@ -722,6 +722,7 @@ KEYWORDS_COMMON = {
+     'MIN': tokens.Keyword,
+     'MAX': tokens.Keyword,
+     'DISTINCT': tokens.Keyword,
++    'WINDOW': tokens.Keyword,
+ }
+ 
+ KEYWORDS_ORACLE = {
+diff --git a/tests/test_window_keyword.py b/tests/test_window_keyword.py
+new file mode 100644
+index 0000000..09dbaab
+--- /dev/null
++++ b/tests/test_window_keyword.py
+@@ -0,0 +1,32 @@
++"""Tests for WINDOW keyword recognition."""
++
++import sqlparse
++from sqlparse import tokens
++
++
++def test_window_is_keyword():
++    """WINDOW should be tokenized as a keyword, not a name/identifier."""
++    parsed = sqlparse.parse('WINDOW w AS')[0]
++    first = parsed.tokens[0]
++    assert first.ttype is tokens.Keyword
++
++
++def test_window_keyword_case_insensitive():
++    """WINDOW keyword should be recognized regardless of case."""
++    for sql in ('window w as', 'Window w As', 'WINDOW w AS'):
++        parsed = sqlparse.parse(sql)[0]
++        first = parsed.tokens[0]
++        assert first.ttype is tokens.Keyword, (
++            'Expected Keyword for %r, got %r' % (sql, first.ttype))
++
++
++def test_window_in_select_statement():
++    """WINDOW clause in a SELECT should tokenize WINDOW as keyword."""
++    sql = 'SELECT * FROM t WINDOW w AS (PARTITION BY x)'
++    parsed = sqlparse.parse(sql)[0]
++    # Find the WINDOW token in the flattened token list
++    flat = list(parsed.flatten())
++    window_tokens = [t for t in flat if t.value.upper() == 'WINDOW']
++    assert window_tokens, 'No WINDOW token found'
++    assert all(t.ttype is tokens.Keyword for t in window_tokens), (
++        'WINDOW should be tokenized as Keyword')

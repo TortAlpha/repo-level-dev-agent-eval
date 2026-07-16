@@ -1,0 +1,44 @@
+diff --git a/toolz/itertoolz.py b/toolz/itertoolz.py
+index 1ab5485..09ef9c0 100644
+--- a/toolz/itertoolz.py
++++ b/toolz/itertoolz.py
+@@ -732,7 +732,13 @@ def partition_all(n, seq):
+         try:
+             # If seq defines __len__, then
+             # we can quickly calculate where no_pad starts
+-            yield prev[:len(seq) % n]
++            m = len(seq) % n
++            if m == 0 or prev[m - 1] is no_pad or prev[m] is not no_pad:
++                raise LookupError(
++                    'Iterable reports a length that is inconsistent with its contents. '
++                    'partition_all cannot safely partition this iterable.'
++                )
++            yield prev[:m]
+         except TypeError:
+             # Get first index of no_pad without using .index()
+             # https://github.com/pytoolz/toolz/issues/387
+diff --git a/toolz/tests/test_partition_all_bad_len.py b/toolz/tests/test_partition_all_bad_len.py
+new file mode 100644
+index 0000000..a70f925
+--- /dev/null
++++ b/toolz/tests/test_partition_all_bad_len.py
+@@ -0,0 +1,19 @@
++import pytest
++from toolz.itertoolz import partition_all
++
++
++def test_partition_all_bad_len():
++    class BadLen:
++        def __init__(self, data, length):
++            self.data = data
++            self.length = length
++        def __iter__(self):
++            return iter(self.data)
++        def __len__(self):
++            return self.length
++    with pytest.raises(LookupError):
++        list(partition_all(4, BadLen([1, 2, 3, 4, 5], 7)))
++    with pytest.raises(LookupError):
++        list(partition_all(4, BadLen([1, 2, 3, 4, 5], 3)))
++    with pytest.raises(LookupError):
++        list(partition_all(4, BadLen([1, 2, 3, 4, 5], 8)))

@@ -1,0 +1,99 @@
+diff --git a/freezegun/api.py b/freezegun/api.py
+index 0f11e0c..3abc93d 100644
+--- a/freezegun/api.py
++++ b/freezegun/api.py
+@@ -509,10 +509,10 @@ class TickingDateTimeFactory:
+     def __call__(self) -> datetime.datetime:
+         return self.time_to_freeze + (real_datetime.now() - self.start)
+ 
+-    def tick(self, delta: Union[datetime.timedelta, int]=datetime.timedelta(seconds=1)) -> datetime.datetime:
++    def tick(self, delta: Union[datetime.timedelta, float]=datetime.timedelta(seconds=1)) -> datetime.datetime:
+         if isinstance(delta, numbers.Real):
+             # noinspection PyTypeChecker
+-            self.move_to(self.time_to_freeze + datetime.timedelta(seconds=delta))
++            self.move_to(self.time_to_freeze + datetime.timedelta(seconds=float(delta)))
+         else:
+             self.move_to(self.time_to_freeze + delta)  # type: ignore
+         return self.time_to_freeze
+@@ -531,10 +531,10 @@ class FrozenDateTimeFactory:
+     def __call__(self) -> datetime.datetime:
+         return self.time_to_freeze
+ 
+-    def tick(self, delta: Union[datetime.timedelta, int]=datetime.timedelta(seconds=1)) -> datetime.datetime:
++    def tick(self, delta: Union[datetime.timedelta, float]=datetime.timedelta(seconds=1)) -> datetime.datetime:
+         if isinstance(delta, numbers.Real):
+             # noinspection PyTypeChecker
+-            self.time_to_freeze += datetime.timedelta(seconds=delta)
++            self.time_to_freeze += datetime.timedelta(seconds=float(delta))
+         else:
+             self.time_to_freeze += delta  # type: ignore
+         return self.time_to_freeze
+@@ -557,10 +557,14 @@ class StepTickTimeFactory:
+         self.tick()
+         return return_time
+ 
+-    def tick(self, delta: Union[datetime.timedelta, int, None]=None) -> datetime.datetime:
++    def tick(self, delta: Union[datetime.timedelta, float, None]=None) -> datetime.datetime:
+         if not delta:
+             delta = datetime.timedelta(seconds=self.step_width)
+-        self.time_to_freeze += delta  # type: ignore
++        if isinstance(delta, numbers.Real):
++            # noinspection PyTypeChecker
++            self.time_to_freeze += datetime.timedelta(seconds=float(delta))
++        else:
++            self.time_to_freeze += delta  # type: ignore
+         return self.time_to_freeze
+ 
+     def update_step_width(self, step_width: float) -> None:
+diff --git a/tests/test_tick_delta.py b/tests/test_tick_delta.py
+new file mode 100644
+index 0000000..4042cac
+--- /dev/null
++++ b/tests/test_tick_delta.py
+@@ -0,0 +1,46 @@
++import datetime
++import fractions
++
++import pytest
++
++from freezegun import freeze_time
++
++
++@pytest.mark.parametrize(
++    "delta, expected",
++    [
++        (1, datetime.datetime(2012, 1, 14, 0, 0, 1)),
++        (1.5, datetime.datetime(2012, 1, 14, 0, 0, 1, 500000)),
++        (fractions.Fraction(3, 2), datetime.datetime(2012, 1, 14, 0, 0, 1, 500000)),
++    ],
++)
++def test_frozen_factory_tick_numeric_delta(delta, expected) -> None:
++    with freeze_time("2012-01-14 00:00:00") as ft:
++        ft.tick(delta)
++        assert ft.time_to_freeze == expected
++
++
++def test_frozen_factory_tick_timedelta_delta() -> None:
++    with freeze_time("2012-01-14 00:00:00") as ft:
++        ft.tick(datetime.timedelta(minutes=2))
++        assert ft.time_to_freeze == datetime.datetime(2012, 1, 14, 0, 2, 0)
++
++
++@pytest.mark.parametrize(
++    "delta, expected",
++    [
++        (1, datetime.datetime(2012, 1, 14, 0, 0, 1)),
++        (1.5, datetime.datetime(2012, 1, 14, 0, 0, 1, 500000)),
++        (fractions.Fraction(3, 2), datetime.datetime(2012, 1, 14, 0, 0, 1, 500000)),
++    ],
++)
++def test_step_tick_factory_tick_numeric_delta(delta, expected) -> None:
++    with freeze_time("2012-01-14 00:00:00", auto_tick_seconds=1) as ft:
++        ft.tick(delta)
++        assert ft.time_to_freeze == expected
++
++
++def test_step_tick_factory_tick_timedelta_delta() -> None:
++    with freeze_time("2012-01-14 00:00:00", auto_tick_seconds=1) as ft:
++        ft.tick(datetime.timedelta(minutes=2))
++        assert ft.time_to_freeze == datetime.datetime(2012, 1, 14, 0, 2, 0)

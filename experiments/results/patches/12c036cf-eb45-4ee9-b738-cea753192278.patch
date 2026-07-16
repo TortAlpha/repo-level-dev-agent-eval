@@ -1,0 +1,48 @@
+diff --git a/sqlparse/sql.py b/sqlparse/sql.py
+index def0679..d17c778 100644
+--- a/sqlparse/sql.py
++++ b/sqlparse/sql.py
+@@ -623,7 +623,9 @@ class Function(NameAliasMixin, TokenList):
+ 
+     def get_parameters(self):
+         """Return a list of parameters."""
+-        parenthesis = self.tokens[-1]
++        parenthesis = self._get_parameter_parenthesis()
++        if parenthesis is None:
++            return []
+         result = []
+         for token in parenthesis.tokens:
+             if isinstance(token, IdentifierList):
+@@ -633,6 +635,32 @@ class Function(NameAliasMixin, TokenList):
+                 result.append(token)
+         return result
+ 
++    def get_window(self):
++        """Return the window definition if an OVER clause is present."""
++        for token in self.tokens:
++            if isinstance(token, Over):
++                return self._get_window_from_over(token)
++        return None
++
++    def _get_parameter_parenthesis(self):
++        """Return the parenthesis that holds function parameters."""
++        for token in self.tokens:
++            if isinstance(token, Parenthesis):
++                return token
++            if isinstance(token, Over):
++                break
++        return None
++
++    def _get_window_from_over(self, over):
++        """Return the window identifier or parenthesis from an OVER clause."""
++        for token in over.tokens:
++            if token.is_whitespace:
++                continue
++            if token.match(T.Keyword, 'OVER'):
++                continue
++            return token
++        return None
++
+ 
+ class Begin(TokenList):
+     """A BEGIN/END block."""

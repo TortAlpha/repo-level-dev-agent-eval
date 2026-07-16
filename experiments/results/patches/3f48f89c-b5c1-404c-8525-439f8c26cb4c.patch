@@ -1,0 +1,50 @@
+diff --git a/src/dotenv/parser.py b/src/dotenv/parser.py
+index eb100b4..58d3f49 100644
+--- a/src/dotenv/parser.py
++++ b/src/dotenv/parser.py
+@@ -69,6 +69,8 @@ class Error(Exception):
+ class Reader:
+     def __init__(self, stream: IO[str]) -> None:
+         self.string = stream.read()
++        if self.string.startswith("\ufeff"):
++            self.string = self.string[1:]
+         self.position = Position.start()
+         self.mark = Position.start()
+ 
+diff --git a/tests/test_bom.py b/tests/test_bom.py
+new file mode 100644
+index 0000000..6265ee9
+--- /dev/null
++++ b/tests/test_bom.py
+@@ -0,0 +1,31 @@
++import io
++
++from dotenv.parser import parse_stream
++
++
++def test_parse_stream_strips_leading_bom():
++    content = "\ufeffFIRST=value1\nSECOND=value2\n"
++    result = list(parse_stream(io.StringIO(content)))
++
++    assert [b.key for b in result] == ["FIRST", "SECOND"]
++    assert [b.value for b in result] == ["value1", "value2"]
++    assert result[0].original.string == "FIRST=value1\n"
++    assert result[0].original.line == 1
++
++
++def test_parse_stream_no_bom_unchanged():
++    content = "FIRST=value1\nSECOND=value2\n"
++    result = list(parse_stream(io.StringIO(content)))
++
++    assert [b.key for b in result] == ["FIRST", "SECOND"]
++    assert [b.value for b in result] == ["value1", "value2"]
++    assert result[0].original.string == "FIRST=value1\n"
++    assert result[0].original.line == 1
++
++
++def test_parse_stream_bom_not_at_start_not_stripped():
++    content = "FIRST=\ufeffvalue1\n"
++    result = list(parse_stream(io.StringIO(content)))
++
++    assert result[0].key == "FIRST"
++    assert result[0].value == "\ufeffvalue1"

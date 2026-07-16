@@ -1,0 +1,60 @@
+diff --git a/src/pydash/arrays.py b/src/pydash/arrays.py
+index fc393bb..417d643 100644
+--- a/src/pydash/arrays.py
++++ b/src/pydash/arrays.py
+@@ -2696,8 +2696,13 @@ def zip_object(keys, values=None):
+     """
+ 
+     if values is None:
++        if not keys:
++            return {}
+         keys, values = unzip(keys)
+ 
++    if not keys or not values:
++        return {}
++
+     return dict(zip(keys, values))
+ 
+ 
+@@ -2723,8 +2728,13 @@ def zip_object_deep(
+     .. versionadded:: 4.0.0
+     """
+     if values is None:  # pragma: no cover
++        if not keys:
++            return {}
+         keys, values = unzip(keys)
+ 
++    if not keys or not values:
++        return {}
++
+     obj: t.Dict[t.Any, t.Any] = {}
+     for idx, key in enumerate(keys):
+         obj = pyd.set_(obj, key, pyd.get(values, idx))
+diff --git a/tests/test_arrays.py b/tests/test_arrays.py
+index a0070cf..5c38ab9 100644
+--- a/tests/test_arrays.py
++++ b/tests/test_arrays.py
+@@ -921,6 +921,11 @@ def test_zip_object(case, expected):
+     assert _.zip_object(*case) == expected
+ 
+ 
++def test_zip_object_empty_inputs():
++    assert _.zip_object([]) == {}
++    assert _.zip_object([], []) == {}
++
++
+ @parametrize(
+     "case,expected",
+     [
+@@ -932,6 +937,11 @@ def test_zip_object_deep(case, expected):
+     assert _.zip_object_deep(*case) == expected
+ 
+ 
++def test_zip_object_deep_empty_inputs():
++    assert _.zip_object_deep([]) == {}
++    assert _.zip_object_deep([], []) == {}
++
++
+ @parametrize(
+     "case,expected",
+     [

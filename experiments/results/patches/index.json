@@ -1,0 +1,1631 @@
+[
+  {
+    "run_id": "00f212f6-a968-403d-af67-0f4b8cdb794f",
+    "task_id": "boltons_pr_403",
+    "session_id": "comp_swe_single_test_2features_2bugfix_5.1codexmini",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/boltons_pr_403-00f212f6-a968-403d-af67-0f4b8cdb794f",
+    "archive": "experiments/results/patches/00f212f6-a968-403d-af67-0f4b8cdb794f.patch",
+    "sha256": "eb55c5af90d5d9c1f644bf387d297809907c37a8f53fec5a426a2b9ae00b2676",
+    "bytes": 1366
+  },
+  {
+    "run_id": "9b7a38d2-5706-4450-a58b-06e3eeb49d9a",
+    "task_id": "boltons_pr_403",
+    "session_id": "test_single_5.1codexmini",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/boltons_pr_403-9b7a38d2-5706-4450-a58b-06e3eeb49d9a",
+    "archive": "experiments/results/patches/9b7a38d2-5706-4450-a58b-06e3eeb49d9a.patch",
+    "sha256": "d24da007c5b7dd172c8b004766315e4caf820a71a4d3aa271e6dc063e94e4018",
+    "bytes": 1386
+  },
+  {
+    "run_id": "b5e647f8-5195-42c8-a775-26bd47ddef4c",
+    "task_id": "boltons_pr_403",
+    "session_id": "comp_swe_single_test_2features_2bugfix_5.1codexmini",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/boltons_pr_403-b5e647f8-5195-42c8-a775-26bd47ddef4c",
+    "archive": "experiments/results/patches/b5e647f8-5195-42c8-a775-26bd47ddef4c.patch",
+    "sha256": "9a528c5dcf43a1927e9098f5ed153814940958d1c36ea13dc8be9679780299c0",
+    "bytes": 492
+  },
+  {
+    "run_id": "b5f71777-c974-4c8a-958f-f1840eb76c1f",
+    "task_id": "boltons_pr_403",
+    "session_id": "comparison_single_swe_bugfixes_only_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/boltons_pr_403-b5f71777-c974-4c8a-958f-f1840eb76c1f",
+    "archive": "experiments/results/patches/b5f71777-c974-4c8a-958f-f1840eb76c1f.patch",
+    "sha256": "b7f6dab6485bf80788e6fa40c82fdc4287d7936ecacf408360c102cb18b7e1e7",
+    "bytes": 1359
+  },
+  {
+    "run_id": "f92fb761-e032-4cf2-9a19-24dbc4b21ae0",
+    "task_id": "boltons_pr_403",
+    "session_id": "comparison_single_swe_bugfixes_only_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/boltons_pr_403-f92fb761-e032-4cf2-9a19-24dbc4b21ae0",
+    "archive": "experiments/results/patches/f92fb761-e032-4cf2-9a19-24dbc4b21ae0.patch",
+    "sha256": "9a528c5dcf43a1927e9098f5ed153814940958d1c36ea13dc8be9679780299c0",
+    "bytes": 492
+  },
+  {
+    "run_id": "897ea32c-a955-40e3-92e2-475cd13c81c6",
+    "task_id": "cachetools_pr_57d2e48",
+    "session_id": "comparison_single_swe_bugfixes_only_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/cachetools_pr_57d2e48-897ea32c-a955-40e3-92e2-475cd13c81c6",
+    "archive": "experiments/results/patches/897ea32c-a955-40e3-92e2-475cd13c81c6.patch",
+    "sha256": "239725217fc967ec4a945c90f0ca21eefaadd0fce53ef3469ebeacf1ddbe8dfa",
+    "bytes": 751
+  },
+  {
+    "run_id": "ee44e8c2-f7b0-455d-b5b3-ae257b16c677",
+    "task_id": "cachetools_pr_57d2e48",
+    "session_id": "comparison_single_swe_bugfixes_only_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/cachetools_pr_57d2e48-ee44e8c2-f7b0-455d-b5b3-ae257b16c677",
+    "archive": "experiments/results/patches/ee44e8c2-f7b0-455d-b5b3-ae257b16c677.patch",
+    "sha256": "d66f3dd9db9c5770521a538393273d5327e35253ac63a3ec973def78167c586a",
+    "bytes": 1519
+  },
+  {
+    "run_id": "015c615c-f042-4af4-9cac-b4c762fee17d",
+    "task_id": "h11_pr_181",
+    "session_id": null,
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/h11_pr_181-015c615c-f042-4af4-9cac-b4c762fee17d",
+    "archive": "experiments/results/patches/015c615c-f042-4af4-9cac-b4c762fee17d.patch",
+    "sha256": "fb903430e7aa88dbdd2abed12f87da04e8e7d44941f56162f43b5ce22e7cc830",
+    "bytes": 676
+  },
+  {
+    "run_id": "051fd64a-c94f-4696-8540-610fef260a1f",
+    "task_id": "h11_pr_181",
+    "session_id": "comparison_single_swe_bugfixes_only_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/h11_pr_181-051fd64a-c94f-4696-8540-610fef260a1f",
+    "archive": "experiments/results/patches/051fd64a-c94f-4696-8540-610fef260a1f.patch",
+    "sha256": "5222bab6ab42a46a455a89295180877d81ae7f1f158d22265882e0272010057e",
+    "bytes": 1409
+  },
+  {
+    "run_id": "1e3d01f3-fd4c-459e-9924-87557318d3f5",
+    "task_id": "h11_pr_181",
+    "session_id": "swe_test_gpt5.1codexmini_1",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/h11_pr_181-1e3d01f3-fd4c-459e-9924-87557318d3f5",
+    "archive": "experiments/results/patches/1e3d01f3-fd4c-459e-9924-87557318d3f5.patch",
+    "sha256": "c596ab31fa6b5af254ce1c91ea99480995fc6ff25f081e462d6bb3919192c3de",
+    "bytes": 1797
+  },
+  {
+    "run_id": "7b71da2c-bc9c-48b8-96b2-527a7695b7e4",
+    "task_id": "h11_pr_181",
+    "session_id": null,
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/h11_pr_181-7b71da2c-bc9c-48b8-96b2-527a7695b7e4",
+    "archive": "experiments/results/patches/7b71da2c-bc9c-48b8-96b2-527a7695b7e4.patch",
+    "sha256": "9f31ee351f4d7e05b5aab38ac1fbbe9e93db5c84f48472735443c70828a9398d",
+    "bytes": 1058
+  },
+  {
+    "run_id": "8112678d-e3f4-472f-b339-0aca6901b5a8",
+    "task_id": "h11_pr_181",
+    "session_id": "default",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/h11_pr_181-8112678d-e3f4-472f-b339-0aca6901b5a8",
+    "archive": "experiments/results/patches/8112678d-e3f4-472f-b339-0aca6901b5a8.patch",
+    "sha256": "dcebf56438c4e1a7826bbc997511e23ae33ed4f78d98a1b88db186ee69a13d5f",
+    "bytes": 399
+  },
+  {
+    "run_id": "b5e31e1c-ef5a-4578-81b4-804994799e8e",
+    "task_id": "h11_pr_181",
+    "session_id": null,
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/h11_pr_181-b5e31e1c-ef5a-4578-81b4-804994799e8e",
+    "archive": "experiments/results/patches/b5e31e1c-ef5a-4578-81b4-804994799e8e.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "c9599980-1479-4e7e-b7b7-c26eebd98e7f",
+    "task_id": "h11_pr_181",
+    "session_id": null,
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/h11_pr_181-c9599980-1479-4e7e-b7b7-c26eebd98e7f",
+    "archive": "experiments/results/patches/c9599980-1479-4e7e-b7b7-c26eebd98e7f.patch",
+    "sha256": "93c49edfc1f7dd02cc31a13cdbd81450661ee888f3f6491bbef890ed6c5c1d72",
+    "bytes": 1273
+  },
+  {
+    "run_id": "ccde65e6-cd0e-45ef-85cb-de9d68cdc3d4",
+    "task_id": "h11_pr_181",
+    "session_id": "default",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/h11_pr_181-ccde65e6-cd0e-45ef-85cb-de9d68cdc3d4",
+    "archive": "experiments/results/patches/ccde65e6-cd0e-45ef-85cb-de9d68cdc3d4.patch",
+    "sha256": "7e4d4e5b3eaff465defe2f27364f5b954201f145f87105ab3c5c0b72d6a9a607",
+    "bytes": 889
+  },
+  {
+    "run_id": "e25f42b1-4244-4fdd-89cc-04527789a797",
+    "task_id": "h11_pr_181",
+    "session_id": null,
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/h11_pr_181-e25f42b1-4244-4fdd-89cc-04527789a797",
+    "archive": "experiments/results/patches/e25f42b1-4244-4fdd-89cc-04527789a797.patch",
+    "sha256": "8c5130386013468acca59fc9fdd32893dfcb3b0a3ac224ea78f4d1d1c4b4f1c4",
+    "bytes": 663
+  },
+  {
+    "run_id": "f7983260-9b13-4f3b-8353-a9521a9ed942",
+    "task_id": "h11_pr_181",
+    "session_id": null,
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/h11_pr_181-f7983260-9b13-4f3b-8353-a9521a9ed942",
+    "archive": "experiments/results/patches/f7983260-9b13-4f3b-8353-a9521a9ed942.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "142bd255-9a92-4c8a-a0a7-dd98b4f13b4d",
+    "task_id": "humanize_pr_329",
+    "session_id": "comparison_single_swe_bugfixes_only_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/humanize_pr_329-142bd255-9a92-4c8a-a0a7-dd98b4f13b4d",
+    "archive": "experiments/results/patches/142bd255-9a92-4c8a-a0a7-dd98b4f13b4d.patch",
+    "sha256": "4df2fb93e8d08f360658be730283c2c8a75eb51e85d0cea9b5e67153a539f500",
+    "bytes": 2365
+  },
+  {
+    "run_id": "eaaaf91e-a3fb-4f59-b61e-db7845cd7943",
+    "task_id": "humanize_pr_329",
+    "session_id": "swe_test_gpt5.1codexmini_1",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/humanize_pr_329-eaaaf91e-a3fb-4f59-b61e-db7845cd7943",
+    "archive": "experiments/results/patches/eaaaf91e-a3fb-4f59-b61e-db7845cd7943.patch",
+    "sha256": "beb9927af3b48b72ae5c494abfa5a262888ebf4cddee3583ac11ef62dde885a0",
+    "bytes": 1321
+  },
+  {
+    "run_id": "1114f522-721e-4f9e-a8a8-7835ee97d88b",
+    "task_id": "markdown_pr_1546",
+    "session_id": "default",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/markdown_pr_1546-1114f522-721e-4f9e-a8a8-7835ee97d88b",
+    "archive": "experiments/results/patches/1114f522-721e-4f9e-a8a8-7835ee97d88b.patch",
+    "sha256": "46ce39b560ad99ffcd39960f1cb153c696cc113b442b7ed8a83fdfd3bb1cdb62",
+    "bytes": 1430
+  },
+  {
+    "run_id": "2cce030f-c750-4c1c-9a63-70d87ccf55d4",
+    "task_id": "markdown_pr_1546",
+    "session_id": "comp_swe_single_test_2features_2bugfix_5.1codexmini",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/markdown_pr_1546-2cce030f-c750-4c1c-9a63-70d87ccf55d4",
+    "archive": "experiments/results/patches/2cce030f-c750-4c1c-9a63-70d87ccf55d4.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "3aef0587-9241-484c-8a52-936e62d100b1",
+    "task_id": "markdown_pr_1546",
+    "session_id": "default",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/markdown_pr_1546-3aef0587-9241-484c-8a52-936e62d100b1",
+    "archive": "experiments/results/patches/3aef0587-9241-484c-8a52-936e62d100b1.patch",
+    "sha256": "e8dc2b4479ce9548266a19df16cca7dea589e817a712f88781043fd85fb2b538",
+    "bytes": 3443
+  },
+  {
+    "run_id": "7757aec1-47dc-4c1f-8d73-869075c08206",
+    "task_id": "markdown_pr_1546",
+    "session_id": "comp_swe_single_test_2features_2bugfix_5.1codexmini",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/markdown_pr_1546-7757aec1-47dc-4c1f-8d73-869075c08206",
+    "archive": "experiments/results/patches/7757aec1-47dc-4c1f-8d73-869075c08206.patch",
+    "sha256": "95b92ecfcd1110cd2a53d05c54f195cff8b104e20fb19c33f2f6dc62f262f126",
+    "bytes": 745
+  },
+  {
+    "run_id": "798615c5-9082-487d-8258-d053f0d1dcab",
+    "task_id": "markdown_pr_1546",
+    "session_id": "default",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/markdown_pr_1546-798615c5-9082-487d-8258-d053f0d1dcab",
+    "archive": "experiments/results/patches/798615c5-9082-487d-8258-d053f0d1dcab.patch",
+    "sha256": "6cc7a0b5edfdd3ed996d69d2e6225427728a0f0b65041782d18733537da60dba",
+    "bytes": 3751
+  },
+  {
+    "run_id": "8ce449c7-170f-4465-b164-c45d054482fd",
+    "task_id": "markdown_pr_1546",
+    "session_id": "comp_swe_single_test_2features_2bugfix_5.1codexmini",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/markdown_pr_1546-8ce449c7-170f-4465-b164-c45d054482fd",
+    "archive": "experiments/results/patches/8ce449c7-170f-4465-b164-c45d054482fd.patch",
+    "sha256": "cc960361fd1587a11eb9053dfb32d8ffc2021efdf18711568597f8f271a84561",
+    "bytes": 3604
+  },
+  {
+    "run_id": "acf902db-8f38-4232-a4d1-c7e86c164331",
+    "task_id": "markdown_pr_1546",
+    "session_id": "default",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/markdown_pr_1546-acf902db-8f38-4232-a4d1-c7e86c164331",
+    "archive": "experiments/results/patches/acf902db-8f38-4232-a4d1-c7e86c164331.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "adb07575-84e8-424c-97cd-d8124363a65d",
+    "task_id": "markdown_pr_1546",
+    "session_id": "comparison_single_swe_bugfixes_only_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/markdown_pr_1546-adb07575-84e8-424c-97cd-d8124363a65d",
+    "archive": "experiments/results/patches/adb07575-84e8-424c-97cd-d8124363a65d.patch",
+    "sha256": "057524a4178a4dd2508ab5b8e56ea9db09937673a9998090aed3b0697e9ae8f1",
+    "bytes": 502
+  },
+  {
+    "run_id": "e5a83a6a-c445-4177-9a6f-5adc0117e1e4",
+    "task_id": "markdown_pr_1546",
+    "session_id": "comparison_single_swe_bugfixes_only_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/markdown_pr_1546-e5a83a6a-c445-4177-9a6f-5adc0117e1e4",
+    "archive": "experiments/results/patches/e5a83a6a-c445-4177-9a6f-5adc0117e1e4.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "917414fb-e68d-4d8e-bc82-4972e0830170",
+    "task_id": "markdown_pr_1606",
+    "session_id": "comparison_single_swe_bugfixes_only_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/markdown_pr_1606-917414fb-e68d-4d8e-bc82-4972e0830170",
+    "archive": "experiments/results/patches/917414fb-e68d-4d8e-bc82-4972e0830170.patch",
+    "sha256": "e0d03015a3fd14282936c680f1cc70e856db88dceb4a1745b4d3f3137fa2887c",
+    "bytes": 1780
+  },
+  {
+    "run_id": "b07312e7-ee25-4b87-8480-038757a7fc3f",
+    "task_id": "markdown_pr_1606",
+    "session_id": "comparison_single_swe_bugfixes_only_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/markdown_pr_1606-b07312e7-ee25-4b87-8480-038757a7fc3f",
+    "archive": "experiments/results/patches/b07312e7-ee25-4b87-8480-038757a7fc3f.patch",
+    "sha256": "8db93df194f5f2ac4e4bd5d4b5cdc3e7019cee621f7eaeb71ec0ba832605e7b9",
+    "bytes": 581
+  },
+  {
+    "run_id": "f06fda38-0cde-4ab7-8ab7-b0dcd3f8e224",
+    "task_id": "markdown_pr_1606",
+    "session_id": null,
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/markdown_pr_1606-f06fda38-0cde-4ab7-8ab7-b0dcd3f8e224",
+    "archive": "experiments/results/patches/f06fda38-0cde-4ab7-8ab7-b0dcd3f8e224.patch",
+    "sha256": "d9a761cdc37224a6fb33a5f76b8a7737b1665a609b5b529df81f7c62a2c979c9",
+    "bytes": 579
+  },
+  {
+    "run_id": "0c413ba6-3a6d-453a-a4c7-88249439aa42",
+    "task_id": "more_itertools_pr_1135",
+    "session_id": "default",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/more_itertools_pr_1135-0c413ba6-3a6d-453a-a4c7-88249439aa42",
+    "archive": "experiments/results/patches/0c413ba6-3a6d-453a-a4c7-88249439aa42.patch",
+    "sha256": "b8e20525e53dc1aa794f4aca0b049819c766825350e083245018a23fe0917316",
+    "bytes": 328
+  },
+  {
+    "run_id": "51726514-474d-47d3-bdf6-d547183d4b59",
+    "task_id": "more_itertools_pr_1135",
+    "session_id": "multi_smoke",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/more_itertools_pr_1135-51726514-474d-47d3-bdf6-d547183d4b59",
+    "archive": "experiments/results/patches/51726514-474d-47d3-bdf6-d547183d4b59.patch",
+    "sha256": "327e0edafd78675ffe8e71b2273b8f823724d2c9ab2eb0254f94f48467823257",
+    "bytes": 2509
+  },
+  {
+    "run_id": "b033cc88-0a3b-4e35-a689-986a991d2ced",
+    "task_id": "more_itertools_pr_1135",
+    "session_id": "arch_compare_mi1135",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/more_itertools_pr_1135-b033cc88-0a3b-4e35-a689-986a991d2ced",
+    "archive": "experiments/results/patches/b033cc88-0a3b-4e35-a689-986a991d2ced.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "bb363232-5beb-4ba7-9d06-3ab61d37e099",
+    "task_id": "more_itertools_pr_1135",
+    "session_id": "arch_compare_mi1135",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/more_itertools_pr_1135-bb363232-5beb-4ba7-9d06-3ab61d37e099",
+    "archive": "experiments/results/patches/bb363232-5beb-4ba7-9d06-3ab61d37e099.patch",
+    "sha256": "ddd116053a55e6dfd7c2e4bf40489aa0171efbad03d34618360bbfe04a7294e5",
+    "bytes": 332
+  },
+  {
+    "run_id": "c7179829-8cd6-4f55-8ee1-f07561ca8584",
+    "task_id": "more_itertools_pr_1135",
+    "session_id": "transport_ab_mi1135_b48",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/more_itertools_pr_1135-c7179829-8cd6-4f55-8ee1-f07561ca8584",
+    "archive": "experiments/results/patches/c7179829-8cd6-4f55-8ee1-f07561ca8584.patch",
+    "sha256": "407993f182b155d2267837f1c9358e7ec856ed141b8e08bea27f2f4c7755685e",
+    "bytes": 3308
+  },
+  {
+    "run_id": "d0873b31-0369-449c-bdbd-db1c2eac3205",
+    "task_id": "more_itertools_pr_1135",
+    "session_id": "transport_ab_mi1135_v2",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/more_itertools_pr_1135-d0873b31-0369-449c-bdbd-db1c2eac3205",
+    "archive": "experiments/results/patches/d0873b31-0369-449c-bdbd-db1c2eac3205.patch",
+    "sha256": "4721b258e304f8e915886c6704355fed8b7d6efd75bbe1ba2061f47277d4b8b8",
+    "bytes": 3610
+  },
+  {
+    "run_id": "d44131fe-c56f-4151-bee5-04924c6cd5f6",
+    "task_id": "more_itertools_pr_1135",
+    "session_id": "transport_ab_mi1135_b48",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/more_itertools_pr_1135-d44131fe-c56f-4151-bee5-04924c6cd5f6",
+    "archive": "experiments/results/patches/d44131fe-c56f-4151-bee5-04924c6cd5f6.patch",
+    "sha256": "ca5e8c79933a1c9052db2ab156d1f636ee2f769b6e3d64f42aa293dc44503073",
+    "bytes": 2311
+  },
+  {
+    "run_id": "d5454f6e-fbf8-40a0-893e-9453d91b9eef",
+    "task_id": "more_itertools_pr_1135",
+    "session_id": "arch_compare_mi1135",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/more_itertools_pr_1135-d5454f6e-fbf8-40a0-893e-9453d91b9eef",
+    "archive": "experiments/results/patches/d5454f6e-fbf8-40a0-893e-9453d91b9eef.patch",
+    "sha256": "796cad475e4748e593be6617bf49fb2a1a744e06e93b32c34363e4849af24ce3",
+    "bytes": 1879
+  },
+  {
+    "run_id": "eef0bb3d-a8ba-4fb5-a7c0-974f8c81f7af",
+    "task_id": "more_itertools_pr_1135",
+    "session_id": "transport_ab_mi1135_v2",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/more_itertools_pr_1135-eef0bb3d-a8ba-4fb5-a7c0-974f8c81f7af",
+    "archive": "experiments/results/patches/eef0bb3d-a8ba-4fb5-a7c0-974f8c81f7af.patch",
+    "sha256": "65ad285e3e1fbba751a9159191d2706520df86ca0a81a100d8e1402482f4bb8d",
+    "bytes": 4985
+  },
+  {
+    "run_id": "f47f9bcf-a82e-4b70-85e4-9292fcc144e1",
+    "task_id": "more_itertools_pr_1135",
+    "session_id": "default",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/more_itertools_pr_1135-f47f9bcf-a82e-4b70-85e4-9292fcc144e1",
+    "archive": "experiments/results/patches/f47f9bcf-a82e-4b70-85e4-9292fcc144e1.patch",
+    "sha256": "a38c233dec665b7f0af7be403ac5a2a4ff9ebc7d6d11f6f0e65bacb848f4c179",
+    "bytes": 3944
+  },
+  {
+    "run_id": "f97ed1c9-7cb7-4665-a5c3-7b582dae8948",
+    "task_id": "more_itertools_pr_1135",
+    "session_id": "multi_smoke",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/more_itertools_pr_1135-f97ed1c9-7cb7-4665-a5c3-7b582dae8948",
+    "archive": "experiments/results/patches/f97ed1c9-7cb7-4665-a5c3-7b582dae8948.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "fa46d12c-f191-460e-a9da-87803de37fd3",
+    "task_id": "more_itertools_pr_1135",
+    "session_id": "arch_compare_mi1135",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/more_itertools_pr_1135-fa46d12c-f191-460e-a9da-87803de37fd3",
+    "archive": "experiments/results/patches/fa46d12c-f191-460e-a9da-87803de37fd3.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "4970a3a5-ee55-4b71-a66c-d3c01a70d886",
+    "task_id": "more_itertools_pr_1135_stats",
+    "session_id": "post_split_running_stats_single_qwen_coder_next_textjson_75",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/more_itertools_pr_1135_stats-4970a3a5-ee55-4b71-a66c-d3c01a70d886",
+    "archive": "experiments/results/patches/4970a3a5-ee55-4b71-a66c-d3c01a70d886.patch",
+    "sha256": "4ddad705a348ee46de8655b30ea5b288704ee9719027be2c8a9dcd232cb72845",
+    "bytes": 518
+  },
+  {
+    "run_id": "4deef505-ab6c-4da8-b4b0-6b35c17adaa4",
+    "task_id": "more_itertools_pr_1135_stats",
+    "session_id": "post_split_running_stats_single_glm_textjson_75",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/more_itertools_pr_1135_stats-4deef505-ab6c-4da8-b4b0-6b35c17adaa4",
+    "archive": "experiments/results/patches/4deef505-ab6c-4da8-b4b0-6b35c17adaa4.patch",
+    "sha256": "6f8cfd94c9d0f56a362536a03057290bf106ee007558ee3663f45f8d24b31a10",
+    "bytes": 5617
+  },
+  {
+    "run_id": "7b478936-2d22-49eb-b40d-a6261bb09547",
+    "task_id": "more_itertools_pr_1135_stats",
+    "session_id": "rerun_running_stats_glm_textjson_75",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/more_itertools_pr_1135_stats-7b478936-2d22-49eb-b40d-a6261bb09547",
+    "archive": "experiments/results/patches/7b478936-2d22-49eb-b40d-a6261bb09547.patch",
+    "sha256": "bda23e6a95ebef231e0e393274bf56d727b896c1cda1f685423a7a28681cab8f",
+    "bytes": 6506
+  },
+  {
+    "run_id": "91afabf6-0404-429f-a420-e9321a9fc1bc",
+    "task_id": "more_itertools_pr_1135_stats",
+    "session_id": "compare_running_stats_detached_glm_textjson_75",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/more_itertools_pr_1135_stats-91afabf6-0404-429f-a420-e9321a9fc1bc",
+    "archive": "experiments/results/patches/91afabf6-0404-429f-a420-e9321a9fc1bc.patch",
+    "sha256": "4c1d54ba5c654330675da75e2ee7d6bdbdc8c49dc16002c31efe102e6eadd4b5",
+    "bytes": 5825
+  },
+  {
+    "run_id": "be07911a-5db3-4d27-9b64-e568b72a08c0",
+    "task_id": "more_itertools_pr_1135_stats",
+    "session_id": "post_split_running_stats_single_codex_mini_low_tools_75",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/more_itertools_pr_1135_stats-be07911a-5db3-4d27-9b64-e568b72a08c0",
+    "archive": "experiments/results/patches/be07911a-5db3-4d27-9b64-e568b72a08c0.patch",
+    "sha256": "47139414a9b5f67e69293ba7635dd544cfb356b318807c8301f95468e835215f",
+    "bytes": 5144
+  },
+  {
+    "run_id": "d938271a-bbdc-4839-8afd-bd5540ae3ec6",
+    "task_id": "more_itertools_pr_1135_stats",
+    "session_id": "compare_running_stats_glm_textjson_75",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/more_itertools_pr_1135_stats-d938271a-bbdc-4839-8afd-bd5540ae3ec6",
+    "archive": "experiments/results/patches/d938271a-bbdc-4839-8afd-bd5540ae3ec6.patch",
+    "sha256": "a5a8a2694f1e96d64e1595adad3041f601c541775632319ff4864b9bda155f26",
+    "bytes": 6091
+  },
+  {
+    "run_id": "e84996ed-d3d8-4a72-8bd9-a58921799762",
+    "task_id": "more_itertools_pr_1135_stats",
+    "session_id": "post_split_running_stats_multigraph_codex_mini_low_tools_75",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/more_itertools_pr_1135_stats-e84996ed-d3d8-4a72-8bd9-a58921799762",
+    "archive": "experiments/results/patches/e84996ed-d3d8-4a72-8bd9-a58921799762.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "6b4af7b1-7909-4c24-aa46-e826991d1045",
+    "task_id": "more_itertools_pr_1153",
+    "session_id": "test_single_5.1codexmini",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/more_itertools_pr_1153-6b4af7b1-7909-4c24-aa46-e826991d1045",
+    "archive": "experiments/results/patches/6b4af7b1-7909-4c24-aa46-e826991d1045.patch",
+    "sha256": "fc0777fb77cb10a10b5ae04455c12a17736a15187673290f6b323b25ece0131e",
+    "bytes": 424
+  },
+  {
+    "run_id": "6f1f843e-4f52-4fca-aa12-9156926d9c14",
+    "task_id": "more_itertools_pr_1153",
+    "session_id": "comparison_single_swe_bugfixes_only_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/more_itertools_pr_1153-6f1f843e-4f52-4fca-aa12-9156926d9c14",
+    "archive": "experiments/results/patches/6f1f843e-4f52-4fca-aa12-9156926d9c14.patch",
+    "sha256": "fc0777fb77cb10a10b5ae04455c12a17736a15187673290f6b323b25ece0131e",
+    "bytes": 424
+  },
+  {
+    "run_id": "7098adff-4d25-4d06-854a-1f3cda8eb10a",
+    "task_id": "more_itertools_pr_1153",
+    "session_id": "comparison_single_swe_bugfixes_only_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/more_itertools_pr_1153-7098adff-4d25-4d06-854a-1f3cda8eb10a",
+    "archive": "experiments/results/patches/7098adff-4d25-4d06-854a-1f3cda8eb10a.patch",
+    "sha256": "d7c38920276786b386004273a4755f3bc463d39b5744c1a7d86ce6c0e77bf723",
+    "bytes": 964
+  },
+  {
+    "run_id": "1d70cb3f-800a-4c7e-b57a-d61d2755ffbd",
+    "task_id": "more_itertools_pr_1166",
+    "session_id": "swe_test_gpt5.1codexmini_1",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/more_itertools_pr_1166-1d70cb3f-800a-4c7e-b57a-d61d2755ffbd",
+    "archive": "experiments/results/patches/1d70cb3f-800a-4c7e-b57a-d61d2755ffbd.patch",
+    "sha256": "e4eb194e7ae438db0fedb6146b2f83693a745c410373c686101d163f97c61036",
+    "bytes": 1169
+  },
+  {
+    "run_id": "21067d02-ec24-41ce-9b5b-929e93d81917",
+    "task_id": "more_itertools_pr_1166",
+    "session_id": "swe_test_gpt5.1codexmini_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/more_itertools_pr_1166-21067d02-ec24-41ce-9b5b-929e93d81917",
+    "archive": "experiments/results/patches/21067d02-ec24-41ce-9b5b-929e93d81917.patch",
+    "sha256": "1cce8f972773c312bd45e841beea137f51ff8de0500b89cab1414aed94e12745",
+    "bytes": 1565
+  },
+  {
+    "run_id": "3f48271a-ebf5-47a3-b9cd-c2779284b31a",
+    "task_id": "more_itertools_pr_1166",
+    "session_id": "comp_swe_single_test_2features_2bugfix_5.1codexmini",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/more_itertools_pr_1166-3f48271a-ebf5-47a3-b9cd-c2779284b31a",
+    "archive": "experiments/results/patches/3f48271a-ebf5-47a3-b9cd-c2779284b31a.patch",
+    "sha256": "9275e7325e69f02f4dfa3b4490af3b7bb42e2e07f9d53fb9ae2423cabd699017",
+    "bytes": 2803
+  },
+  {
+    "run_id": "56699824-c779-45f5-afc9-b481779d2cff",
+    "task_id": "more_itertools_pr_1166",
+    "session_id": "test_single_5.1codexmini",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/more_itertools_pr_1166-56699824-c779-45f5-afc9-b481779d2cff",
+    "archive": "experiments/results/patches/56699824-c779-45f5-afc9-b481779d2cff.patch",
+    "sha256": "2a739e3a6627e0cb20dd35b95892d266b0556e888de4c1eee95b3cca352e8e3d",
+    "bytes": 2649
+  },
+  {
+    "run_id": "74c0901a-6c41-4c9e-8b75-8f473fb97e9b",
+    "task_id": "more_itertools_pr_1166",
+    "session_id": "comp_swe_single_test_2features_2bugfix_5.1codexmini",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/more_itertools_pr_1166-74c0901a-6c41-4c9e-8b75-8f473fb97e9b",
+    "archive": "experiments/results/patches/74c0901a-6c41-4c9e-8b75-8f473fb97e9b.patch",
+    "sha256": "00362919a17394c13dc173e47090e2993ce43f15bdc1a5afd68845f64416d4d5",
+    "bytes": 240
+  },
+  {
+    "run_id": "b720a710-e102-4821-b266-5f63b3756c4d",
+    "task_id": "more_itertools_pr_1166",
+    "session_id": "swe_test_gpt5.1codexmini_1",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/more_itertools_pr_1166-b720a710-e102-4821-b266-5f63b3756c4d",
+    "archive": "experiments/results/patches/b720a710-e102-4821-b266-5f63b3756c4d.patch",
+    "sha256": "c37344a0bd54142b2c91922d3461b9d11f988bd564c7475a9ae610554290c07c",
+    "bytes": 1678
+  },
+  {
+    "run_id": "20e8a533-8a86-4baf-b1ae-799638da862f",
+    "task_id": "parse_pr_165",
+    "session_id": "transport_ab_ctx32",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/parse_pr_165-20e8a533-8a86-4baf-b1ae-799638da862f",
+    "archive": "experiments/results/patches/20e8a533-8a86-4baf-b1ae-799638da862f.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "22a9803b-d723-4ef4-a95f-0b9356149b9f",
+    "task_id": "parse_pr_165",
+    "session_id": "transport_ab_fixed",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/parse_pr_165-22a9803b-d723-4ef4-a95f-0b9356149b9f",
+    "archive": "experiments/results/patches/22a9803b-d723-4ef4-a95f-0b9356149b9f.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "23292908-456f-4e70-880b-35ac23e1e094",
+    "task_id": "parse_pr_165",
+    "session_id": "test_single_5.1codexmini",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/parse_pr_165-23292908-456f-4e70-880b-35ac23e1e094",
+    "archive": "experiments/results/patches/23292908-456f-4e70-880b-35ac23e1e094.patch",
+    "sha256": "3efdff4d0ca2183c1c0a4ee39b5b8c79c11bae85d3c3f4fd6e510ce5b48c809e",
+    "bytes": 2814
+  },
+  {
+    "run_id": "4590fcbc-8a6f-4a3d-9278-0849a6ba38a4",
+    "task_id": "parse_pr_165",
+    "session_id": "calib_glm_parse165",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/parse_pr_165-4590fcbc-8a6f-4a3d-9278-0849a6ba38a4",
+    "archive": "experiments/results/patches/4590fcbc-8a6f-4a3d-9278-0849a6ba38a4.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "4962c8d5-5604-48c6-b44f-b4d5c1153eef",
+    "task_id": "parse_pr_165",
+    "session_id": "test_single_transport_5.1codexmini",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/parse_pr_165-4962c8d5-5604-48c6-b44f-b4d5c1153eef",
+    "archive": "experiments/results/patches/4962c8d5-5604-48c6-b44f-b4d5c1153eef.patch",
+    "sha256": "e1e8a96a8b7a1726e3437d31ee12b4e0a22b6718b0dc8e14e0c9f643d80b1daa",
+    "bytes": 367
+  },
+  {
+    "run_id": "50005cb6-1ba8-43a8-b460-16b02f8e5aaf",
+    "task_id": "parse_pr_165",
+    "session_id": "transport_ab_ctx32",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/parse_pr_165-50005cb6-1ba8-43a8-b460-16b02f8e5aaf",
+    "archive": "experiments/results/patches/50005cb6-1ba8-43a8-b460-16b02f8e5aaf.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "51529254-7210-4ab8-a9fd-2e0fe7fac85e",
+    "task_id": "parse_pr_165",
+    "session_id": "effort_ab_parse165",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/parse_pr_165-51529254-7210-4ab8-a9fd-2e0fe7fac85e",
+    "archive": "experiments/results/patches/51529254-7210-4ab8-a9fd-2e0fe7fac85e.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "60e7d314-df94-4c4b-a744-a5fe374a378f",
+    "task_id": "parse_pr_165",
+    "session_id": "effort_ab_parse165",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/parse_pr_165-60e7d314-df94-4c4b-a744-a5fe374a378f",
+    "archive": "experiments/results/patches/60e7d314-df94-4c4b-a744-a5fe374a378f.patch",
+    "sha256": "2e95c1997b822e4b99f6686ca49f917d84130db0b8ce3583321904f6907fa931",
+    "bytes": 450
+  },
+  {
+    "run_id": "772091d8-e4df-4bce-9f8e-a2373c664ace",
+    "task_id": "parse_pr_165",
+    "session_id": "calib_glm_parse165",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/parse_pr_165-772091d8-e4df-4bce-9f8e-a2373c664ace",
+    "archive": "experiments/results/patches/772091d8-e4df-4bce-9f8e-a2373c664ace.patch",
+    "sha256": "e888c70b3e2896731f546cb4ea3bc62907636a4b72e3a602fc1f1f0ce12dddd4",
+    "bytes": 5909
+  },
+  {
+    "run_id": "7af42bfd-13eb-4ea5-8cfa-bdc4bda83c66",
+    "task_id": "parse_pr_165",
+    "session_id": "effort_ab_parse165",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/parse_pr_165-7af42bfd-13eb-4ea5-8cfa-bdc4bda83c66",
+    "archive": "experiments/results/patches/7af42bfd-13eb-4ea5-8cfa-bdc4bda83c66.patch",
+    "sha256": "06d481b099ac44a6031eb078d727b4587616395ff247239d046fe1625e3f45e6",
+    "bytes": 381
+  },
+  {
+    "run_id": "8aeab0ed-05aa-49f6-b899-03feb08cdb07",
+    "task_id": "parse_pr_165",
+    "session_id": "multi_debug_glm",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/parse_pr_165-8aeab0ed-05aa-49f6-b899-03feb08cdb07",
+    "archive": "experiments/results/patches/8aeab0ed-05aa-49f6-b899-03feb08cdb07.patch",
+    "sha256": "f9481c8d1e6c8e2af8337f78137afaffe509ef05e4b2850a63cbfa642232e21c",
+    "bytes": 3309
+  },
+  {
+    "run_id": "b8c76014-69e7-4a5a-8aeb-e3dddf5e565e",
+    "task_id": "parse_pr_165",
+    "session_id": "test_single_5.1codexmini",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/parse_pr_165-b8c76014-69e7-4a5a-8aeb-e3dddf5e565e",
+    "archive": "experiments/results/patches/b8c76014-69e7-4a5a-8aeb-e3dddf5e565e.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "fcc63f4e-bc3b-4ef8-af96-700f8d02084b",
+    "task_id": "parse_pr_165",
+    "session_id": "transport_ab_fixed",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/parse_pr_165-fcc63f4e-bc3b-4ef8-af96-700f8d02084b",
+    "archive": "experiments/results/patches/fcc63f4e-bc3b-4ef8-af96-700f8d02084b.patch",
+    "sha256": "1e38de5390d5d769be71e6227689f5d349bcdba0755a2d10a1627c0cf7be5eb1",
+    "bytes": 1086
+  },
+  {
+    "run_id": "ffb2b171-4371-4ca1-8799-36c515b36147",
+    "task_id": "parse_pr_165",
+    "session_id": "multi_debug_glm",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/parse_pr_165-ffb2b171-4371-4ca1-8799-36c515b36147",
+    "archive": "experiments/results/patches/ffb2b171-4371-4ca1-8799-36c515b36147.patch",
+    "sha256": "b035b5ef98af63fbc29c30ac9ce40d67530c52f39996ceeec57da7134ffed616",
+    "bytes": 3220
+  },
+  {
+    "run_id": "03927606-2ee7-406a-b156-f20365018197",
+    "task_id": "parse_pr_227",
+    "session_id": null,
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/parse_pr_227-03927606-2ee7-406a-b156-f20365018197",
+    "archive": "experiments/results/patches/03927606-2ee7-406a-b156-f20365018197.patch",
+    "sha256": "8dc058b779e67c1c6a697ca790549b8addad7bb1802bcf3ab5f635b9a39397e4",
+    "bytes": 1167
+  },
+  {
+    "run_id": "2ecef889-a8a0-4639-a72f-8b7398bbb5f9",
+    "task_id": "parse_pr_227",
+    "session_id": null,
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/parse_pr_227-2ecef889-a8a0-4639-a72f-8b7398bbb5f9",
+    "archive": "experiments/results/patches/2ecef889-a8a0-4639-a72f-8b7398bbb5f9.patch",
+    "sha256": "be033af8b8774dad00d3957c10b55b42c142509cf06cca8b2db9992b7c39d566",
+    "bytes": 28257
+  },
+  {
+    "run_id": "318ff472-e67f-418e-877d-50677be3bd60",
+    "task_id": "parse_pr_227",
+    "session_id": "tools_native_smoke",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/parse_pr_227-318ff472-e67f-418e-877d-50677be3bd60",
+    "archive": "experiments/results/patches/318ff472-e67f-418e-877d-50677be3bd60.patch",
+    "sha256": "0440ef81fbfbd71485a20d2d45ae39f4194207eed394a370896410fc916efc76",
+    "bytes": 628
+  },
+  {
+    "run_id": "3c345e1f-bc04-4b3a-b912-374953c715f2",
+    "task_id": "parse_pr_227",
+    "session_id": null,
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/parse_pr_227-3c345e1f-bc04-4b3a-b912-374953c715f2",
+    "archive": "experiments/results/patches/3c345e1f-bc04-4b3a-b912-374953c715f2.patch",
+    "sha256": "7ddddf48c738361785aa1cc9a597e072b10228c8d83a1626041b71d78df8a771",
+    "bytes": 23709
+  },
+  {
+    "run_id": "4417e2b8-07df-4f63-b64b-94510e349835",
+    "task_id": "parse_pr_227",
+    "session_id": "test_single_5.1codexmini",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/parse_pr_227-4417e2b8-07df-4f63-b64b-94510e349835",
+    "archive": "experiments/results/patches/4417e2b8-07df-4f63-b64b-94510e349835.patch",
+    "sha256": "29d6e05c90f953ab406312f6b15551947e479c70c0f94bc5c58eb756428890a5",
+    "bytes": 1071
+  },
+  {
+    "run_id": "441ac983-4f47-48b2-9f9f-2099e2c893a6",
+    "task_id": "parse_pr_227",
+    "session_id": null,
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/parse_pr_227-441ac983-4f47-48b2-9f9f-2099e2c893a6",
+    "archive": "experiments/results/patches/441ac983-4f47-48b2-9f9f-2099e2c893a6.patch",
+    "sha256": "432b109577a65945708f27d20050313d21d2f066e7d71a4d74d2995d8034b079",
+    "bytes": 381
+  },
+  {
+    "run_id": "4a96b160-84c5-4a1a-b7f4-8cda10a4c60c",
+    "task_id": "parse_pr_227",
+    "session_id": "comparison_single_swe_bugfixes_only_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/parse_pr_227-4a96b160-84c5-4a1a-b7f4-8cda10a4c60c",
+    "archive": "experiments/results/patches/4a96b160-84c5-4a1a-b7f4-8cda10a4c60c.patch",
+    "sha256": "b5857834361cc4eca4f18a7d88840e9f8abb90f48da6126ba389cd7f1bfdcb10",
+    "bytes": 1202
+  },
+  {
+    "run_id": "5cc95b50-d2f8-444a-86ce-1d70c7f8b9d8",
+    "task_id": "parse_pr_227",
+    "session_id": null,
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/parse_pr_227-5cc95b50-d2f8-444a-86ce-1d70c7f8b9d8",
+    "archive": "experiments/results/patches/5cc95b50-d2f8-444a-86ce-1d70c7f8b9d8.patch",
+    "sha256": "6f3fe710cec9e97c5ba5cb7c72965180d68cf8855bf00f3aa6e59bf8ed49aa8f",
+    "bytes": 24960
+  },
+  {
+    "run_id": "64538468-e745-43cf-9a25-34ac9c0c25dc",
+    "task_id": "parse_pr_227",
+    "session_id": null,
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/parse_pr_227-64538468-e745-43cf-9a25-34ac9c0c25dc",
+    "archive": "experiments/results/patches/64538468-e745-43cf-9a25-34ac9c0c25dc.patch",
+    "sha256": "7d294b5bea0fc29b25543f0e0a487df18d6819c7a95d244ca53525df6fd27cd9",
+    "bytes": 23430
+  },
+  {
+    "run_id": "6da04dee-26bc-46ba-aba5-77dd3ae27363",
+    "task_id": "parse_pr_227",
+    "session_id": null,
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/parse_pr_227-6da04dee-26bc-46ba-aba5-77dd3ae27363",
+    "archive": "experiments/results/patches/6da04dee-26bc-46ba-aba5-77dd3ae27363.patch",
+    "sha256": "2d1e0f251b331135871739f602c0d3fef652e811f6bd46de448c3eddfcfd8a89",
+    "bytes": 23425
+  },
+  {
+    "run_id": "7f1757e7-5783-4b86-9315-1fc6edbc8264",
+    "task_id": "parse_pr_227",
+    "session_id": "comparison_single_swe_bugfixes_only_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/parse_pr_227-7f1757e7-5783-4b86-9315-1fc6edbc8264",
+    "archive": "experiments/results/patches/7f1757e7-5783-4b86-9315-1fc6edbc8264.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "a3707662-4d96-467c-b794-51c6574403f4",
+    "task_id": "parse_pr_227",
+    "session_id": null,
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/parse_pr_227-a3707662-4d96-467c-b794-51c6574403f4",
+    "archive": "experiments/results/patches/a3707662-4d96-467c-b794-51c6574403f4.patch",
+    "sha256": "244d707ea451fa8babba4748084aeed700bc4eec728c3e38742f375fab6427b8",
+    "bytes": 26160
+  },
+  {
+    "run_id": "ab5594f8-09b2-4475-a1c0-b160772f9c24",
+    "task_id": "parse_pr_227",
+    "session_id": "tools_native_smoke",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/parse_pr_227-ab5594f8-09b2-4475-a1c0-b160772f9c24",
+    "archive": "experiments/results/patches/ab5594f8-09b2-4475-a1c0-b160772f9c24.patch",
+    "sha256": "50f4fd649155090303e45732d62c51e21374c0651b1a67693178db56c7fcd6bd",
+    "bytes": 617
+  },
+  {
+    "run_id": "55d09840-805a-4805-a840-c9d24d2b9954",
+    "task_id": "pluggy_pr_646",
+    "session_id": "comparison_single_swe_bugfixes_only_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/pluggy_pr_646-55d09840-805a-4805-a840-c9d24d2b9954",
+    "archive": "experiments/results/patches/55d09840-805a-4805-a840-c9d24d2b9954.patch",
+    "sha256": "ecbb14d76c800a1d3441d3a3afe1ee9a975e8b8e967fb94c4517f66ee38dc587",
+    "bytes": 3097
+  },
+  {
+    "run_id": "947d5d97-7557-4a75-a738-8dba92bff6e1",
+    "task_id": "pluggy_pr_646",
+    "session_id": "swe_test_gpt5.1codexmini_1",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/pluggy_pr_646-947d5d97-7557-4a75-a738-8dba92bff6e1",
+    "archive": "experiments/results/patches/947d5d97-7557-4a75-a738-8dba92bff6e1.patch",
+    "sha256": "941280d4b884618437da9f3bdd24d64f2f09509682c2e0fb28c1a7d4fdc62760",
+    "bytes": 3563
+  },
+  {
+    "run_id": "a1329330-8db2-4446-9b9d-b860842f639b",
+    "task_id": "pluggy_pr_646",
+    "session_id": "swe_test_gpt5.1codexmini_1",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/pluggy_pr_646-a1329330-8db2-4446-9b9d-b860842f639b",
+    "archive": "experiments/results/patches/a1329330-8db2-4446-9b9d-b860842f639b.patch",
+    "sha256": "729ab4ce26d6876aa7d947f6e667a7baf22eafa54cf10fd4524584c5ded4fb87",
+    "bytes": 3520
+  },
+  {
+    "run_id": "106627d3-ba4e-41f2-b90c-9b9ff1b54f1d",
+    "task_id": "pydash_pr_cdd84b4",
+    "session_id": "comparison_single_swe_bugfixes_only_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/pydash_pr_cdd84b4-106627d3-ba4e-41f2-b90c-9b9ff1b54f1d",
+    "archive": "experiments/results/patches/106627d3-ba4e-41f2-b90c-9b9ff1b54f1d.patch",
+    "sha256": "393f8527871e6dd165a145fe53f2de414bb1abf6e81eaeed25e28598f0b507c9",
+    "bytes": 1324
+  },
+  {
+    "run_id": "334c40ef-c36b-46c2-871c-b1861f1b413b",
+    "task_id": "pydash_pr_cdd84b4",
+    "session_id": "comparison_single_swe_bugfixes_only_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/pydash_pr_cdd84b4-334c40ef-c36b-46c2-871c-b1861f1b413b",
+    "archive": "experiments/results/patches/334c40ef-c36b-46c2-871c-b1861f1b413b.patch",
+    "sha256": "e1ef543895e7c7dc158753ab5f34e6b5df9b913f93684512bd279b2e337c85fd",
+    "bytes": 662
+  },
+  {
+    "run_id": "b8adfb70-735c-45b6-bc31-7e87c5bd3b06",
+    "task_id": "pydash_pr_cdd84b4",
+    "session_id": "test_single_5.1codexmini",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/pydash_pr_cdd84b4-b8adfb70-735c-45b6-bc31-7e87c5bd3b06",
+    "archive": "experiments/results/patches/b8adfb70-735c-45b6-bc31-7e87c5bd3b06.patch",
+    "sha256": "cba6be297483182faf2c7e36c5919ea1968cb9a8834af5e67e153a7faf7de2f2",
+    "bytes": 1498
+  },
+  {
+    "run_id": "0d03c215-cee0-4466-9564-78a7b6bd542d",
+    "task_id": "python_dotenv_pr_640",
+    "session_id": "hardening_python_dotenv_glm_textjson_50_20260710",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/python_dotenv_pr_640-0d03c215-cee0-4466-9564-78a7b6bd542d",
+    "archive": "experiments/results/patches/0d03c215-cee0-4466-9564-78a7b6bd542d.patch",
+    "sha256": "2324decc04e9eb6a3148819cdafe99f083350a74c9bbda24a2a5d040b3701984",
+    "bytes": 2021
+  },
+  {
+    "run_id": "2a0821be-e7f7-477a-9eb8-4bbff5645a83",
+    "task_id": "python_dotenv_pr_640",
+    "session_id": "compare_python_dotenv_glm_textjson_50",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/python_dotenv_pr_640-2a0821be-e7f7-477a-9eb8-4bbff5645a83",
+    "archive": "experiments/results/patches/2a0821be-e7f7-477a-9eb8-4bbff5645a83.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "3821513c-f7bd-48a7-979d-3b72e3f68cf0",
+    "task_id": "python_dotenv_pr_640",
+    "session_id": "hardening_python_dotenv_glm_textjson_50_20260710",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/python_dotenv_pr_640-3821513c-f7bd-48a7-979d-3b72e3f68cf0",
+    "archive": "experiments/results/patches/3821513c-f7bd-48a7-979d-3b72e3f68cf0.patch",
+    "sha256": "3f5cb1707d50e7b701c9254f41d83257928be8e55f23728d0f64659fae53fb6e",
+    "bytes": 1935
+  },
+  {
+    "run_id": "3f48f89c-b5c1-404c-8525-439f8c26cb4c",
+    "task_id": "python_dotenv_pr_640",
+    "session_id": "compare_python_dotenv_glm_textjson_50",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/python_dotenv_pr_640-3f48f89c-b5c1-404c-8525-439f8c26cb4c",
+    "archive": "experiments/results/patches/3f48f89c-b5c1-404c-8525-439f8c26cb4c.patch",
+    "sha256": "e48a8346d680ab326a8c97f0f6e79a0ce27b47469e026ec990394f63c7691cac",
+    "bytes": 1647
+  },
+  {
+    "run_id": "41c09024-d649-4088-876f-01bc9fc8a290",
+    "task_id": "python_dotenv_pr_640",
+    "session_id": "compare_python_dotenv_glm_textjson_50",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/python_dotenv_pr_640-41c09024-d649-4088-876f-01bc9fc8a290",
+    "archive": "experiments/results/patches/41c09024-d649-4088-876f-01bc9fc8a290.patch",
+    "sha256": "28c7a76eb728b398a8240ab60bcaa72081df67c459e2fb4562b1e075b18183cd",
+    "bytes": 1009
+  },
+  {
+    "run_id": "6e3000eb-e3b5-4350-a578-d4e0967a844c",
+    "task_id": "python_dotenv_pr_640",
+    "session_id": "hardening_python_dotenv_glm_textjson_50_20260710",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/python_dotenv_pr_640-6e3000eb-e3b5-4350-a578-d4e0967a844c",
+    "archive": "experiments/results/patches/6e3000eb-e3b5-4350-a578-d4e0967a844c.patch",
+    "sha256": "289617f0770bee8786a41cbf3689f4cb16c8d6e5203723e92dfaa7ead08f5656",
+    "bytes": 1781
+  },
+  {
+    "run_id": "7ac8b2fe-2494-416a-9658-7bc3fc051c81",
+    "task_id": "python_dotenv_pr_640",
+    "session_id": "compare_python_dotenv_glm_textjson_50",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/python_dotenv_pr_640-7ac8b2fe-2494-416a-9658-7bc3fc051c81",
+    "archive": "experiments/results/patches/7ac8b2fe-2494-416a-9658-7bc3fc051c81.patch",
+    "sha256": "0d30cd0f0a4f2122eda1df83c4dee10e5b4ab40aec7edd81eb7dfd13c55e2780",
+    "bytes": 1333
+  },
+  {
+    "run_id": "af8fb21f-673b-48ce-95ca-3bf70243a63d",
+    "task_id": "python_dotenv_pr_640",
+    "session_id": "compare_python_dotenv_glm_textjson_50",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/python_dotenv_pr_640-af8fb21f-673b-48ce-95ca-3bf70243a63d",
+    "archive": "experiments/results/patches/af8fb21f-673b-48ce-95ca-3bf70243a63d.patch",
+    "sha256": "60803625b13dcf30e75f136d4e2acbe9d8e173265ffef2a29c6b3069de77e550",
+    "bytes": 1727
+  },
+  {
+    "run_id": "c08b79e1-1b7c-4f80-9e1e-41f4c8526c48",
+    "task_id": "python_dotenv_pr_640",
+    "session_id": "compare_python_dotenv_glm_textjson_50",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/python_dotenv_pr_640-c08b79e1-1b7c-4f80-9e1e-41f4c8526c48",
+    "archive": "experiments/results/patches/c08b79e1-1b7c-4f80-9e1e-41f4c8526c48.patch",
+    "sha256": "62eaf21eeaa9defa04732c9d3202ae2c59b2c1280d73c554dee57211ef3ce011",
+    "bytes": 14591
+  },
+  {
+    "run_id": "d161b04b-d6cb-4ea7-8d69-8c6d0ee3b4a7",
+    "task_id": "python_dotenv_pr_640",
+    "session_id": "compare_python_dotenv_glm_textjson_50",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/python_dotenv_pr_640-d161b04b-d6cb-4ea7-8d69-8c6d0ee3b4a7",
+    "archive": "experiments/results/patches/d161b04b-d6cb-4ea7-8d69-8c6d0ee3b4a7.patch",
+    "sha256": "84e6e91e78c2e6b47f9e9a37fb05361ead908543bee688ba57de917cf8f48e4f",
+    "bytes": 1765
+  },
+  {
+    "run_id": "553812eb-26ff-4c55-a84d-992c993f1d8a",
+    "task_id": "sqlglot_pr_08e61b77",
+    "session_id": "comparison_single_swe_bugfixes_only_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlglot_pr_08e61b77-553812eb-26ff-4c55-a84d-992c993f1d8a",
+    "archive": "experiments/results/patches/553812eb-26ff-4c55-a84d-992c993f1d8a.patch",
+    "sha256": "0b9d4cda21bafd920f2b3030f20eeb77d2c849928b1de735b9829f0adb37d603",
+    "bytes": 19846
+  },
+  {
+    "run_id": "3cab34e5-0330-4d23-a85f-a3d38bcce369",
+    "task_id": "sqlglot_pr_11e0dabb",
+    "session_id": "swe_test_ hard",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlglot_pr_11e0dabb-3cab34e5-0330-4d23-a85f-a3d38bcce369",
+    "archive": "experiments/results/patches/3cab34e5-0330-4d23-a85f-a3d38bcce369.patch",
+    "sha256": "61b881863065b143c7350b075c95a88e63aed13c47fd70ed4bc9c6eecadac02a",
+    "bytes": 833
+  },
+  {
+    "run_id": "54ad20b8-83b1-44bd-a324-a7999dc7f582",
+    "task_id": "sqlglot_pr_11e0dabb",
+    "session_id": "swe_test_gpt5.1codexmini_1",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlglot_pr_11e0dabb-54ad20b8-83b1-44bd-a324-a7999dc7f582",
+    "archive": "experiments/results/patches/54ad20b8-83b1-44bd-a324-a7999dc7f582.patch",
+    "sha256": "b243553ee2162de208c26c9fd495fd58233c821c1939a7ddf45cba9bb4737d1c",
+    "bytes": 20768
+  },
+  {
+    "run_id": "11d9d6d5-b7c7-45b6-87f6-dc74a957291a",
+    "task_id": "sqlglot_pr_7660486c",
+    "session_id": "eval_single_vs_decomposed_sqlglot_dateadd_glm52_20260711",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlglot_pr_7660486c-11d9d6d5-b7c7-45b6-87f6-dc74a957291a",
+    "archive": "experiments/results/patches/11d9d6d5-b7c7-45b6-87f6-dc74a957291a.patch",
+    "sha256": "db5fce4c2ca3ae36998fdd0299197c9e848a1deb5ff0058a262c6a94461462e7",
+    "bytes": 5188
+  },
+  {
+    "run_id": "185ebcc0-b883-4ff1-88f1-b05bf57ebdaf",
+    "task_id": "sqlglot_pr_7660486c",
+    "session_id": "eval_single_vs_decomposed_sqlglot_dateadd_glm52_20260711",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlglot_pr_7660486c-185ebcc0-b883-4ff1-88f1-b05bf57ebdaf",
+    "archive": "experiments/results/patches/185ebcc0-b883-4ff1-88f1-b05bf57ebdaf.patch",
+    "sha256": "c27af7d519078a97b1a4a59fb9609fbf1fb57e4384402b4c79f9c1f62728f0a9",
+    "bytes": 4041
+  },
+  {
+    "run_id": "4787a340-6c0b-4400-84da-357973d5c32b",
+    "task_id": "sqlglot_pr_cf7e4bf4",
+    "session_id": "comparison_single_swe_bugfixes_only_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlglot_pr_cf7e4bf4-4787a340-6c0b-4400-84da-357973d5c32b",
+    "archive": "experiments/results/patches/4787a340-6c0b-4400-84da-357973d5c32b.patch",
+    "sha256": "406564ba935f4903e20c4c7dcd7193b862c91cbd07342fbc88c2f57537850e58",
+    "bytes": 18569
+  },
+  {
+    "run_id": "39f330df-d8c9-4ee0-8d3d-3953ad419ac8",
+    "task_id": "sqlglot_pr_ed58b9bd",
+    "session_id": "single_sonnet5_sqlglot_groupconcat_20260711",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlglot_pr_ed58b9bd-39f330df-d8c9-4ee0-8d3d-3953ad419ac8",
+    "archive": "experiments/results/patches/39f330df-d8c9-4ee0-8d3d-3953ad419ac8.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "3d63cb58-f3fb-4e6c-a327-5511c0f7100c",
+    "task_id": "sqlglot_pr_ed58b9bd",
+    "session_id": "test_single_5.1codexmini",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlglot_pr_ed58b9bd-3d63cb58-f3fb-4e6c-a327-5511c0f7100c",
+    "archive": "experiments/results/patches/3d63cb58-f3fb-4e6c-a327-5511c0f7100c.patch",
+    "sha256": "aefd1abfda7886f805731fbd4658376f72c6022fc6074c42156d218bbe6d54a1",
+    "bytes": 1120
+  },
+  {
+    "run_id": "592c43ef-b049-43e7-bc69-8bd748ad1d43",
+    "task_id": "sqlglot_pr_ed58b9bd",
+    "session_id": "single_decomposed_sqlglot_glm52_20260711",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlglot_pr_ed58b9bd-592c43ef-b049-43e7-bc69-8bd748ad1d43",
+    "archive": "experiments/results/patches/592c43ef-b049-43e7-bc69-8bd748ad1d43.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "7c924795-cd29-454d-80a5-77f6ad9e1ce1",
+    "task_id": "sqlglot_pr_ed58b9bd",
+    "session_id": "guarded_large_sqlglot_groupconcat_glm_textjson_100_20260711",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlglot_pr_ed58b9bd-7c924795-cd29-454d-80a5-77f6ad9e1ce1",
+    "archive": "experiments/results/patches/7c924795-cd29-454d-80a5-77f6ad9e1ce1.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "882d0d24-193d-434d-b14f-66f8ef5f85e2",
+    "task_id": "sqlglot_pr_ed58b9bd",
+    "session_id": "single_strong_guard_sqlglot_glm52_20260711",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlglot_pr_ed58b9bd-882d0d24-193d-434d-b14f-66f8ef5f85e2",
+    "archive": "experiments/results/patches/882d0d24-193d-434d-b14f-66f8ef5f85e2.patch",
+    "sha256": "1ae963b00f45a4cf75574f266cc2cadc57d5a25baf59ee5c0e592541a2f0f08d",
+    "bytes": 2879
+  },
+  {
+    "run_id": "ac044088-30c3-408a-b98f-f2dd9bb7d0f2",
+    "task_id": "sqlglot_pr_ed58b9bd",
+    "session_id": "guarded_v2_large_sqlglot_groupconcat_glm_textjson_100_20260711",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlglot_pr_ed58b9bd-ac044088-30c3-408a-b98f-f2dd9bb7d0f2",
+    "archive": "experiments/results/patches/ac044088-30c3-408a-b98f-f2dd9bb7d0f2.patch",
+    "sha256": "b9c1151d35021ab9e9bccdab8e19575f3677e393c8eeeb7da7e39392d81ea006",
+    "bytes": 904
+  },
+  {
+    "run_id": "b02707ca-b614-43fb-8dbc-e027d552b558",
+    "task_id": "sqlglot_pr_ed58b9bd",
+    "session_id": "single_decomposed_v2_sqlglot_glm52_20260711",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlglot_pr_ed58b9bd-b02707ca-b614-43fb-8dbc-e027d552b558",
+    "archive": "experiments/results/patches/b02707ca-b614-43fb-8dbc-e027d552b558.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "b9964adc-b79a-48b0-8b82-d075b4380f36",
+    "task_id": "sqlglot_pr_ed58b9bd",
+    "session_id": "single_sonnet5_sqlglot_groupconcat_cap4_20260711",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlglot_pr_ed58b9bd-b9964adc-b79a-48b0-8b82-d075b4380f36",
+    "archive": "experiments/results/patches/b9964adc-b79a-48b0-8b82-d075b4380f36.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "d346e535-33fe-48ef-ad00-cbc3b3afba10",
+    "task_id": "sqlglot_pr_ed58b9bd",
+    "session_id": "hard_sqlglot_full_arch_compare_20260711",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlglot_pr_ed58b9bd-d346e535-33fe-48ef-ad00-cbc3b3afba10",
+    "archive": "experiments/results/patches/d346e535-33fe-48ef-ad00-cbc3b3afba10.patch",
+    "sha256": "e124b14fb8a52c43b4018c4e19ab9a228bb371b2c6eea16d07600c1304b4edc9",
+    "bytes": 5127
+  },
+  {
+    "run_id": "d9654026-ef74-439d-8306-7dbeb48f1b18",
+    "task_id": "sqlglot_pr_ed58b9bd",
+    "session_id": "hard_sqlglot_full_arch_compare_20260711",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlglot_pr_ed58b9bd-d9654026-ef74-439d-8306-7dbeb48f1b18",
+    "archive": "experiments/results/patches/d9654026-ef74-439d-8306-7dbeb48f1b18.patch",
+    "sha256": "10513743499e046aab539aef15f94f65cbf80b48d9745c8f46517aeebf2ccce1",
+    "bytes": 3578
+  },
+  {
+    "run_id": "de2506f9-7b96-4fae-92ae-4816698981e9",
+    "task_id": "sqlglot_pr_ed58b9bd",
+    "session_id": "single_decomposed_v3_sqlglot_glm52_20260711",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlglot_pr_ed58b9bd-de2506f9-7b96-4fae-92ae-4816698981e9",
+    "archive": "experiments/results/patches/de2506f9-7b96-4fae-92ae-4816698981e9.patch",
+    "sha256": "ce268b016ae86d85e1adac1553c172995d222261dad4a4134ad1dec993658455",
+    "bytes": 2523
+  },
+  {
+    "run_id": "528f9b7e-5c15-4b87-8e23-a848b9648199",
+    "task_id": "sqlparse_pr_40ed3aa",
+    "session_id": "default",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_40ed3aa-528f9b7e-5c15-4b87-8e23-a848b9648199",
+    "archive": "experiments/results/patches/528f9b7e-5c15-4b87-8e23-a848b9648199.patch",
+    "sha256": "c511373f4a7a59c21097fff4c872682319d24b3a7de2a428efc6fcbaa1278103",
+    "bytes": 2201
+  },
+  {
+    "run_id": "73afb8cf-5ef1-47c7-a726-a8b95921f259",
+    "task_id": "sqlparse_pr_40ed3aa",
+    "session_id": "comparison_single_swe_bugfixes_only_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_40ed3aa-73afb8cf-5ef1-47c7-a726-a8b95921f259",
+    "archive": "experiments/results/patches/73afb8cf-5ef1-47c7-a726-a8b95921f259.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "80ccc66f-9607-4ccc-b66a-1ad8f8bbfd76",
+    "task_id": "sqlparse_pr_40ed3aa",
+    "session_id": "comparison_single_swe_bugfixes_only_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_40ed3aa-80ccc66f-9607-4ccc-b66a-1ad8f8bbfd76",
+    "archive": "experiments/results/patches/80ccc66f-9607-4ccc-b66a-1ad8f8bbfd76.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "14ee12b0-cbf7-4fcf-80eb-4ac393e0a313",
+    "task_id": "sqlparse_pr_642",
+    "session_id": "comparison_single_swe_bugfixes_only_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_642-14ee12b0-cbf7-4fcf-80eb-4ac393e0a313",
+    "archive": "experiments/results/patches/14ee12b0-cbf7-4fcf-80eb-4ac393e0a313.patch",
+    "sha256": "fdebdff0934c9d8dea044db8e36b375d5810ff201e4e5257b707c7648c5e9be0",
+    "bytes": 711
+  },
+  {
+    "run_id": "82005878-a685-4555-b98e-ab6e4e99e29b",
+    "task_id": "sqlparse_pr_642",
+    "session_id": null,
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_642-82005878-a685-4555-b98e-ab6e4e99e29b",
+    "archive": "experiments/results/patches/82005878-a685-4555-b98e-ab6e4e99e29b.patch",
+    "sha256": "f3898cfb9f60c6404c15d032663cb51aa97adf7607783f63db7a2f064bca9abf",
+    "bytes": 702
+  },
+  {
+    "run_id": "8b0c6b66-1062-4090-b6a5-34f67d289756",
+    "task_id": "sqlparse_pr_642",
+    "session_id": "comparison_single_swe_bugfixes_only_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_642-8b0c6b66-1062-4090-b6a5-34f67d289756",
+    "archive": "experiments/results/patches/8b0c6b66-1062-4090-b6a5-34f67d289756.patch",
+    "sha256": "31aad175d6d5afed68bec5e5b1483f5a686678382df3afe1fb41dc5762930c8d",
+    "bytes": 1676
+  },
+  {
+    "run_id": "430321da-1e24-4322-a262-3112b072441d",
+    "task_id": "sqlparse_pr_662",
+    "session_id": "comparison_single_swe_bugfixes_only_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_662-430321da-1e24-4322-a262-3112b072441d",
+    "archive": "experiments/results/patches/430321da-1e24-4322-a262-3112b072441d.patch",
+    "sha256": "56ed41cffe3eb6bea6ef185247febcf4fc4d44d3da6d694d3bff526d4fcb99ce",
+    "bytes": 750
+  },
+  {
+    "run_id": "8173e91d-2807-4934-8851-f49b4a95c855",
+    "task_id": "sqlparse_pr_662",
+    "session_id": "comparison_single_swe_bugfixes_only_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_662-8173e91d-2807-4934-8851-f49b4a95c855",
+    "archive": "experiments/results/patches/8173e91d-2807-4934-8851-f49b4a95c855.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "26434214-6853-4f04-adb9-6413870dba81",
+    "task_id": "sqlparse_pr_664",
+    "session_id": "swe_test_gpt5.1codexmini_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_664-26434214-6853-4f04-adb9-6413870dba81",
+    "archive": "experiments/results/patches/26434214-6853-4f04-adb9-6413870dba81.patch",
+    "sha256": "000b987be639ba8cc070e8ed9bba74c2854fa996960e77caa82d441737b95cc2",
+    "bytes": 542
+  },
+  {
+    "run_id": "48d15755-7976-477a-b8fb-6d1772bb1291",
+    "task_id": "sqlparse_pr_664",
+    "session_id": "test_single_5.1codexmini",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_664-48d15755-7976-477a-b8fb-6d1772bb1291",
+    "archive": "experiments/results/patches/48d15755-7976-477a-b8fb-6d1772bb1291.patch",
+    "sha256": "525e01b96834a895a452dd19f07c0ee5ad1dd9ac34727b8ca9c924b030958354",
+    "bytes": 945
+  },
+  {
+    "run_id": "beb33fac-bc10-467b-b23b-5e82d104ce04",
+    "task_id": "sqlparse_pr_664",
+    "session_id": "comp_swe_single_test_2features_2bugfix_5.1codexmini",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_664-beb33fac-bc10-467b-b23b-5e82d104ce04",
+    "archive": "experiments/results/patches/beb33fac-bc10-467b-b23b-5e82d104ce04.patch",
+    "sha256": "c95711b294c9744cdd6d205db72d461e9b7f708e17f6e9856c6779a22c194dda",
+    "bytes": 877
+  },
+  {
+    "run_id": "ed55e781-5255-4214-995e-5b88d1f0e4bd",
+    "task_id": "sqlparse_pr_664",
+    "session_id": "comp_swe_single_test_2features_2bugfix_5.1codexmini",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_664-ed55e781-5255-4214-995e-5b88d1f0e4bd",
+    "archive": "experiments/results/patches/ed55e781-5255-4214-995e-5b88d1f0e4bd.patch",
+    "sha256": "5830dcd89f8fcde03c53e5298e796f3e7b31a842e08be8f5d3c666908668f9e0",
+    "bytes": 537
+  },
+  {
+    "run_id": "b4da4328-0e79-4a1f-a701-5f4eef810816",
+    "task_id": "sqlparse_pr_746",
+    "session_id": "comparison_single_swe_bugfixes_only_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_746-b4da4328-0e79-4a1f-a701-5f4eef810816",
+    "archive": "experiments/results/patches/b4da4328-0e79-4a1f-a701-5f4eef810816.patch",
+    "sha256": "dc5b5953f0c71dc042e08cb889e63e2a54ef65fef5f60c6b6bba268c57e33941",
+    "bytes": 1142
+  },
+  {
+    "run_id": "e6f560bc-46b9-4f79-aeed-34249c5015a4",
+    "task_id": "sqlparse_pr_746",
+    "session_id": "comparison_single_swe_bugfixes_only_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_746-e6f560bc-46b9-4f79-aeed-34249c5015a4",
+    "archive": "experiments/results/patches/e6f560bc-46b9-4f79-aeed-34249c5015a4.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "12c036cf-eb45-4ee9-b738-cea753192278",
+    "task_id": "sqlparse_pr_768",
+    "session_id": "swe_test_gpt5.1codexmini_1",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_768-12c036cf-eb45-4ee9-b738-cea753192278",
+    "archive": "experiments/results/patches/12c036cf-eb45-4ee9-b738-cea753192278.patch",
+    "sha256": "4060ccc1c513e1f11560b164fd07aca54f81a6c78784850721ebfc41c45b7cb3",
+    "bytes": 1627
+  },
+  {
+    "run_id": "1960f049-b2a8-4fc7-9ee3-1f675e5f1f04",
+    "task_id": "sqlparse_pr_768",
+    "session_id": "swe_test_gpt5.1codexmini_1",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_768-1960f049-b2a8-4fc7-9ee3-1f675e5f1f04",
+    "archive": "experiments/results/patches/1960f049-b2a8-4fc7-9ee3-1f675e5f1f04.patch",
+    "sha256": "40797785dff33da1b3bd6ec5753183304339fc8adb6ad9ed66304b0473be114b",
+    "bytes": 748
+  },
+  {
+    "run_id": "1a0e9516-5d61-4ab5-a93d-7e60e788f3e8",
+    "task_id": "sqlparse_pr_768",
+    "session_id": "compare_single_vs_decomposed_sqlparse768_glm52_20260711",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_768-1a0e9516-5d61-4ab5-a93d-7e60e788f3e8",
+    "archive": "experiments/results/patches/1a0e9516-5d61-4ab5-a93d-7e60e788f3e8.patch",
+    "sha256": "1b724e343f35dc8166af357d6159dab6411184631631b7e85f541d415398118b",
+    "bytes": 2962
+  },
+  {
+    "run_id": "1f8d9d89-bca6-4cfa-9193-5630b203aedd",
+    "task_id": "sqlparse_pr_768",
+    "session_id": "role_models_ablation_sqlparse_20260711",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_768-1f8d9d89-bca6-4cfa-9193-5630b203aedd",
+    "archive": "experiments/results/patches/1f8d9d89-bca6-4cfa-9193-5630b203aedd.patch",
+    "sha256": "4524e8a20727657dcdffa244bdd88e4eb04b755127d06dc07d11d70b2f425412",
+    "bytes": 3874
+  },
+  {
+    "run_id": "2e74a200-575f-4d80-b5a0-752b3b78378f",
+    "task_id": "sqlparse_pr_768",
+    "session_id": null,
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_768-2e74a200-575f-4d80-b5a0-752b3b78378f",
+    "archive": "experiments/results/patches/2e74a200-575f-4d80-b5a0-752b3b78378f.patch",
+    "sha256": "06f0708293456c679f55acefc2c550fa11b5384ddf5a72526797a9be0a6b305d",
+    "bytes": 5882
+  },
+  {
+    "run_id": "37660b42-ee81-4caa-b262-6b4a8fbc87aa",
+    "task_id": "sqlparse_pr_768",
+    "session_id": "compare_single_vs_decomposed_sqlparse768_glm52_20260711",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_768-37660b42-ee81-4caa-b262-6b4a8fbc87aa",
+    "archive": "experiments/results/patches/37660b42-ee81-4caa-b262-6b4a8fbc87aa.patch",
+    "sha256": "6139ab43b8dd60e98a9289ed9fa03943a8cb78e75e9b8b7c51c3c0895f21c5ef",
+    "bytes": 3460
+  },
+  {
+    "run_id": "386cedbb-2630-4884-8d40-b18cc76958f0",
+    "task_id": "sqlparse_pr_768",
+    "session_id": "coder_model_ablation_sqlparse_20260711",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_768-386cedbb-2630-4884-8d40-b18cc76958f0",
+    "archive": "experiments/results/patches/386cedbb-2630-4884-8d40-b18cc76958f0.patch",
+    "sha256": "57e809080970b63e2e6479cd36e20672d8c96ad0380eda4647572911167c9a18",
+    "bytes": 3188
+  },
+  {
+    "run_id": "40dfc720-06e9-4ac2-bdf2-5e7c780cc1a8",
+    "task_id": "sqlparse_pr_768",
+    "session_id": "orch_guarded_repeat_sqlparse_768_glm_textjson_75_20260711",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_768-40dfc720-06e9-4ac2-bdf2-5e7c780cc1a8",
+    "archive": "experiments/results/patches/40dfc720-06e9-4ac2-bdf2-5e7c780cc1a8.patch",
+    "sha256": "835238ceeb08607f6843da49e87cda9234ff0c3ccab0425419a345854dac7c88",
+    "bytes": 2571
+  },
+  {
+    "run_id": "4874f798-692f-4065-b70b-baa5f2471824",
+    "task_id": "sqlparse_pr_768",
+    "session_id": "orch_variants_sqlparse_768_glm_textjson_75_20260711",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_768-4874f798-692f-4065-b70b-baa5f2471824",
+    "archive": "experiments/results/patches/4874f798-692f-4065-b70b-baa5f2471824.patch",
+    "sha256": "1d0cecd3f3f43d93247e513d7e52a684b2eb273a020c58e670367fd144cade89",
+    "bytes": 1645
+  },
+  {
+    "run_id": "4889c7a3-92a7-40b1-9620-4cf78f888da8",
+    "task_id": "sqlparse_pr_768",
+    "session_id": "hardening_sqlparse_768_orch_fullcmdfix_20260711",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_768-4889c7a3-92a7-40b1-9620-4cf78f888da8",
+    "archive": "experiments/results/patches/4889c7a3-92a7-40b1-9620-4cf78f888da8.patch",
+    "sha256": "1cd0ab4c7c20869324b8e0f4773789036347b4ed2db288a03b81bd8f8a53a777",
+    "bytes": 2489
+  },
+  {
+    "run_id": "53f5fe91-9620-4a3b-84c7-eadff57c6ef1",
+    "task_id": "sqlparse_pr_768",
+    "session_id": "compare_sqlparse_768_single_codex_mini_low_tools_75",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_768-53f5fe91-9620-4a3b-84c7-eadff57c6ef1",
+    "archive": "experiments/results/patches/53f5fe91-9620-4a3b-84c7-eadff57c6ef1.patch",
+    "sha256": "f5bcdf00fd3e05db695276b3cbf14c4a50bf76064318baa0aac2f92509d6568b",
+    "bytes": 2371
+  },
+  {
+    "run_id": "5529f77b-d2d7-40a3-b533-9fefc1e37760",
+    "task_id": "sqlparse_pr_768",
+    "session_id": null,
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_768-5529f77b-d2d7-40a3-b533-9fefc1e37760",
+    "archive": "experiments/results/patches/5529f77b-d2d7-40a3-b533-9fefc1e37760.patch",
+    "sha256": "76f79b0c9b5fec71fe8ecbf677ad6b9fc4f09fe28527d49b93dcdb62681342a2",
+    "bytes": 6396
+  },
+  {
+    "run_id": "658f1e65-f447-4fba-be58-102454d3502a",
+    "task_id": "sqlparse_pr_768",
+    "session_id": "role_models_ablation_sqlparse_20260711",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_768-658f1e65-f447-4fba-be58-102454d3502a",
+    "archive": "experiments/results/patches/658f1e65-f447-4fba-be58-102454d3502a.patch",
+    "sha256": "6b0855a155c148666fa67dc611d8d363d5e40093be5151516f86c25dae19e86f",
+    "bytes": 3101
+  },
+  {
+    "run_id": "79ee36be-b5c6-49a9-b06d-23275e8e7308",
+    "task_id": "sqlparse_pr_768",
+    "session_id": null,
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_768-79ee36be-b5c6-49a9-b06d-23275e8e7308",
+    "archive": "experiments/results/patches/79ee36be-b5c6-49a9-b06d-23275e8e7308.patch",
+    "sha256": "c334dcd3070fa166042bcfcb0c8190031a9560ce13f20abe9d6492074511b042",
+    "bytes": 4486
+  },
+  {
+    "run_id": "7ee58a58-0636-464c-9197-c139fa870752",
+    "task_id": "sqlparse_pr_768",
+    "session_id": null,
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_768-7ee58a58-0636-464c-9197-c139fa870752",
+    "archive": "experiments/results/patches/7ee58a58-0636-464c-9197-c139fa870752.patch",
+    "sha256": "75569f2e0ab693b6ef4b339b106c3944befeb5857dd45a5f6e24dc0da000cd7e",
+    "bytes": 4057
+  },
+  {
+    "run_id": "9ac1dbab-d994-4341-9cb6-24308c5488ed",
+    "task_id": "sqlparse_pr_768",
+    "session_id": null,
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_768-9ac1dbab-d994-4341-9cb6-24308c5488ed",
+    "archive": "experiments/results/patches/9ac1dbab-d994-4341-9cb6-24308c5488ed.patch",
+    "sha256": "7fc20bc5baf75ef1c0ae82f4ac866d2fe97179c5f7ae41746452389f488f2100",
+    "bytes": 1446
+  },
+  {
+    "run_id": "ad492d29-3159-4609-a63d-a85e892873d1",
+    "task_id": "sqlparse_pr_768",
+    "session_id": null,
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_768-ad492d29-3159-4609-a63d-a85e892873d1",
+    "archive": "experiments/results/patches/ad492d29-3159-4609-a63d-a85e892873d1.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "b12274aa-79c9-4dce-8cf8-3dae728725b7",
+    "task_id": "sqlparse_pr_768",
+    "session_id": null,
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_768-b12274aa-79c9-4dce-8cf8-3dae728725b7",
+    "archive": "experiments/results/patches/b12274aa-79c9-4dce-8cf8-3dae728725b7.patch",
+    "sha256": "e8b3a1c94588511003a3d9c5cad741be1361fac7e2bf60fa17e1e15d86487873",
+    "bytes": 6393
+  },
+  {
+    "run_id": "c6af8f39-c6ec-4632-b846-b75fa3c38bce",
+    "task_id": "sqlparse_pr_768",
+    "session_id": "hardening_sqlparse_768_orch_fullcmdfix_20260711",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_768-c6af8f39-c6ec-4632-b846-b75fa3c38bce",
+    "archive": "experiments/results/patches/c6af8f39-c6ec-4632-b846-b75fa3c38bce.patch",
+    "sha256": "fcded73660170f980989770e8aafdc07911849652c78ce5b24901f5767183066",
+    "bytes": 1699
+  },
+  {
+    "run_id": "ce41a7b7-0118-4974-b68f-b53a7b5eb02d",
+    "task_id": "sqlparse_pr_768",
+    "session_id": "coder_model_ablation_sqlparse_20260711",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_768-ce41a7b7-0118-4974-b68f-b53a7b5eb02d",
+    "archive": "experiments/results/patches/ce41a7b7-0118-4974-b68f-b53a7b5eb02d.patch",
+    "sha256": "b865c97c6fd25ee98f7b08005ab83a46018a1984642618190e822865ed34081d",
+    "bytes": 4529
+  },
+  {
+    "run_id": "d272b5ca-ea60-450d-baca-429af1687dc6",
+    "task_id": "sqlparse_pr_768",
+    "session_id": "role_models_ablation_sqlparse_20260711",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_768-d272b5ca-ea60-450d-baca-429af1687dc6",
+    "archive": "experiments/results/patches/d272b5ca-ea60-450d-baca-429af1687dc6.patch",
+    "sha256": "b99437ecb7ba73736768fe3bd7447ec1dfeff345e84f674f3367daad7f007ad1",
+    "bytes": 2406
+  },
+  {
+    "run_id": "dd9d76c3-8f4e-40a9-b6bb-952a1c197024",
+    "task_id": "sqlparse_pr_768",
+    "session_id": "orch_variants_sqlparse_768_glm_textjson_75_20260711",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_768-dd9d76c3-8f4e-40a9-b6bb-952a1c197024",
+    "archive": "experiments/results/patches/dd9d76c3-8f4e-40a9-b6bb-952a1c197024.patch",
+    "sha256": "43237a4056eff9a370ca275585fa35868c46ddca49f79c5c7d60cead8941d0b9",
+    "bytes": 3736
+  },
+  {
+    "run_id": "ddb5d5d8-42a0-4566-9c8c-f2524435c46d",
+    "task_id": "sqlparse_pr_768",
+    "session_id": "hardening_sqlparse_768_glm_textjson_75_20260711",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_768-ddb5d5d8-42a0-4566-9c8c-f2524435c46d",
+    "archive": "experiments/results/patches/ddb5d5d8-42a0-4566-9c8c-f2524435c46d.patch",
+    "sha256": "067738568ce1d98495eced6ae44fd48752678880c0b567c7ae6aebecbfcd8ca9",
+    "bytes": 3368
+  },
+  {
+    "run_id": "eac7f331-4031-442d-8a5d-d398646de3dd",
+    "task_id": "sqlparse_pr_768",
+    "session_id": "hardening_sqlparse_768_glm_textjson_75_20260711",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_768-eac7f331-4031-442d-8a5d-d398646de3dd",
+    "archive": "experiments/results/patches/eac7f331-4031-442d-8a5d-d398646de3dd.patch",
+    "sha256": "a0ed74aa43655091a176389130f9b19b5049bcc133bf5616f9df79b4987693de",
+    "bytes": 3090
+  },
+  {
+    "run_id": "ed34951a-6776-44e3-a8f6-557d6343b788",
+    "task_id": "sqlparse_pr_768",
+    "session_id": null,
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_768-ed34951a-6776-44e3-a8f6-557d6343b788",
+    "archive": "experiments/results/patches/ed34951a-6776-44e3-a8f6-557d6343b788.patch",
+    "sha256": "7a443622e19711f5ebda2b876604eab60d084e11df0f37aefc80313ffd2c6104",
+    "bytes": 1761
+  },
+  {
+    "run_id": "ffeb5ac6-8d03-4d51-811e-e07532122f77",
+    "task_id": "sqlparse_pr_768",
+    "session_id": "hardening_sqlparse_768_glm_textjson_75_20260711",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/sqlparse_pr_768-ffeb5ac6-8d03-4d51-811e-e07532122f77",
+    "archive": "experiments/results/patches/ffeb5ac6-8d03-4d51-811e-e07532122f77.patch",
+    "sha256": "f7909b4748437fdb8144f02625d548bb57c79598f7ed302f166ced81c0b838f2",
+    "bytes": 3002
+  },
+  {
+    "run_id": "506c9c18-5e82-4340-b571-b852330df2d9",
+    "task_id": "swepro_ansible_395e5e20",
+    "session_id": "swepro-glm52-single-vs-multigraph",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/swepro_ansible_395e5e20-506c9c18-5e82-4340-b571-b852330df2d9",
+    "archive": "experiments/results/patches/506c9c18-5e82-4340-b571-b852330df2d9.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "9824cd42-5f49-484b-a386-2bbeaedb23cf",
+    "task_id": "swepro_ansible_a26c325b",
+    "session_id": "swepro-glm52-single-vs-multigraph",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/swepro_ansible_a26c325b-9824cd42-5f49-484b-a386-2bbeaedb23cf",
+    "archive": "experiments/results/patches/9824cd42-5f49-484b-a386-2bbeaedb23cf.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "17449ec7-6af9-4219-980d-056eedcd6393",
+    "task_id": "swepro_ansible_f327e65d",
+    "session_id": "swepro-glm52-single-vs-multigraph",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/swepro_ansible_f327e65d-17449ec7-6af9-4219-980d-056eedcd6393",
+    "archive": "experiments/results/patches/17449ec7-6af9-4219-980d-056eedcd6393.patch",
+    "sha256": "488b12e4684bebb9b1cf8321bbc5b19a7c785372e7f4b4173d2267ce4678c80a",
+    "bytes": 4053
+  },
+  {
+    "run_id": "5e00dcdb-2f0b-4b43-911c-6f041ef8dba9",
+    "task_id": "swepro_openlibrary_2abe28b4",
+    "session_id": "swepro_smoke_openlibrary_guarded_glm52_20260711",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/swepro_openlibrary_2abe28b4-5e00dcdb-2f0b-4b43-911c-6f041ef8dba9",
+    "archive": "experiments/results/patches/5e00dcdb-2f0b-4b43-911c-6f041ef8dba9.patch",
+    "sha256": "5899656597306c25dc47c5867cbaa5156a0dee741313628ceb74568418403ed7",
+    "bytes": 4500
+  },
+  {
+    "run_id": "133a4bcb-8eed-4820-a938-4ade9ad1291f",
+    "task_id": "swepro_openlibrary_4a5d2a7d",
+    "session_id": "swepro-glm52-single-vs-multigraph",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/swepro_openlibrary_4a5d2a7d-133a4bcb-8eed-4820-a938-4ade9ad1291f",
+    "archive": "experiments/results/patches/133a4bcb-8eed-4820-a938-4ade9ad1291f.patch",
+    "sha256": "0305fcc740382a7ca4fd4f1d58418a6bae3f8841bf554f28c8aea24cd0c49e5b",
+    "bytes": 3783
+  },
+  {
+    "run_id": "20de6204-84ea-471d-b1c8-dba95d69ac92",
+    "task_id": "swepro_openlibrary_4a5d2a7d",
+    "session_id": "default",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/swepro_openlibrary_4a5d2a7d-20de6204-84ea-471d-b1c8-dba95d69ac92",
+    "archive": "experiments/results/patches/20de6204-84ea-471d-b1c8-dba95d69ac92.patch",
+    "sha256": "4ec39af7b3464eeac069409adb96f1e6f88b3dfa3e63f8403bba7bde78984bea",
+    "bytes": 2846
+  },
+  {
+    "run_id": "35f2a942-3d99-4268-a0e1-d7581562239a",
+    "task_id": "swepro_openlibrary_4a5d2a7d",
+    "session_id": "default",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/swepro_openlibrary_4a5d2a7d-35f2a942-3d99-4268-a0e1-d7581562239a",
+    "archive": "experiments/results/patches/35f2a942-3d99-4268-a0e1-d7581562239a.patch",
+    "sha256": "0c1d171b48951181497d66548f151c8abaf489446d7edbc7f2cd8e3b474993de",
+    "bytes": 3447
+  },
+  {
+    "run_id": "75c8a242-1567-4de8-8d92-f8b3a9f1f4a3",
+    "task_id": "swepro_openlibrary_4a5d2a7d",
+    "session_id": "default",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/swepro_openlibrary_4a5d2a7d-75c8a242-1567-4de8-8d92-f8b3a9f1f4a3",
+    "archive": "experiments/results/patches/75c8a242-1567-4de8-8d92-f8b3a9f1f4a3.patch",
+    "sha256": "ba1c8b1fd31be48da3cf5dfee48e731e9a596c2acb9e317b30b9378c329f2036",
+    "bytes": 3393
+  },
+  {
+    "run_id": "e04eb30c-cdca-4d30-bae1-0482a388d4b8",
+    "task_id": "swepro_openlibrary_dbbd9d53",
+    "session_id": "swepro-glm52-single-vs-multigraph",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/swepro_openlibrary_dbbd9d53-e04eb30c-cdca-4d30-bae1-0482a388d4b8",
+    "archive": "experiments/results/patches/e04eb30c-cdca-4d30-bae1-0482a388d4b8.patch",
+    "sha256": "adbbcaf201371ccee63658f9139bd87f4fbfe5b13baa1e64010fa91bde2626fb",
+    "bytes": 8460
+  },
+  {
+    "run_id": "7d23ef8a-8867-4aa1-8a05-cba618215f6c",
+    "task_id": "swepro_qutebrowser_c580ebf0",
+    "session_id": "swepro-codexmini-single-vs-multigraph",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/swepro_qutebrowser_c580ebf0-7d23ef8a-8867-4aa1-8a05-cba618215f6c",
+    "archive": "experiments/results/patches/7d23ef8a-8867-4aa1-8a05-cba618215f6c.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "eceb7888-b8d2-409d-9340-5e0cc8798c45",
+    "task_id": "swepro_qutebrowser_c580ebf0",
+    "session_id": "swepro-glm52-single-vs-multigraph",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/swepro_qutebrowser_c580ebf0-eceb7888-b8d2-409d-9340-5e0cc8798c45",
+    "archive": "experiments/results/patches/eceb7888-b8d2-409d-9340-5e0cc8798c45.patch",
+    "sha256": "53a556642bcd65b0f5ac73e7f85b78cbd9cc475abbce35ddd46a944f468753d4",
+    "bytes": 7772
+  },
+  {
+    "run_id": "fefc7dd8-eaca-4de7-ae02-84f76197e6b2",
+    "task_id": "swepro_qutebrowser_f631cd44",
+    "session_id": "swepro-glm52-single-vs-multigraph",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/swepro_qutebrowser_f631cd44-fefc7dd8-eaca-4de7-ae02-84f76197e6b2",
+    "archive": "experiments/results/patches/fefc7dd8-eaca-4de7-ae02-84f76197e6b2.patch",
+    "sha256": "3d99aa0a4c1631869eeaaeb5601eeda2a12c5ae80040ab25b3caa114744e8c2e",
+    "bytes": 3200
+  },
+  {
+    "run_id": "5192d117-f0c6-48e1-b21b-a32d0f9031e7",
+    "task_id": "swepro_qutebrowser_f91ace96",
+    "session_id": "swepro-codexmini-single-vs-multigraph-tools",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/swepro_qutebrowser_f91ace96-5192d117-f0c6-48e1-b21b-a32d0f9031e7",
+    "archive": "experiments/results/patches/5192d117-f0c6-48e1-b21b-a32d0f9031e7.patch",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  {
+    "run_id": "dd2d3cbf-fd39-4f1f-8942-d81297caaaa3",
+    "task_id": "swepro_qutebrowser_f91ace96",
+    "session_id": "swepro-codexmini-single-vs-multigraph-tools-medium",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/swepro_qutebrowser_f91ace96-dd2d3cbf-fd39-4f1f-8942-d81297caaaa3",
+    "archive": "experiments/results/patches/dd2d3cbf-fd39-4f1f-8942-d81297caaaa3.patch",
+    "sha256": "6bb27f621979dc2527c266f8e22ece66489d5d59f7d4e2a1b73c5e756f36873d",
+    "bytes": 1236
+  },
+  {
+    "run_id": "ea455bfe-535a-4f1b-a60f-e7f003abdd3a",
+    "task_id": "swepro_qutebrowser_f91ace96",
+    "session_id": "swepro-glm52-single-vs-multigraph",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/swepro_qutebrowser_f91ace96-ea455bfe-535a-4f1b-a60f-e7f003abdd3a",
+    "archive": "experiments/results/patches/ea455bfe-535a-4f1b-a60f-e7f003abdd3a.patch",
+    "sha256": "8d7a572c5eb4a42a7870a3f8be990b7330e993ebfacf8699cecadf2c4d88b293",
+    "bytes": 6496
+  },
+  {
+    "run_id": "f18bbe75-eb1b-4e53-8551-4bc5416903ac",
+    "task_id": "swepro_qutebrowser_f91ace96",
+    "session_id": "swepro-codexmini-single-vs-multigraph",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/swepro_qutebrowser_f91ace96-f18bbe75-eb1b-4e53-8551-4bc5416903ac",
+    "archive": "experiments/results/patches/f18bbe75-eb1b-4e53-8551-4bc5416903ac.patch",
+    "sha256": "62872df6d24559a48b8f3843c39db14f2dec0d418eb6d96a3da0efa4e6e614e2",
+    "bytes": 2187
+  },
+  {
+    "run_id": "6434d807-212e-4c79-abcd-27a62ec13640",
+    "task_id": "tinydb_pr_616",
+    "session_id": "multi_debug_glm",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/tinydb_pr_616-6434d807-212e-4c79-abcd-27a62ec13640",
+    "archive": "experiments/results/patches/6434d807-212e-4c79-abcd-27a62ec13640.patch",
+    "sha256": "01955a430fdb2d45272a95ef49f819aa319a106db43b5710202e388cdc07e6c6",
+    "bytes": 5310
+  },
+  {
+    "run_id": "a9516185-78f1-472b-9b80-6db201b78b11",
+    "task_id": "tinydb_pr_616",
+    "session_id": "multi_debug_glm",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/tinydb_pr_616-a9516185-78f1-472b-9b80-6db201b78b11",
+    "archive": "experiments/results/patches/a9516185-78f1-472b-9b80-6db201b78b11.patch",
+    "sha256": "7e136ed80538dd8580da3ac1ce09d9f46a7a2c8535cab467ab89f1bbca40d9f5",
+    "bytes": 5183
+  },
+  {
+    "run_id": "2c229f1a-66d4-439b-8593-70abbb2cb321",
+    "task_id": "toolz_pr_603",
+    "session_id": "comparison_single_swe_bugfixes_only_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/toolz_pr_603-2c229f1a-66d4-439b-8593-70abbb2cb321",
+    "archive": "experiments/results/patches/2c229f1a-66d4-439b-8593-70abbb2cb321.patch",
+    "sha256": "a6a0f9fd8f9f16a0c36781b575c8a75e7763ccd85360ee59d008bbdaf4cfbda9",
+    "bytes": 2097
+  },
+  {
+    "run_id": "c91a09c1-cfca-49d2-867e-82986bdd73ee",
+    "task_id": "toolz_pr_603",
+    "session_id": null,
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/toolz_pr_603-c91a09c1-cfca-49d2-867e-82986bdd73ee",
+    "archive": "experiments/results/patches/c91a09c1-cfca-49d2-867e-82986bdd73ee.patch",
+    "sha256": "63eb9bfcc36ebb775ca168b4c3bb9d8ea0e7191d2e5531afc5e9eecde82fa5a3",
+    "bytes": 1876
+  },
+  {
+    "run_id": "ffee11d0-8d1c-4e8a-adb9-a3c056899c95",
+    "task_id": "toolz_pr_603",
+    "session_id": null,
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/toolz_pr_603-ffee11d0-8d1c-4e8a-adb9-a3c056899c95",
+    "archive": "experiments/results/patches/ffee11d0-8d1c-4e8a-adb9-a3c056899c95.patch",
+    "sha256": "961146bbfdc36b68a6e868f104465e64a1206f1de23891998a4bd96c6e781f79",
+    "bytes": 1904
+  },
+  {
+    "run_id": "101e7ee7-ba5b-45b3-a213-40e5d92503ac",
+    "task_id": "w3lib_pr_272",
+    "session_id": "comparison_single_swe_bugfixes_only_0",
+    "source_workspace": "/Users/tortalpha/Code/repo-level-dev-agent-eval/experiments/workspaces/w3lib_pr_272-101e7ee7-ba5b-45b3-a213-40e5d92503ac",
+    "archive": "experiments/results/patches/101e7ee7-ba5b-45b3-a213-40e5d92503ac.patch",
+    "sha256": "6a364de153c6d60242e5dc5c2fe100ae6904a0899bbbebdf23d82980b124d263",
+    "bytes": 1231
+  }
+]

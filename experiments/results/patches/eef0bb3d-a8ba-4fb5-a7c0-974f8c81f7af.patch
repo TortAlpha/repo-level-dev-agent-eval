@@ -1,0 +1,152 @@
+diff --git a/more_itertools/more.py b/more_itertools/more.py
+index 12b4942..d320ede 100755
+--- a/more_itertools/more.py
++++ b/more_itertools/more.py
+@@ -143,6 +143,8 @@ __all__ = [
+     'rlocate',
+     'rstrip',
+     'run_length',
++    'running_max',
++    'running_min',
+     'sample',
+     'seekable',
+     'serialize',
+@@ -4835,6 +4837,66 @@ def minmax(iterable_or_value, *others, key=None, default=_marker):
+     return lo, hi
+ 
+ 
++def running_min(iterable, *, maxlen=None):
++    """Yield the running minimum (or sliding window minimum) of *iterable*."""
++    if maxlen is None:
++        iterator = iter(iterable)
++        try:
++            current_min = next(iterator)
++        except StopIteration:
++            return
++        yield current_min
++        for value in iterator:
++            if value < current_min:
++                current_min = value
++            yield current_min
++        return
++
++    if maxlen <= 0:
++        raise ValueError('maxlen must be greater than zero')
++
++    candidates = deque()
++    for index, value in enumerate(iterable):
++        while candidates and candidates[-1][0] > value:
++            candidates.pop()
++        candidates.append((value, index))
++        cutoff = index - maxlen + 1
++        if cutoff > 0:
++            while candidates and candidates[0][1] < cutoff:
++                candidates.popleft()
++        yield candidates[0][0]
++
++
++def running_max(iterable, *, maxlen=None):
++    """Yield the running maximum (or sliding window maximum) of *iterable*."""
++    if maxlen is None:
++        iterator = iter(iterable)
++        try:
++            current_max = next(iterator)
++        except StopIteration:
++            return
++        yield current_max
++        for value in iterator:
++            if current_max < value:
++                current_max = value
++            yield current_max
++        return
++
++    if maxlen <= 0:
++        raise ValueError('maxlen must be greater than zero')
++
++    candidates = deque()
++    for index, value in enumerate(iterable):
++        while candidates and candidates[-1][0] < value:
++            candidates.pop()
++        candidates.append((value, index))
++        cutoff = index - maxlen + 1
++        if cutoff > 0:
++            while candidates and candidates[0][1] < cutoff:
++                candidates.popleft()
++        yield candidates[0][0]
++
++
+ def constrained_batches(
+     iterable, max_size, max_count=None, get_len=len, strict=True
+ ):
+diff --git a/more_itertools/more.pyi b/more_itertools/more.pyi
+index a52643e..fc8be2f 100644
+--- a/more_itertools/more.pyi
++++ b/more_itertools/more.pyi
+@@ -867,6 +867,14 @@ class _SupportsLessThan(Protocol):
+ 
+ _SupportsLessThanT = TypeVar("_SupportsLessThanT", bound=_SupportsLessThan)
+ 
++def running_min(
++    iterable: Iterable[_SupportsLessThanT], *, maxlen: int | None = ...
++) -> Iterator[_SupportsLessThanT]: ...
++
++def running_max(
++    iterable: Iterable[_SupportsLessThanT], *, maxlen: int | None = ...
++) -> Iterator[_SupportsLessThanT]: ...
++
+ @overload
+ def minmax(
+     iterable_or_value: Iterable[_SupportsLessThanT], *, key: None = None
+diff --git a/tests/test_more.py b/tests/test_more.py
+index 2e0cc06..e04f1fd 100644
+--- a/tests/test_more.py
++++ b/tests/test_more.py
+@@ -695,6 +695,48 @@ class MinMaxTests(TestCase):
+         self.assertListEqual(mi.minmax([], default=[1, 'a']), [1, 'a'])
+ 
+ 
++class RunningMinMaxTests(TestCase):
++    def test_running_min_and_max_cumulative(self):
++        values = [8.5, 9.5, 7.5, 6.5]
++        self.assertEqual(list(mi.running_min(values)), [8.5, 8.5, 7.5, 6.5])
++        self.assertEqual(list(mi.running_max(values)), [8.5, 9.5, 9.5, 9.5])
++
++    def test_running_with_fraction(self):
++        values = [Fraction(5, 2), Fraction(3, 2), Fraction(7, 2)]
++        self.assertEqual(
++            list(mi.running_min(values)),
++            [Fraction(5, 2), Fraction(3, 2), Fraction(3, 2)],
++        )
++        self.assertEqual(
++            list(mi.running_max(values)),
++            [Fraction(5, 2), Fraction(5, 2), Fraction(7, 2)],
++        )
++
++    def test_running_windowed(self):
++        window_data = [4, 2, 5, 1]
++        self.assertEqual(
++            list(mi.running_min(window_data, maxlen=2)), [4, 2, 2, 1]
++        )
++        self.assertEqual(
++            list(mi.running_max(window_data, maxlen=2)), [4, 4, 5, 5]
++        )
++
++    def test_running_maxlen_requires_positive(self):
++        with self.assertRaises(ValueError):
++            list(mi.running_min([1, 2, 3], maxlen=0))
++        with self.assertRaises(ValueError):
++            list(mi.running_max([1, 2, 3], maxlen=-1))
++
++    def test_running_window_longer_than_iterable(self):
++        data = [3, 1, 2]
++        self.assertEqual(
++            list(mi.running_min(data, maxlen=10)), [3, 1, 1]
++        )
++        self.assertEqual(
++            list(mi.running_max(data, maxlen=10)), [3, 3, 3]
++        )
++
++
+ class WithIterTests(TestCase):
+     def test_with_iter(self):
+         s = StringIO('One fish\nTwo fish')

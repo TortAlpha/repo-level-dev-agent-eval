@@ -1,0 +1,32 @@
+{
+  "run_id": "142bd255-9a92-4c8a-a0a7-dd98b4f13b4d",
+  "task_id": "humanize_pr_329",
+  "model": "z-ai/glm-5.2",
+  "status": "failed",
+  "hidden_tests_passed": false,
+  "quality_score": 5,
+  "metrics": {
+    "n_runs": 1,
+    "n_tasks": 1,
+    "resolved_at_1": 0.0,
+    "task_success_rate": 0.0,
+    "visible_test_pass_rate": 1.0,
+    "hidden_test_pass_rate": 0.0,
+    "patch_validity_rate": 1.0,
+    "handoff_rate": 0.0,
+    "repair_success_rate": 1.0,
+    "regression_rate": 0.0,
+    "mean_regressions": 0.0,
+    "test_overfitting_rate": 1.0,
+    "tool_use_validity_rate": 0.9375,
+    "hallucinated_refs_per_run": 1.0,
+    "mean_iterations": 5.0,
+    "mean_steps": 16.0,
+    "mean_duration_s": 181.36,
+    "mean_llm_calls": 16.0,
+    "mean_total_tokens": 117795.0,
+    "mean_cost_usd": 0.12740310000000002,
+    "total_cost_usd": 0.12740310000000002,
+    "mean_quality_score": 5.0
+  }
+}

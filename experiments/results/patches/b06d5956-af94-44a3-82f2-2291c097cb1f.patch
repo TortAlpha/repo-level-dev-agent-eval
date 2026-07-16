@@ -1,0 +1,45 @@
+diff --git a/sqlglot/dialects/dremio.py b/sqlglot/dialects/dremio.py
+index 778be5f7..452a329f 100644
+--- a/sqlglot/dialects/dremio.py
++++ b/sqlglot/dialects/dremio.py
+@@ -151,6 +151,7 @@ class Dremio(Dialect):
+             "DATE_ADD": build_date_delta_with_cast_interval(exp.DateAdd),
+             "DATE_SUB": build_date_delta_with_cast_interval(exp.DateSub),
+             "ARRAY_GENERATE_RANGE": exp.GenerateSeries.from_arg_list,
++            "REGEXP_LIKE": exp.RegexpLike.from_arg_list,
+         }
+ 
+         def _parse_current_date_utc(self) -> exp.Cast:
+@@ -196,6 +197,7 @@ class Dremio(Dialect):
+             exp.DateAdd: _date_delta_sql("DATE_ADD"),
+             exp.DateSub: _date_delta_sql("DATE_SUB"),
+             exp.GenerateSeries: rename_func("ARRAY_GENERATE_RANGE"),
++            exp.RegexpLike: rename_func("REGEXP_LIKE"),
+         }
+ 
+         def datatype_sql(self, expression: exp.DataType) -> str:
+diff --git a/tests/dialects/test_dremio_regexp.py b/tests/dialects/test_dremio_regexp.py
+new file mode 100644
+index 00000000..8296dd0a
+--- /dev/null
++++ b/tests/dialects/test_dremio_regexp.py
+@@ -0,0 +1,19 @@
++from tests.dialects.test_dialect import Validator
++
++
++class TestDremioRegexp(Validator):
++    dialect = "dremio"
++    maxDiff = None
++
++    def test_regexp_like(self):
++        self.validate_all(
++            "REGEXP_LIKE(x, y)",
++            read={
++                "dremio": "REGEXP_LIKE(x, y)",
++                "duckdb": "REGEXP_MATCHES(x, y)",
++            },
++            write={
++                "dremio": "REGEXP_LIKE(x, y)",
++                "duckdb": "REGEXP_MATCHES(x, y)",
++            },
++        )

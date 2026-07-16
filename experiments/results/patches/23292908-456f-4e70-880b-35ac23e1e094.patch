@@ -1,0 +1,83 @@
+diff --git a/parse.py b/parse.py
+index 8f73fb5..064c33e 100644
+--- a/parse.py
++++ b/parse.py
+@@ -172,6 +172,18 @@ AM_PAT = r"(\s+[AP]M)"
+ TZ_PAT = r"(\s+[-+]\d\d?:?\d\d)"
+ 
+ 
++def _parse_datetime(string, match, fmt):
++    dt = datetime.strptime(string, fmt)
++    # determine if only date, time, or datetime
++    has_date = any(d in fmt for d in ["%Y", "%y", "%m", "%B", "%b", "%d", "%j"])
++    has_time = any(t in fmt for t in ["%H", "%I", "%M", "%S", "%f", "%p"])
++    has_tz = "%z" in fmt or "%Z" in fmt
++    if has_time or has_tz:
++        if not has_date:
++            return dt.time()
++        return dt
++    return dt.date()
++
+ def date_convert(
+     string,
+     match,
+@@ -576,7 +588,7 @@ class Parser(object):
+         format = ""
+ 
+         if ":" in field:
+-            name, format = field.split(":")
++            name, format = field.split(":", 1)
+         else:
+             name = field
+ 
+@@ -612,6 +624,10 @@ class Parser(object):
+             return wrap % r".+?"
+ 
+         # decode the format specification
++        if format.startswith("%") and len(format) > 1:
++            self._group_index += 1
++            self._type_conversions[group] = partial(_parse_datetime, fmt=format)
++            return wrap % r".+?"
+         format = extract_format(format, self._extra_types)
+ 
+         # figure type conversions, if any
+diff --git a/tests/test_datetime_formats.py b/tests/test_datetime_formats.py
+new file mode 100644
+index 0000000..ff8e914
+--- /dev/null
++++ b/tests/test_datetime_formats.py
+@@ -0,0 +1,34 @@
++import unittest
++from datetime import date, datetime, time, timedelta, timezone
++import parse
++
++
++class TestDatetimeFormatSpec(unittest.TestCase):
++
++    def test_date_strftime(self):
++        r = parse.parse("a {:%Y-%m-%d} b", "a 1997-07-16 b")
++        self.assertEqual(r.fixed[0], date(1997, 7, 16))
++
++    def test_date_strftime_month_name(self):
++        r = parse.parse("a {:%Y-%b-%d} b", "a 1997-Feb-16 b")
++        self.assertEqual(r.fixed[0], date(1997, 2, 16))
++
++    def test_time_strftime(self):
++        r = parse.parse("time: {:%H:%M}", "time: 23:45")
++        self.assertEqual(r.fixed[0], time(23, 45))
++
++    def test_datetime_strftime(self):
++        r = parse.parse("dt: {:%Y-%m-%d %H:%M:%S}", "dt: 2020-01-02 03:04:05")
++        self.assertEqual(r.fixed[0], datetime(2020, 1, 2, 3, 4, 5))
++
++    def test_datetime_with_timezone(self):
++        tz = timezone(timedelta(hours=2))
++        r = parse.parse("ts: {:%Y-%m-%d %H:%M%z}", "ts: 2020-01-02 03:04+0200")
++        dt = r.fixed[0]
++        self.assertIsInstance(dt, datetime)
++        self.assertEqual(dt.year, 2020)
++        self.assertEqual(dt.month, 1)
++        self.assertEqual(dt.day, 2)
++        self.assertEqual(dt.hour, 3)
++        self.assertEqual(dt.minute, 4)
++        self.assertEqual(dt.tzinfo, tz)

@@ -1,0 +1,116 @@
+diff --git a/sqlglot/generators/clickhouse.py b/sqlglot/generators/clickhouse.py
+index eef1a97a..8af107d7 100644
+--- a/sqlglot/generators/clickhouse.py
++++ b/sqlglot/generators/clickhouse.py
+@@ -460,6 +460,12 @@ class ClickHouseGenerator(generator.Generator):
+     def likeproperty_sql(self, expression: exp.LikeProperty) -> str:
+         return f"AS {self.sql(expression, 'this')}"
+ 
++    def groupconcat_sql(self, expression: exp.GroupConcat) -> str:
++        separator = expression.args.get("separator")
++        if separator:
++            return f"groupConcat({self.sql(separator)})({self.sql(expression, 'this')})"
++        return super().groupconcat_sql(expression)
++
+     def _any_to_has(
+         self,
+         expression: exp.EQ | exp.NEQ,
+diff --git a/sqlglot/parsers/clickhouse.py b/sqlglot/parsers/clickhouse.py
+index 592ecc70..37973514 100644
+--- a/sqlglot/parsers/clickhouse.py
++++ b/sqlglot/parsers/clickhouse.py
+@@ -137,6 +137,7 @@ AGG_FUNCTIONS = {
+     "groupBitmap",
+     "groupBitmapAnd",
+     "groupBitmapOr",
++    "groupConcat",
+     "groupBitmapXor",
+     "sumWithOverflow",
+     "sumMap",
+@@ -693,28 +694,39 @@ class ClickHouseParser(parser.Parser):
+             anon_func: exp.Anonymous = t.cast(exp.Anonymous, func)
+             params = self._parse_func_params(anon_func)
+ 
+-            if len(parts[1]) > 0:
+-                exp_class: Type[exp.Expr] = (
+-                    exp.CombinedParameterizedAgg if params else exp.CombinedAggFunc
+-                )
+-            else:
+-                exp_class = exp.ParameterizedAgg if params else exp.AnonymousAggFunc
+-
+-            instance = exp_class(this=anon_func.this, expressions=anon_func.expressions)
+-            if params:
+-                instance.set("params", params)
+-            func = self.expression(instance)
+-
+-            if isinstance(expr, exp.Window):
+-                # The window's func was parsed as Anonymous in base parser, fix its
+-                # type to be ClickHouse style CombinedAnonymousAggFunc / AnonymousAggFunc
+-                expr.set("this", func)
+-            elif params:
+-                # Params have blocked super()._parse_function() from parsing the following window
+-                # (if that exists) as they're standing between the function call and the window spec
+-                expr = self._parse_window(func)
++            # Handle parametric groupConcat: groupConcat(', ')(part_name)
++            if params and anon_func.this.lower() == "groupconcat":
++                # First paren group is the separator, second paren group is the column
++                separator = anon_func.expressions[0] if anon_func.expressions else None
++                func = self.expression(exp.GroupConcat(this=params[0], separator=separator))
++                
++                if isinstance(expr, exp.Window):
++                    expr.set("this", func)
++                else:
++                    expr = self._parse_window(func)
+             else:
+-                expr = func
++                if len(parts[1]) > 0:
++                    exp_class: Type[exp.Expr] = (
++                        exp.CombinedParameterizedAgg if params else exp.CombinedAggFunc
++                    )
++                else:
++                    exp_class = exp.ParameterizedAgg if params else exp.AnonymousAggFunc
++
++                instance = exp_class(this=anon_func.this, expressions=anon_func.expressions)
++                if params:
++                    instance.set("params", params)
++                func = self.expression(instance)
++
++                if isinstance(expr, exp.Window):
++                    # The window's func was parsed as Anonymous in base parser, fix its
++                    # type to be ClickHouse style CombinedAnonymousAggFunc / AnonymousAggFunc
++                    expr.set("this", func)
++                elif params:
++                    # Params have blocked super()._parse_function() from parsing the following window
++                    # (if that exists) as they're standing between the function call and the window spec
++                    expr = self._parse_window(func)
++                else:
++                    expr = func
+ 
+         return expr
+ 
+diff --git a/tests/test_groupconcat_clickhouse.py b/tests/test_groupconcat_clickhouse.py
+new file mode 100644
+index 00000000..2e34d9e8
+--- /dev/null
++++ b/tests/test_groupconcat_clickhouse.py
+@@ -0,0 +1,20 @@
++import sqlglot
++from sqlglot import exp
++
++
++def test_clickhouse_parametric_group_concat():
++    sql = "SELECT groupConcat(', ')(part_name) FROM system.parts"
++    expr = sqlglot.parse_one(sql, dialect="clickhouse")
++
++    gc = expr.find(exp.GroupConcat)
++    assert gc is not None, "expected GroupConcat expression"
++    assert gc.this.name == "part_name", gc.this.name
++    assert gc.args["separator"].name == ", ", gc.args["separator"].name
++
++    assert expr.sql(dialect="clickhouse") == sql
++
++
++def test_clickhouse_non_parametric_group_concat_unchanged():
++    sql = "SELECT groupConcat(part_name) FROM system.parts"
++    expr = sqlglot.parse_one(sql, dialect="clickhouse")
++    assert expr.sql(dialect="clickhouse") == sql

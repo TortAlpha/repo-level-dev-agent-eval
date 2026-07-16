@@ -1,0 +1,60 @@
+diff --git a/toolz/itertoolz.py b/toolz/itertoolz.py
+index 1ab5485..907a700 100644
+--- a/toolz/itertoolz.py
++++ b/toolz/itertoolz.py
+@@ -725,14 +725,24 @@ def partition_all(n, seq):
+         prev = next(it)
+     except StopIteration:
+         return
++    count = 1
+     for item in it:
+         yield prev
+         prev = item
++        count += 1
+     if prev[-1] is no_pad:
+         try:
+             # If seq defines __len__, then
+             # we can quickly calculate where no_pad starts
+-            yield prev[:len(seq) % n]
++            m = len(seq) % n
++            # Verify that the reported length is consistent with the actual
++            # data so that a wrong __len__ does not silently produce bad
++            # partitions.
++            actual = (count - 1) * n + m
++            if actual != len(seq):
++                raise LookupError(
++                    'seq reports inconsistent length information')
++            yield prev[:m]
+         except TypeError:
+             # Get first index of no_pad without using .index()
+             # https://github.com/pytoolz/toolz/issues/387
+@@ -747,6 +757,8 @@ def partition_all(n, seq):
+                     lo = mid + 1
+             yield prev[:lo]
+     else:
++        if hasattr(seq, '__len__') and len(seq) != count * n:
++            raise LookupError('seq reports inconsistent length information')
+         yield prev
+ 
+ 
+diff --git a/toolz/tests/test_itertoolz.py b/toolz/tests/test_itertoolz.py
+index 27907b9..9b3275c 100644
+--- a/toolz/tests/test_itertoolz.py
++++ b/toolz/tests/test_itertoolz.py
+@@ -356,6 +356,16 @@ def test_partition_all():
+     assert list(partition_all(4, iter([obj]*7))) == result
+ 
+ 
++def test_partition_all_invalid_len():
++    class BadSeq(object):
++        def __iter__(self):
++            return iter([1, 2, 3, 4, 5])
++        def __len__(self):
++            return 3
++    assert list(partition_all(2, [1, 2, 3, 4, 5])) == [(1, 2), (3, 4), (5,)]
++    assert raises(LookupError, lambda: list(partition_all(2, BadSeq())))
++
++
+ def test_count():
+     assert count((1, 2, 3)) == 3
+     assert count([]) == 0

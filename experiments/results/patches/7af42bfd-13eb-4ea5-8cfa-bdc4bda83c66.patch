@@ -1,0 +1,13 @@
+diff --git a/parse.py b/parse.py
+index 8f73fb5..f7b3344 100644
+--- a/parse.py
++++ b/parse.py
+@@ -5,7 +5,7 @@ __version__ = "1.19.1"
+ # yes, I now have two problems
+ import re
+ import sys
+-from datetime import datetime, time, tzinfo, timedelta
++from datetime import date, datetime, time, tzinfo, timedelta
+ from decimal import Decimal
+ from functools import partial
+ import logging

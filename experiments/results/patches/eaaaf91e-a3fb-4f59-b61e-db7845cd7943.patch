@@ -1,0 +1,36 @@
+diff --git a/src/humanize/filesize.py b/src/humanize/filesize.py
+index c495fed..66b85bd 100644
+--- a/src/humanize/filesize.py
++++ b/src/humanize/filesize.py
+@@ -98,5 +98,15 @@ def naturalsize(
+ 
+     exp = int(min(log(abs_bytes, base), len(suffix)))
+     space = "" if gnu else " "
+-    ret: str = format % (bytes_ / (base**exp)) + space + _(suffix[exp - 1])
+-    return ret
++    mantissa = bytes_ / (base**exp)
++
++    try:
++        rounded = float(format % mantissa)
++    except (ValueError, TypeError):
++        rounded = mantissa
++
++    if abs(rounded) >= base and exp < len(suffix):
++        exp += 1
++        mantissa = bytes_ / (base**exp)
++
++    return format % mantissa + space + _(suffix[exp - 1])
+diff --git a/tests/test_filesize.py b/tests/test_filesize.py
+index 04774d9..045a316 100644
+--- a/tests/test_filesize.py
++++ b/tests/test_filesize.py
+@@ -75,6 +75,9 @@ import humanize
+         ([3141592, False, False, "%.2f"], "3.14 MB"),
+         ([3000, False, True, "%.3f"], "2.930K"),
+         ([3000000000, False, True, "%.0f"], "3G"),
++        ([999950, False], "1.0 MB"),
++        ([1024**2 - 0.5, True], "1.0 MiB"),
++        ([1024**2 - 0.5, False, True], "1.0 M"),
+         ([10**26 * 30, True, False, "%.3f"], "2.423 RiB"),
+         ([1.123456789], "1 Bytes"),
+         ([1.123456789 * 10**3], "1.1 kB"),

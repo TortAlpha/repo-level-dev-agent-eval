@@ -1,0 +1,95 @@
+diff --git a/sqlparse/sql.py b/sqlparse/sql.py
+index def0679..2e8d436 100644
+--- a/sqlparse/sql.py
++++ b/sqlparse/sql.py
+@@ -621,9 +621,33 @@ class Case(TokenList):
+ class Function(NameAliasMixin, TokenList):
+     """A function or procedure call."""
+ 
++    def get_window(self):
++        """Return the window specified by an OVER clause, if any.
++
++        For a named window (``foo(5) OVER win1``) this is the window
++        identifier; for an inline window (``foo(5) OVER (PARTITION BY c1)``)
++        this is the parenthesised window definition. Returns ``None`` when
++        the function has no OVER clause.
++        """
++        for token in self.tokens:
++            if isinstance(token, Over):
++                # The Over groups the OVER keyword with the window token,
++                # which is either a Parenthesis (inline window) or a Name
++                # (named window).
++                for sub in token.tokens:
++                    if imt(sub, i=(Parenthesis, Identifier), t=T.Name):
++                        return sub
++        return None
++
+     def get_parameters(self):
+         """Return a list of parameters."""
+-        parenthesis = self.tokens[-1]
++        parenthesis = None
++        for token in self.tokens:
++            if isinstance(token, Parenthesis):
++                parenthesis = token
++                break
++        if parenthesis is None:
++            return []
+         result = []
+         for token in parenthesis.tokens:
+             if isinstance(token, IdentifierList):
+diff --git a/tests/test_over.py b/tests/test_over.py
+new file mode 100644
+index 0000000..c8bc75f
+--- /dev/null
++++ b/tests/test_over.py
+@@ -0,0 +1,50 @@
++"""Tests for Function.get_window() and OVER clause handling."""
++import sqlparse
++from sqlparse.sql import Function, Identifier, Parenthesis
++
++
++def _func(sql):
++    return sqlparse.parse(sql)[0].tokens[0]
++
++
++def test_get_window_none():
++    f = _func('foo(5)')
++    assert isinstance(f, Function)
++    assert f.get_window() is None
++
++
++def test_get_window_named():
++    f = _func('foo(5) OVER win1')
++    assert isinstance(f, Function)
++    win = f.get_window()
++    assert win is not None
++    assert win.value == 'win1'
++
++
++def test_get_window_inline():
++    f = _func('foo(5) OVER (PARTITION BY c1)')
++    assert isinstance(f, Function)
++    win = f.get_window()
++    assert isinstance(win, Parenthesis)
++    assert 'PARTITION BY c1' in win.value
++
++
++def test_parameters_with_named_window():
++    f = _func('foo(5) OVER win1')
++    params = f.get_parameters()
++    assert len(params) == 1
++    assert params[0].value == '5'
++
++
++def test_parameters_with_inline_window():
++    f = _func('foo(5) OVER (PARTITION BY c1)')
++    params = f.get_parameters()
++    assert len(params) == 1
++    assert params[0].value == '5'
++
++
++def test_parameters_without_window():
++    f = _func('foo(5)')
++    params = f.get_parameters()
++    assert len(params) == 1
++    assert params[0].value == '5'

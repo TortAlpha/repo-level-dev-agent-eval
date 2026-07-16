@@ -1,0 +1,29 @@
+diff --git a/sqlparse/keywords.py b/sqlparse/keywords.py
+index cd17d63..f2c24fb 100644
+--- a/sqlparse/keywords.py
++++ b/sqlparse/keywords.py
+@@ -241,6 +241,7 @@ KEYWORDS = {
+     'DISABLE': tokens.Keyword,
+     'DISCONNECT': tokens.Keyword,
+     'DISPATCH': tokens.Keyword,
++    'DIV': tokens.Operator,
+     'DO': tokens.Keyword,
+     'DOMAIN': tokens.Keyword,
+     'DYNAMIC': tokens.Keyword,
+diff --git a/tests/test_tokenize.py b/tests/test_tokenize.py
+index af0ba16..0803b28 100644
+--- a/tests/test_tokenize.py
++++ b/tests/test_tokenize.py
+@@ -65,6 +65,12 @@ def test_tokenize_negative_numbers():
+     assert tokens[2][1] == '-1'
+ 
+ 
++def test_div_operator():
++    tokens = list(lexer.tokenize('a DIV b'))
++    assert len(tokens) == 5
++    assert tokens[2] == (T.Operator, 'DIV')
++
++
+ def test_token_str():
+     token = sql.Token(None, 'FoO')
+     assert str(token) == 'FoO'

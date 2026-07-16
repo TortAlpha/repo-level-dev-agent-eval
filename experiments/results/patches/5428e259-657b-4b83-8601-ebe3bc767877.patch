@@ -1,0 +1,187 @@
+diff --git a/src/pluggy/_hooks.py b/src/pluggy/_hooks.py
+index 7fde78c..9ad78fe 100644
+--- a/src/pluggy/_hooks.py
++++ b/src/pluggy/_hooks.py
+@@ -440,11 +440,13 @@ class HookCaller:
+         return self._call_history is not None
+ 
+     def _remove_plugin(self, plugin: _Plugin) -> None:
+-        for i, method in enumerate(self._hookimpls):
+-            if method.plugin == plugin:
++        found = False
++        for i in range(len(self._hookimpls) - 1, -1, -1):
++            if self._hookimpls[i].plugin == plugin:
+                 del self._hookimpls[i]
+-                return
+-        raise ValueError(f"plugin {plugin!r} not found")
++                found = True
++        if not found:
++            raise ValueError(f"plugin {plugin!r} not found")
+ 
+     def get_hookimpls(self) -> list[HookImpl]:
+         """Get all registered hook implementations for this hook."""
+diff --git a/src/pluggy/_manager.py b/src/pluggy/_manager.py
+index 1b994f2..9e51a4f 100644
+--- a/src/pluggy/_manager.py
++++ b/src/pluggy/_manager.py
+@@ -445,6 +445,7 @@ class PluginManager:
+             for hookimpl in hookcaller.get_hookimpls():
+                 if hookimpl.plugin is plugin:
+                     hookcallers.append(hookcaller)
++                    break
+         return hookcallers
+ 
+     def add_hookcall_monitoring(
+diff --git a/testing/test_plugin_removal_multiple_impls.py b/testing/test_plugin_removal_multiple_impls.py
+new file mode 100644
+index 0000000..d69dd6b
+--- /dev/null
++++ b/testing/test_plugin_removal_multiple_impls.py
+@@ -0,0 +1,147 @@
++"""Tests for plugin removal when a plugin registers multiple implementations
++on the same hook (e.g. via specname)."""
++
++import pytest
++
++import pluggy
++
++
++hookspec = pluggy.HookspecMarker("example")
++hookimpl = pluggy.HookimplMarker("example")
++
++
++class Spec:
++    @hookspec
++    def myhook(self, arg):
++        """A hook spec."""
++
++
++class PluginMultipleSpecname:
++    @hookimpl(specname="myhook")
++    def impl_a(self, arg):
++        return arg + 1
++
++    @hookimpl(specname="myhook")
++    def impl_b(self, arg):
++        return arg + 2
++
++
++class PluginMultipleSameName:
++    """Plugin with two methods that map to the same hook name via specname."""
++
++    @hookimpl(specname="myhook")
++    def first(self, arg):
++        return arg * 10
++
++    @hookimpl(specname="myhook")
++    def second(self, arg):
++        return arg * 100
++
++
++def test_unregister_removes_all_implementations_specname():
++    """unregister should remove ALL hookimpls for a plugin, not just the first."""
++    pm = pluggy.PluginManager("example")
++    pm.add_hookspecs(Spec)
++    plugin = PluginMultipleSpecname()
++    pm.register(plugin)
++
++    # Before unregister, both implementations should fire.
++    results = pm.hook.myhook(arg=1)
++    assert sorted(results) == [2, 3]
++
++    # Confirm there are 2 hookimpls for this plugin on this hookcaller.
++    hookcaller = pm.hook.myhook
++    impls = [h for h in hookcaller.get_hookimpls() if h.plugin is plugin]
++    assert len(impls) == 2
++
++    pm.unregister(plugin)
++
++    # After unregister, no implementations for this plugin should remain.
++    impls_after = [h for h in hookcaller.get_hookimpls() if h.plugin is plugin]
++    assert impls_after == []
++
++    # Calling the hook should not invoke the plugin's methods.
++    results_after = pm.hook.myhook(arg=1)
++    assert results_after == []
++
++
++def test_unregister_removes_all_implementations_same_hook():
++    """Same as above but with a different plugin class to be thorough."""
++    pm = pluggy.PluginManager("example")
++    pm.add_hookspecs(Spec)
++    plugin = PluginMultipleSameName()
++    pm.register(plugin)
++
++    results = pm.hook.myhook(arg=1)
++    assert sorted(results) == [10, 100]
++
++    hookcaller = pm.hook.myhook
++    impls = [h for h in hookcaller.get_hookimpls() if h.plugin is plugin]
++    assert len(impls) == 2
++
++    pm.unregister(plugin)
++
++    impls_after = [h for h in hookcaller.get_hookimpls() if h.plugin is plugin]
++    assert impls_after == []
++
++    results_after = pm.hook.myhook(arg=1)
++    assert results_after == []
++
++
++def test_get_hookcallers_no_duplicates_specname():
++    """get_hookcallers should not return duplicate hookcaller entries for a
++    plugin that has multiple implementations on the same hook."""
++    pm = pluggy.PluginManager("example")
++    pm.add_hookspecs(Spec)
++    plugin = PluginMultipleSpecname()
++    pm.register(plugin)
++
++    hookcallers = pm.get_hookcallers(plugin)
++    assert hookcallers is not None
++
++    # The plugin has 2 impls on the same hook, but get_hookcallers should
++    # return the hookcaller only once.
++    assert len(hookcallers) == 1
++
++    # Also verify no duplicates by identity.
++    ids = [id(hc) for hc in hookcallers]
++    assert len(ids) == len(set(ids))
++
++
++def test_get_hookcallers_no_duplicates_same_hook():
++    """Same as above with a different plugin class."""
++    pm = pluggy.PluginManager("example")
++    pm.add_hookspecs(Spec)
++    plugin = PluginMultipleSameName()
++    pm.register(plugin)
++
++    hookcallers = pm.get_hookcallers(plugin)
++    assert hookcallers is not None
++    assert len(hookcallers) == 1
++
++    ids = [id(hc) for hc in hookcallers]
++    assert len(ids) == len(set(ids))
++
++
++def test_unregister_single_impl_still_works():
++    """Ensure existing semantics for plugins with one impl per hook are preserved."""
++
++    class SingleImplPlugin:
++        @hookimpl
++        def myhook(self, arg):
++            return arg + 42
++
++    pm = pluggy.PluginManager("example")
++    pm.add_hookspecs(Spec)
++    plugin = SingleImplPlugin()
++    pm.register(plugin)
++
++    assert pm.hook.myhook(arg=0) == [42]
++
++    pm.unregister(plugin)
++
++    assert pm.hook.myhook(arg=0) == []
++
++    hookcallers = pm.get_hookcallers(plugin)
++    # Plugin is no longer registered, so get_hookcallers returns None.
++    assert hookcallers is None

@@ -1,0 +1,71 @@
+diff --git a/tests/test_ipv6_fragment_split.py b/tests/test_ipv6_fragment_split.py
+new file mode 100644
+index 0000000..2e6e50c
+--- /dev/null
++++ b/tests/test_ipv6_fragment_split.py
+@@ -0,0 +1,52 @@
++import pytest
++
++from w3lib._url import _urlsplit
++from w3lib.url import canonicalize_url
++
++
++def test_urlsplit_ipv6_query_fragment():
++    url = "http://[::1]/path?query#frag"
++    result = _urlsplit(url)
++    assert result.scheme == "http"
++    assert result.netloc == "[::1]"
++    assert result.path == "/path"
++    assert result.query == "query"
++    assert result.fragment == "frag"
++
++
++def test_urlsplit_ipv6_query_fragment_no_path():
++    url = "http://[::1]?query#frag"
++    result = _urlsplit(url)
++    assert result.scheme == "http"
++    assert result.netloc == "[::1]"
++    assert result.path == ""
++    assert result.query == "query"
++    assert result.fragment == "frag"
++
++
++def test_urlsplit_ipv6_fragment_no_query():
++    url = "http://[::1]/path#frag"
++    result = _urlsplit(url)
++    assert result.scheme == "http"
++    assert result.netloc == "[::1]"
++    assert result.path == "/path"
++    assert result.query == ""
++    assert result.fragment == "frag"
++
++
++def test_canonicalize_url_ipv6_query_fragment_strips_fragment():
++    url = "http://[::1]/path?query#frag"
++    result = canonicalize_url(url)
++    assert "#" not in result
++    assert "frag" not in result
++    assert result.startswith("http://[::1]/path?query")
++
++
++def test_urlsplit_normal_url_query_fragment_unchanged():
++    url = "http://example.com/path?query#frag"
++    result = _urlsplit(url)
++    assert result.scheme == "http"
++    assert result.netloc == "example.com"
++    assert result.path == "/path"
++    assert result.query == "query"
++    assert result.fragment == "frag"
+diff --git a/w3lib/_url.py b/w3lib/_url.py
+index 0fc540d..cc8cde1 100644
+--- a/w3lib/_url.py
++++ b/w3lib/_url.py
+@@ -658,7 +658,7 @@ def _urlsplit(  # pylint: disable=too-many-locals,too-many-statements
+             open_br_pos = idx
+         elif char == "]" and closing_br_pos == -1:
+             closing_br_pos = idx
+-        if slash_pos != question_pos != hash_pos != open_br_pos != closing_br_pos != -1:
++        if slash_pos != -1 and question_pos != -1 and hash_pos != -1:
+             break
+ 
+     if url[:2] == "//":

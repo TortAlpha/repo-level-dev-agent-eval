@@ -1,0 +1,95 @@
+diff --git a/src/croniter/croniter.py b/src/croniter/croniter.py
+index f73a6a9..fde0afc 100644
+--- a/src/croniter/croniter.py
++++ b/src/croniter/croniter.py
+@@ -1273,7 +1273,7 @@ class croniter:
+         if field_index == DAY_FIELD:
+             return ((dt.day - 1) % step) + 1
+         if field_index == MONTH_FIELD:
+-            return dt.month % step
++            return ((dt.month - 1) % step) + 1
+         if field_index == DOW_FIELD:
+             return (dt.weekday() + 1) % step
+ 
+diff --git a/src/croniter/tests/test_expand_from_start_time_month_lower_bound.py b/src/croniter/tests/test_expand_from_start_time_month_lower_bound.py
+new file mode 100644
+index 0000000..cb01e45
+--- /dev/null
++++ b/src/croniter/tests/test_expand_from_start_time_month_lower_bound.py
+@@ -0,0 +1,76 @@
++#!/usr/bin/env python
++
++import unittest
++from datetime import datetime
++
++from croniter import croniter
++
++
++def add_months(dt, months):
++    year = dt.year + (dt.month - 1 + months) // 12
++    month = (dt.month - 1 + months) % 12 + 1
++    return dt.replace(year=year, month=month)
++
++
++class TestExpandFromStartTimeMonthLowerBound(unittest.TestCase):
++    """Regression: anchored `*/step` month expressions must not reject exact multiples.
++
++    Months are 1-based (1-12). When the start month is an exact multiple of the
++    step, the anchored lower bound must stay within 1-12 instead of becoming 0.
++    """
++
++    def test_exact_multiple_months_do_not_raise(self):
++        pattern = "0 0 1 */3 *"
++        for month in (3, 6, 9, 12):
++            with self.subTest(month=month):
++                start = datetime(2024, month, 1)
++                # Must not raise CroniterBadCronError.
++                ret = croniter(
++                    pattern,
++                    start_time=start,
++                    expand_from_start_time=True,
++                ).get_next(datetime)
++                self.assertEqual(ret, add_months(start, 3))
++
++    def test_june_step3_next_is_september(self):
++        self.assertEqual(
++            croniter(
++                "0 0 1 */3 *",
++                start_time=datetime(2024, 6, 1),
++                expand_from_start_time=True,
++            ).get_next(datetime),
++            datetime(2024, 9, 1),
++        )
++
++    def test_december_step3_wraps_to_next_year(self):
++        self.assertEqual(
++            croniter(
++                "0 0 1 */3 *",
++                start_time=datetime(2024, 12, 1),
++                expand_from_start_time=True,
++            ).get_next(datetime),
++            datetime(2025, 3, 1),
++        )
++
++    def test_march_step3_prev_is_december_prev_year(self):
++        self.assertEqual(
++            croniter(
++                "0 0 1 */3 *",
++                start_time=datetime(2024, 3, 1),
++                expand_from_start_time=True,
++            ).get_prev(datetime),
++            datetime(2023, 12, 1),
++        )
++
++    def test_non_anchored_still_parses(self):
++        # Without expand_from_start_time the same expression must still parse.
++        # Standard cron `*/3` for months (1-12) produces {1, 4, 7, 10}, so the
++        # next match from June 1 is July 1.
++        self.assertEqual(
++            croniter("0 0 1 */3 *", start_time=datetime(2024, 6, 1)).get_next(datetime),
++            datetime(2024, 7, 1),
++        )
++
++
++if __name__ == "__main__":
++    unittest.main()

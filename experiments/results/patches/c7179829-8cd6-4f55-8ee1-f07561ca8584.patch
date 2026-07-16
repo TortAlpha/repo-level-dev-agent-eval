@@ -1,0 +1,99 @@
+diff --git a/more_itertools/recipes.py b/more_itertools/recipes.py
+index 9f46be3..48dc4b9 100644
+--- a/more_itertools/recipes.py
++++ b/more_itertools/recipes.py
+@@ -33,7 +33,7 @@ from itertools import (
+     zip_longest,
+ )
+ from math import prod, comb, isqrt, gcd
+-from operator import mul, getitem, index, is_, itemgetter, truediv
++from operator import gt, lt, mul, getitem, index, is_, itemgetter, truediv
+ from random import randrange, sample, choice, shuffle
+ from sys import hexversion
+ 
+@@ -76,6 +76,8 @@ __all__ = [
+     'roundrobin',
+     'running_mean',
+     'running_median',
++    'running_min',
++    'running_max',
+     'sieve',
+     'sliding_window',
+     'subslices',
+@@ -1371,6 +1373,76 @@ def _running_median_windowed(iterator, maxlen):
+         yield ordered[m] if n & 1 else (ordered[m - 1] + ordered[m]) / 2
+ 
+ 
++def _running_extreme_unbounded(iterator, *, better):
++    "Yield values that are cumulatively better according to *better*."
++
++    current = _marker
++    for value in iterator:
++        if current is _marker or better(value, current):
++            current = value
++        yield current
++
++
++def _running_extreme_windowed(iterator, maxlen, *, better):
++    "Yield values that are better within a sliding window."
++
++    window = deque()
++    candidates = deque()
++
++    for value in iterator:
++        window.append(value)
++        while candidates and better(value, candidates[-1]):
++            candidates.pop()
++        candidates.append(value)
++
++        if len(window) > maxlen:
++            expired = window.popleft()
++            if candidates and candidates[0] == expired:
++                candidates.popleft()
++
++        yield candidates[0]
++
++
++def running_min(iterable, *, maxlen=None):
++    """Yield the running minimum of values seen so far or in a sliding window.
++
++    Set *maxlen* to a positive integer to restrict the window size.  The
++    default of *None* is equivalent to considering all values seen so far.  The
++    values yielded are never greater than any value emitted previously and work
++    with any objects that support ordering operations.
++    """
++
++    iterator = iter(iterable)
++
++    if maxlen is not None:
++        maxlen = index(maxlen)
++        if maxlen <= 0:
++            raise ValueError('Window size should be positive')
++        return _running_extreme_windowed(iterator, maxlen, better=lt)
++
++    return _running_extreme_unbounded(iterator, better=lt)
++
++
++def running_max(iterable, *, maxlen=None):
++    """Yield the running maximum of values seen so far or in a sliding window.
++
++    Set *maxlen* to a positive integer to restrict the window size.  The
++    default of *None* is equivalent to considering all values seen so far.  The
++    values yielded are never less than any value emitted previously and work
++    with any objects that support ordering operations.
++    """
++
++    iterator = iter(iterable)
++
++    if maxlen is not None:
++        maxlen = index(maxlen)
++        if maxlen <= 0:
++            raise ValueError('Window size should be positive')
++        return _running_extreme_windowed(iterator, maxlen, better=gt)
++
++    return _running_extreme_unbounded(iterator, better=gt)
++
++
+ def running_median(iterable, *, maxlen=None):
+     """Cumulative median of values seen so far or values in a sliding window.
+ 

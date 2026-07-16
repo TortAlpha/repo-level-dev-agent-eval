@@ -1,0 +1,424 @@
+diff --git a/lib/ansible/modules/network/nxos/nxos_vrf_af.py b/lib/ansible/modules/network/nxos/nxos_vrf_af.py
+index 224668fc76..7e9fcbe439 100644
+--- a/lib/ansible/modules/network/nxos/nxos_vrf_af.py
++++ b/lib/ansible/modules/network/nxos/nxos_vrf_af.py
+@@ -47,6 +47,29 @@ options:
+       - Enable/Disable the EVPN route-target 'auto' setting for both
+         import and export target communities.
+     type: bool
++  route_targets:
++    description:
++      - List of route-targets to manage for the VRF address-family.
++      - Each entry is a dictionary with C(rt), C(direction), and C(state).
++    type: list
++    suboptions:
++      rt:
++        description:
++          - The route-target value (e.g. C(65000:1000)).
++        required: true
++        type: str
++      direction:
++        description:
++          - Direction of the route-target.
++        choices: ['import', 'export', 'both']
++        default: both
++        type: str
++      state:
++        description:
++          - Whether the route-target should be present or absent.
++        choices: ['present', 'absent']
++        default: present
++        type: str
+   state:
+     description:
+       - Determines whether the config should be present or
+@@ -61,6 +84,18 @@ EXAMPLES = '''
+     afi: ipv4
+     route_target_both_auto_evpn: True
+     state: present
++
++- nxos_vrf_af:
++    vrf: ntc
++    afi: ipv4
++    route_targets:
++      - rt: 1:1
++        direction: import
++      - rt: 2:2
++        direction: export
++      - rt: 3:3
++        direction: both
++    state: present
+ '''
+ 
+ RETURN = '''
+@@ -76,11 +111,36 @@ from ansible.module_utils.basic import AnsibleModule
+ from ansible.module_utils.network.common.config import NetworkConfig
+ 
+ 
++def match_current_rt(rt, direction, current, rt_commands):
++    """Compare a desired route-target entry against the current config block.
++
++    Appends add/remove commands to C(rt_commands} and returns the updated list.
++    """
++    target = 'route-target %s %s' % (direction, rt['rt'])
++    state = rt.get('state', 'present')
++    if state == 'present':
++        if current is None or target not in current:
++            rt_commands.append(target)
++    elif state == 'absent':
++        if current is not None and target in current:
++            rt_commands.append('no ' + target)
++    return rt_commands
++
++
+ def main():
+     argument_spec = dict(
+         vrf=dict(required=True),
+         afi=dict(required=True, choices=['ipv4', 'ipv6']),
+         route_target_both_auto_evpn=dict(required=False, type='bool'),
++        route_targets=dict(
++            type='list',
++            elements='dict',
++            options=dict(
++                rt=dict(required=True, type='str'),
++                direction=dict(choices=['import', 'export', 'both'], default='both'),
++                state=dict(choices=['present', 'absent'], default='present'),
++            ),
++        ),
+         state=dict(choices=['present', 'absent'], default='present'),
+     )
+ 
+@@ -120,11 +180,30 @@ def main():
+                     commands.append('address-family %s unicast' % module.params['afi'])
+                     commands.append('no route-target both auto evpn')
+ 
++            rt_commands = list()
++            for rt in (module.params['route_targets'] or []):
++                if rt['direction'] == 'both':
++                    match_current_rt(rt, 'import', current, rt_commands)
++                    match_current_rt(rt, 'export', current, rt_commands)
++                else:
++                    match_current_rt(rt, rt['direction'], current, rt_commands)
++            if rt_commands:
++                commands.append('address-family %s unicast' % module.params['afi'])
++                commands.extend(rt_commands)
++
+         else:
+             commands.append('address-family %s unicast' % module.params['afi'])
+             if module.params['route_target_both_auto_evpn']:
+                 commands.append('route-target both auto evpn')
+ 
++            for rt in (module.params['route_targets'] or []):
++                if rt.get('state', 'present') == 'present':
++                    if rt['direction'] == 'both':
++                        commands.append('route-target import %s' % rt['rt'])
++                        commands.append('route-target export %s' % rt['rt'])
++                    else:
++                        commands.append('route-target %s %s' % (rt['direction'], rt['rt']))
++
+     if commands:
+         commands.insert(0, 'vrf context %s' % module.params['vrf'])
+         if not module.check_mode:
+diff --git a/test/units/modules/network/nxos/test_nxos_vrf_af_route_targets.py b/test/units/modules/network/nxos/test_nxos_vrf_af_route_targets.py
+new file mode 100644
+index 0000000000..0778993eae
+--- /dev/null
++++ b/test/units/modules/network/nxos/test_nxos_vrf_af_route_targets.py
+@@ -0,0 +1,297 @@
++# (c) 2016 Red Hat Inc.
++#
++# This file is part of Ansible
++#
++# Ansible is free software: you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation, either version 3 of the License, or
++# (at your option) any later version.
++#
++# Ansible is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
++
++from __future__ import (absolute_import, division, print_function)
++__metaclass__ = type
++
++from units.compat.mock import patch
++from ansible.modules.network.nxos import nxos_vrf_af
++from .nxos_module import TestNxosModule, set_module_args
++
++
++class TestNxosVrfAfRouteTargetsModule(TestNxosModule):
++
++    module = nxos_vrf_af
++
++    def setUp(self):
++        super(TestNxosVrfAfRouteTargetsModule, self).setUp()
++
++        self.mock_load_config = patch('ansible.modules.network.nxos.nxos_vrf_af.load_config')
++        self.load_config = self.mock_load_config.start()
++
++        self.mock_get_config = patch('ansible.modules.network.nxos.nxos_vrf_af.get_config')
++        self.get_config = self.mock_get_config.start()
++
++    def tearDown(self):
++        super(TestNxosVrfAfRouteTargetsModule, self).tearDown()
++        self.mock_load_config.stop()
++        self.mock_get_config.stop()
++
++    def load_fixtures(self, commands=None, device=''):
++        self.load_config.return_value = None
++
++    # --- match_current_rt helper tests ---
++
++    def test_match_current_rt_present_adds_when_missing(self):
++        rt = {'rt': '1:1', 'direction': 'import', 'state': 'present'}
++        cmds = nxos_vrf_af.match_current_rt(rt, 'import', 'some config', [])
++        self.assertEqual(cmds, ['route-target import 1:1'])
++
++    def test_match_current_rt_present_noop_when_exists(self):
++        rt = {'rt': '1:1', 'direction': 'import', 'state': 'present'}
++        current = 'route-target import 1:1\n'
++        cmds = nxos_vrf_af.match_current_rt(rt, 'import', current, [])
++        self.assertEqual(cmds, [])
++
++    def test_match_current_rt_absent_removes_when_exists(self):
++        rt = {'rt': '1:1', 'direction': 'export', 'state': 'absent'}
++        current = 'route-target export 1:1\n'
++        cmds = nxos_vrf_af.match_current_rt(rt, 'export', current, [])
++        self.assertEqual(cmds, ['no route-target export 1:1'])
++
++    def test_match_current_rt_absent_noop_when_missing(self):
++        rt = {'rt': '1:1', 'direction': 'export', 'state': 'absent'}
++        cmds = nxos_vrf_af.match_current_rt(rt, 'export', 'some config', [])
++        self.assertEqual(cmds, [])
++
++    def test_match_current_rt_absent_noop_when_current_none(self):
++        rt = {'rt': '1:1', 'direction': 'import', 'state': 'absent'}
++        cmds = nxos_vrf_af.match_current_rt(rt, 'import', None, [])
++        self.assertEqual(cmds, [])
++
++    def test_match_current_rt_present_adds_when_current_none(self):
++        rt = {'rt': '1:1', 'direction': 'import', 'state': 'present'}
++        cmds = nxos_vrf_af.match_current_rt(rt, 'import', None, [])
++        self.assertEqual(cmds, ['route-target import 1:1'])
++
++    def test_match_current_rt_default_state_present(self):
++        rt = {'rt': '1:1', 'direction': 'import'}
++        cmds = nxos_vrf_af.match_current_rt(rt, 'import', '', [])
++        self.assertEqual(cmds, ['route-target import 1:1'])
++
++    def test_match_current_rt_appends_to_existing_list(self):
++        rt = {'rt': '2:2', 'direction': 'export', 'state': 'present'}
++        cmds = nxos_vrf_af.match_current_rt(rt, 'export', '', ['route-target import 1:1'])
++        self.assertEqual(cmds, ['route-target import 1:1', 'route-target export 2:2'])
++
++    # --- Module-level tests: new AF block (no existing config) ---
++
++    def test_route_targets_new_af_import_export(self):
++        set_module_args(dict(
++            vrf='ntc', afi='ipv4', state='present',
++            route_targets=[
++                {'rt': '1:1', 'direction': 'import'},
++                {'rt': '2:2', 'direction': 'export'},
++            ]
++        ))
++        result = self.execute_module(changed=True)
++        self.assertEqual(sorted(result['commands']), sorted([
++            'vrf context ntc',
++            'address-family ipv4 unicast',
++            'route-target import 1:1',
++            'route-target export 2:2',
++        ]))
++
++    def test_route_targets_new_af_both_direction(self):
++        set_module_args(dict(
++            vrf='ntc', afi='ipv4', state='present',
++            route_targets=[
++                {'rt': '3:3', 'direction': 'both'},
++            ]
++        ))
++        result = self.execute_module(changed=True)
++        self.assertEqual(sorted(result['commands']), sorted([
++            'vrf context ntc',
++            'address-family ipv4 unicast',
++            'route-target import 3:3',
++            'route-target export 3:3',
++        ]))
++
++    def test_route_targets_new_af_default_direction_both(self):
++        set_module_args(dict(
++            vrf='ntc', afi='ipv4', state='present',
++            route_targets=[
++                {'rt': '4:4'},
++            ]
++        ))
++        result = self.execute_module(changed=True)
++        self.assertEqual(sorted(result['commands']), sorted([
++            'vrf context ntc',
++            'address-family ipv4 unicast',
++            'route-target import 4:4',
++            'route-target export 4:4',
++        ]))
++
++    def test_route_targets_new_af_skips_absent(self):
++        set_module_args(dict(
++            vrf='ntc', afi='ipv4', state='present',
++            route_targets=[
++                {'rt': '1:1', 'direction': 'import', 'state': 'present'},
++                {'rt': '2:2', 'direction': 'export', 'state': 'absent'},
++            ]
++        ))
++        result = self.execute_module(changed=True)
++        self.assertEqual(sorted(result['commands']), sorted([
++            'vrf context ntc',
++            'address-family ipv4 unicast',
++            'route-target import 1:1',
++        ]))
++
++    # --- Module-level tests: existing AF block ---
++
++    def test_route_targets_existing_af_add_import(self):
++        self.get_config.return_value = (
++            'vrf context ntc\n'
++            '  address-family ipv4 unicast\n'
++        )
++        set_module_args(dict(
++            vrf='ntc', afi='ipv4', state='present',
++            route_targets=[
++                {'rt': '1:1', 'direction': 'import'},
++            ]
++        ))
++        result = self.execute_module(changed=True)
++        self.assertEqual(sorted(result['commands']), sorted([
++            'vrf context ntc',
++            'address-family ipv4 unicast',
++            'route-target import 1:1',
++        ]))
++
++    def test_route_targets_existing_af_idempotent(self):
++        self.get_config.return_value = (
++            'vrf context ntc\n'
++            '  address-family ipv4 unicast\n'
++            '    route-target import 1:1\n'
++        )
++        set_module_args(dict(
++            vrf='ntc', afi='ipv4', state='present',
++            route_targets=[
++                {'rt': '1:1', 'direction': 'import'},
++            ]
++        ))
++        result = self.execute_module(changed=False)
++        self.assertEqual(result['commands'], [])
++
++    def test_route_targets_existing_af_remove_export(self):
++        self.get_config.return_value = (
++            'vrf context ntc\n'
++            '  address-family ipv4 unicast\n'
++            '    route-target export 1:1\n'
++        )
++        set_module_args(dict(
++            vrf='ntc', afi='ipv4', state='present',
++            route_targets=[
++                {'rt': '1:1', 'direction': 'export', 'state': 'absent'},
++            ]
++        ))
++        result = self.execute_module(changed=True)
++        self.assertEqual(sorted(result['commands']), sorted([
++            'vrf context ntc',
++            'address-family ipv4 unicast',
++            'no route-target export 1:1',
++        ]))
++
++    def test_route_targets_existing_af_both_direction_add(self):
++        self.get_config.return_value = (
++            'vrf context ntc\n'
++            '  address-family ipv4 unicast\n'
++        )
++        set_module_args(dict(
++            vrf='ntc', afi='ipv4', state='present',
++            route_targets=[
++                {'rt': '5:5', 'direction': 'both'},
++            ]
++        ))
++        result = self.execute_module(changed=True)
++        self.assertEqual(sorted(result['commands']), sorted([
++            'vrf context ntc',
++            'address-family ipv4 unicast',
++            'route-target import 5:5',
++            'route-target export 5:5',
++        ]))
++
++    def test_route_targets_existing_af_both_direction_idempotent(self):
++        self.get_config.return_value = (
++            'vrf context ntc\n'
++            '  address-family ipv4 unicast\n'
++            '    route-target import 5:5\n'
++            '    route-target export 5:5\n'
++        )
++        set_module_args(dict(
++            vrf='ntc', afi='ipv4', state='present',
++            route_targets=[
++                {'rt': '5:5', 'direction': 'both'},
++            ]
++        ))
++        result = self.execute_module(changed=False)
++        self.assertEqual(result['commands'], [])
++
++    def test_route_targets_existing_af_mixed_present_absent(self):
++        self.get_config.return_value = (
++            'vrf context ntc\n'
++            '  address-family ipv4 unicast\n'
++            '    route-target import 1:1\n'
++            '    route-target export 2:2\n'
++        )
++        set_module_args(dict(
++            vrf='ntc', afi='ipv4', state='present',
++            route_targets=[
++                {'rt': '1:1', 'direction': 'import', 'state': 'absent'},
++                {'rt': '3:3', 'direction': 'export', 'state': 'present'},
++            ]
++        ))
++        result = self.execute_module(changed=True)
++        self.assertEqual(sorted(result['commands']), sorted([
++            'vrf context ntc',
++            'address-family ipv4 unicast',
++            'no route-target import 1:1',
++            'route-target export 3:3',
++        ]))
++
++    def test_route_targets_state_absent_ignores_route_targets(self):
++        self.get_config.return_value = (
++            'vrf context ntc\n'
++            '  address-family ipv4 unicast\n'
++            '    route-target import 1:1\n'
++        )
++        set_module_args(dict(
++            vrf='ntc', afi='ipv4', state='absent',
++            route_targets=[
++                {'rt': '1:1', 'direction': 'import'},
++            ]
++        ))
++        result = self.execute_module(changed=True)
++        self.assertEqual(sorted(result['commands']), sorted([
++            'vrf context ntc',
++            'no address-family ipv4 unicast',
++        ]))
++
++    def test_route_targets_ipv6_new_af(self):
++        set_module_args(dict(
++            vrf='ntc', afi='ipv6', state='present',
++            route_targets=[
++                {'rt': '1:1', 'direction': 'import'},
++                {'rt': '2:2', 'direction': 'export'},
++            ]
++        ))
++        result = self.execute_module(changed=True)
++        self.assertEqual(sorted(result['commands']), sorted([
++            'vrf context ntc',
++            'address-family ipv6 unicast',
++            'route-target import 1:1',
++            'route-target export 2:2',
++        ]))
