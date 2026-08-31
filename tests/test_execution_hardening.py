@@ -447,9 +447,12 @@ class DockerHardeningTests(unittest.TestCase):
                 [], 70, stdout="", stderr="missing keepalive"
             )
             stopped = CompletedProcess([], 0, stdout="", stderr="")
+            removed = CompletedProcess(
+                [], 1, stdout="", stderr="Error: No such object: sandbox-1"
+            )
             with patch(
                 "src.agents.sandbox.subprocess.run",
-                side_effect=[completed, cleanup_failed, stopped],
+                side_effect=[completed, cleanup_failed, stopped, removed],
             ):
                 result = sandbox.run_shell("true")
 
@@ -473,9 +476,12 @@ class DockerHardeningTests(unittest.TestCase):
             )
             captured = CompletedProcess([], 0, stdout="7\n", stderr="")
             stopped = CompletedProcess([], 0, stdout="", stderr="")
+            removed = CompletedProcess(
+                [], 1, stdout="", stderr="Error: No such object: sandbox-1"
+            )
             with patch(
                 "src.agents.sandbox.subprocess.run",
-                side_effect=[started, captured, stopped],
+                side_effect=[started, captured, stopped, removed],
             ) as run:
                 sandbox.start()
                 snapshot = sandbox._oracle_snapshot_dir
@@ -495,6 +501,38 @@ class DockerHardeningTests(unittest.TestCase):
         ]
         self.assertEqual(len(file_mounts), 1)
         self.assertNotIn(f"src={protected.resolve()},", file_mounts[0])
+
+    def test_container_stop_waits_for_auto_remove_before_releasing_mounts(
+        self,
+    ) -> None:
+        stopped = CompletedProcess([], 0, stdout="", stderr="")
+        still_present = CompletedProcess([], 0, stdout="{}", stderr="")
+        daemon_error = CompletedProcess(
+            [], 1, stdout="", stderr="cannot connect to Docker daemon"
+        )
+        removed = CompletedProcess(
+            [], 1, stdout="", stderr="Error: No such object: sandbox-1"
+        )
+        with (
+            patch(
+                "src.agents.sandbox.subprocess.run",
+                side_effect=[stopped, still_present, daemon_error, removed],
+            ) as run,
+            patch("src.agents.sandbox.time.sleep") as sleep,
+        ):
+            self.assertTrue(DockerSandbox._force_stop_container("sandbox-1"))
+
+        self.assertEqual(
+            [call.args[0][:2] for call in run.call_args_list],
+            [
+                ["docker", "stop"],
+                ["docker", "inspect"],
+                ["docker", "inspect"],
+                ["docker", "inspect"],
+            ],
+        )
+        self.assertEqual(sleep.call_count, 2)
+        sleep.assert_called_with(0.05)
 
     def test_oracle_mount_limit_fails_closed_before_docker_start(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

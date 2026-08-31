@@ -6,6 +6,7 @@ import shutil
 import stat
 import subprocess
 import tempfile
+import time
 import uuid
 from pathlib import Path, PurePosixPath
 
@@ -825,7 +826,34 @@ fi
         )
 
     @staticmethod
-    def _force_stop_container(container_id: str) -> bool:
+    def _wait_for_container_removal(
+        container_id: str,
+        *,
+        timeout_seconds: float = 15.0,
+    ) -> bool:
+        """Wait until Docker explicitly reports that the container is absent."""
+        deadline = time.monotonic() + timeout_seconds
+        while True:
+            try:
+                inspected = subprocess.run(
+                    ["docker", "inspect", container_id],
+                    capture_output=True,
+                    check=False,
+                    text=True,
+                    timeout=5,
+                )
+            except (FileNotFoundError, subprocess.TimeoutExpired):
+                return False
+            if inspected.returncode != 0:
+                output = combine_output(inspected.stdout, inspected.stderr).lower()
+                if "no such object" in output or "no such container" in output:
+                    return True
+            if time.monotonic() >= deadline:
+                return False
+            time.sleep(0.05)
+
+    @classmethod
+    def _force_stop_container(cls, container_id: str) -> bool:
         for command in (
             ["docker", "stop", "--time", "1", container_id],
             ["docker", "rm", "-f", container_id],
@@ -840,19 +868,11 @@ fi
                 )
             except (FileNotFoundError, subprocess.TimeoutExpired):
                 return False
-            if result.returncode == 0:
+            if result.returncode == 0 and cls._wait_for_container_removal(
+                container_id
+            ):
                 return True
-        try:
-            inspected = subprocess.run(
-                ["docker", "inspect", container_id],
-                capture_output=True,
-                check=False,
-                text=True,
-                timeout=15,
-            )
-        except (FileNotFoundError, subprocess.TimeoutExpired):
-            return False
-        return inspected.returncode != 0
+        return cls._wait_for_container_removal(container_id)
 
     @trace_shell_command
     def run_tests(
