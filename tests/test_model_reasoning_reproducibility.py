@@ -23,7 +23,11 @@ from src.benchmark.runner import (
     reasoning_policy_label,
     validate_frozen_evaluation_trees,
 )
-from src.benchmark.sweep import _budget_cost, _effective_cost
+from src.benchmark.sweep import (
+    _budget_cost,
+    _configured_default_model_name,
+    _effective_cost,
+)
 from src.config import (
     MODEL_PROFILES,
     REASONING_EFFORTS,
@@ -206,6 +210,19 @@ class ModelReasoningReproducibilityTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError, "no reviewed exact-token guarantee"):
             exact_config.provider_spec()
+
+    def test_sweep_reads_unused_default_model_without_wrong_effort_validation(
+        self,
+    ) -> None:
+        config = OpenRouterConfig(
+            _env_file=None,
+            openrouter_api_key="key",
+            openrouter_model_name="z-ai/glm-5.2",
+            reasoning_effort="low",
+        )
+        self.assertEqual(_configured_default_model_name(config), "z-ai/glm-5.2")
+        with self.assertRaisesRegex(ValueError, "not supported"):
+            config.provider_spec()
 
     def test_openrouter_request_includes_usage_and_exact_reasoning_budget(self) -> None:
         model_name = "vendor/reviewed-exact-reasoner"

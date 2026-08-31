@@ -17,7 +17,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from ..agents.swe_agent import MANAGED_BASE_IMAGE, ensure_managed_base_image
-from ..config import REASONING_EFFORTS, apply_reasoning_overrides, load_config
+from ..config import (
+    REASONING_EFFORTS,
+    Config,
+    apply_reasoning_overrides,
+    load_config,
+)
 from ..metrics.pricing import PRICING_CSV
 from ..run.reproducibility import (
     HARNESS_SOURCE_PATHS,
@@ -76,6 +81,25 @@ def _json_safe(value):
 
 def _utc_now() -> str:
     return datetime.now(UTC).isoformat()
+
+
+def _configured_default_model_name(config: Config) -> str:
+    """Read the unused provider default without validating a CLI route's effort.
+
+    A sweep may explicitly select a model whose reasoning scale differs from
+    the model stored in ``.env``. Building a provider spec for that unused
+    default would validate the CLI effort against the wrong model and reject a
+    valid sweep before its actual routes are fingerprinted.
+    """
+    attribute = (
+        "openrouter_model_name"
+        if config.model_provider == "openrouter"
+        else "local_model_name"
+    )
+    value = getattr(config, attribute, None)
+    if not isinstance(value, str) or not value:
+        raise ValueError(f"missing configured default model field {attribute!r}")
+    return value
 
 
 def parse_args() -> argparse.Namespace:
@@ -755,7 +779,7 @@ def _snapshot_payload(
         "settings": _json_safe(settings),
         "resolved_config": {
             "model_provider": config.model_provider,
-            "provider_default_model": config.provider_spec().model_name,
+            "provider_default_model": _configured_default_model_name(config),
             "temperature": config.temperature,
             "max_tokens": config.max_tokens,
             "reasoning_effort": config.reasoning_effort,
