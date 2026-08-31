@@ -24,6 +24,7 @@ DOCKER_ARGV_SAFETY_MARGIN = 32 * 1024
 KEEPALIVE_PID_FILE = "/tmp/repo-eval-keepalive.pid"
 EVALUATOR_HELPER_CONTAINER_PATH = "/tmp/repo-eval-trusted-pytest.py"
 EVALUATOR_BIN_CONTAINER_PATH = "/tmp/repo-eval-bin"
+EVALUATOR_BOOTSTRAP_CONTAINER_PATH = "/tmp/repo-eval-bootstrap"
 
 
 class CommandResult(BaseModel):
@@ -55,6 +56,7 @@ class DockerSandbox(BaseModel):
     dependency_environment_readonly: bool = False
     evaluator_helper_path: Path | None = None
     evaluator_bin_path: Path | None = None
+    evaluator_bootstrap_path: Path | None = None
     max_protected_oracle_mounts: int = Field(
         default=MAX_PROTECTED_ORACLE_MOUNTS, gt=0
     )
@@ -389,6 +391,27 @@ class DockerSandbox(BaseModel):
                     "--mount",
                     "type=bind,"
                     f"src={evaluator_bin},dst={EVALUATOR_BIN_CONTAINER_PATH},readonly",
+                ]
+            )
+        if self.evaluator_bootstrap_path is not None:
+            bootstrap = self.evaluator_bootstrap_path.resolve()
+            try:
+                bootstrap_metadata = bootstrap.lstat()
+            except OSError as exc:
+                raise RuntimeError(
+                    f"Evaluator bootstrap path is unavailable: {bootstrap}: {exc}"
+                ) from exc
+            if not stat.S_ISDIR(bootstrap_metadata.st_mode) or bootstrap.is_symlink():
+                raise RuntimeError(
+                    "Evaluator bootstrap path must be a real directory: "
+                    f"{bootstrap}"
+                )
+            args.extend(
+                [
+                    "--mount",
+                    "type=bind,"
+                    f"src={bootstrap},"
+                    f"dst={EVALUATOR_BOOTSTRAP_CONTAINER_PATH},readonly",
                 ]
             )
         args.extend(self._prepare_oracle_mount_args())

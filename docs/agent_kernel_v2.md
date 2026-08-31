@@ -60,6 +60,22 @@ reliability, and protocol controls shared by the compared built-in agents.
   repository `PYTHONPATH` and conventional `/workspace/src` entries, and
   therefore ignores submitted `pytest`, `sitecustomize`, and executable
   editable-install `.pth` launch shims while supporting normal src layouts.
+  The self-hosting `pluggy` task has one explicit exception: frozen PEP 610
+  metadata must identify the `pluggy` distribution as editable from exactly
+  `/workspace` and bind it through one hashed, inert `.pth` entry to an exact
+  source root. Before the model acts, the evaluator copies the pristine
+  package at that root into a separate fingerprinted, read-only bootstrap
+  tree. Pytest is imported and attested against that pristine copy; its
+  critical module identities and pristine pluggy bindings are recorded, the
+  canonical pristine `pluggy` modules are purged, and the candidate package is
+  loaded explicitly from the exact frozen `.pth` root before collection.
+  Plugin autoload and explicit `-p` injection are disabled in this mode.
+  Post-run checks require the same candidate module identity and origin, the
+  original pytest runtime identities, trusted origins for late critical
+  imports, and no late candidate-pluggy binding into pytest internals.
+  Missing packages, root shadows, aliases, executable or unhashed `.pth`
+  files, inconsistent metadata, and duplicate editable declarations fail
+  closed.
 - Import-critical regular files generated or changed by pristine setup inside
   the source tree (for example setuptools-scm/hatch-vcs `_version.py` modules)
   are captured as an exact pre/post-setup delta before the first model action.
@@ -185,11 +201,17 @@ protocol.
 
 ## Remaining boundary limitations
 
-The scorer now isolates the launcher, test/control files, dependency state, and
-JUnit transport, but tested production code necessarily executes in the pytest
-process. A deliberately adversarial submission could still try to alter test
-framework behavior after normal project imports begin. Eliminating that entire
-class requires a stronger out-of-process/per-test attestation protocol and
+The scorer isolates the launcher, test/control files, dependency state, and
+ordinary JUnit handoff from accidental or direct workspace tampering, but this
+is not a cryptographic adversarial-code boundary: tested production code
+necessarily executes in the pytest process. A deliberately malicious package
+can observe pytest arguments, mutate already-loaded objects, forge in-process
+test evidence, or terminate the interpreter before post-run checks. The
+self-hosting split detects module replacement, unexpected origins, and known
+cross-bindings during a normally returning run; it does not claim to contain
+arbitrary hostile Python. Benchmark interpretation therefore assumes agents
+are attempting the task rather than attacking the scorer. Eliminating that
+entire class requires a trusted out-of-process/per-test evidence protocol and
 would be a separately versioned research kernel.
 
 Dependency setup may resolve mutable network packages unless a task pins and

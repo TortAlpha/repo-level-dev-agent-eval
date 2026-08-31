@@ -19,6 +19,7 @@ from src.benchmark.evaluation import (
     _run_visible_junit,
     _sandbox,
     copy_hidden_oracle,
+    freeze_pytest_bootstrap_packages,
     freeze_setup_artifacts,
     prepare_hidden_oracle_directories,
     prepare_scoring_dependencies,
@@ -361,6 +362,46 @@ def test_pristine_setup_runtime_artifacts_are_frozen_and_restored(
     assert not generated_test.exists()
     assert not root_control.exists()
     assert not generated_pytest_config.exists()
+
+
+def test_pristine_pytest_bootstrap_package_is_frozen_at_its_source_root(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "repo"
+    package = repo / "src" / "pluggy"
+    package.mkdir(parents=True)
+    (package / "__init__.py").write_text("VALUE = 'pristine'\n", encoding="utf-8")
+    (package / "_hooks.py").write_text("HOOK = True\n", encoding="utf-8")
+
+    destination = tmp_path / "pytest_bootstrap"
+    copied = freeze_pytest_bootstrap_packages(repo, destination)
+
+    assert copied == ["src/pluggy/__init__.py", "src/pluggy/_hooks.py"]
+    assert (destination / "src/pluggy/__init__.py").read_text(encoding="utf-8") == (
+        "VALUE = 'pristine'\n"
+    )
+
+
+@pytest.mark.parametrize("alias_kind", ["package_symlink", "file_hardlink"])
+def test_pristine_pytest_bootstrap_alias_fails_closed(
+    tmp_path: Path,
+    alias_kind: str,
+) -> None:
+    repo = tmp_path / "repo"
+    (repo / "src").mkdir(parents=True)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    outside_entry = outside / "__init__.py"
+    outside_entry.write_text("VALUE = 'outside'\n", encoding="utf-8")
+    if alias_kind == "package_symlink":
+        (repo / "src/pluggy").symlink_to(outside, target_is_directory=True)
+    else:
+        package = repo / "src/pluggy"
+        package.mkdir()
+        os.link(outside_entry, package / "__init__.py")
+
+    with pytest.raises(RuntimeError, match="real directory|unalias"):
+        freeze_pytest_bootstrap_packages(repo, tmp_path / "pytest_bootstrap")
 
 
 def test_pristine_setup_artifact_alias_fails_closed(tmp_path: Path) -> None:

@@ -135,6 +135,9 @@ _SETUP_ARTIFACT_MAX_FILES = 4_096
 _SETUP_ARTIFACT_MAX_BYTES = 512 * 1024 * 1024
 _SETUP_ARTIFACT_PARENT_MODE = 0o755
 _SETUP_ARTIFACT_MTIME_NS = 1_000_000_000
+_PYTEST_BOOTSTRAP_ROOTS = frozenset({"pluggy"})
+_PYTEST_BOOTSTRAP_MAX_FILES = 512
+_PYTEST_BOOTSTRAP_MAX_BYTES = 32 * 1024 * 1024
 
 
 def _is_test_control_path(path: str) -> bool:
@@ -554,6 +557,88 @@ def restore_setup_artifacts(
         )
         restored.append(relative)
     return restored
+
+
+def freeze_pytest_bootstrap_packages(repo: Path, destination: Path) -> list[str]:
+    """Freeze pristine packages needed to bootstrap pytest while self-hosting.
+
+    Pytest depends on pluggy, so a pluggy task cannot both import pytest and
+    test the candidate package from one canonical module cache.  The helper
+    first imports pytest against this pristine, evaluator-only copy, then drops
+    the pristine canonical modules before collection exposes the candidate.
+    """
+    repo = repo.resolve()
+    if destination.exists() or destination.is_symlink():
+        raise RuntimeError(
+            f"frozen pytest-bootstrap destination already exists: {destination}"
+        )
+    destination.mkdir(parents=True)
+    copied: list[str] = []
+    total_bytes = 0
+
+    for prefix in (Path("src"), Path(".")):
+        for root_name in sorted(_PYTEST_BOOTSTRAP_ROOTS):
+            relative_root = prefix / root_name
+            source_root = repo / relative_root
+            try:
+                root_metadata = source_root.lstat()
+            except OSError:
+                continue
+            if not stat.S_ISDIR(root_metadata.st_mode):
+                raise RuntimeError(
+                    "pytest-bootstrap package root must be a real directory: "
+                    f"{relative_root.as_posix()}"
+                )
+
+            current = repo
+            for part in relative_root.parts:
+                if part == ".":
+                    continue
+                current /= part
+                metadata = current.lstat()
+                if not stat.S_ISDIR(metadata.st_mode):
+                    raise RuntimeError(
+                        "pytest-bootstrap package cannot traverse aliases: "
+                        f"{relative_root.as_posix()}"
+                    )
+
+            for current_raw, directory_names, file_names in os.walk(
+                source_root, followlinks=False
+            ):
+                current_source = Path(current_raw)
+                directory_names.sort()
+                file_names.sort()
+                for name in directory_names:
+                    directory = current_source / name
+                    metadata = directory.lstat()
+                    if not stat.S_ISDIR(metadata.st_mode):
+                        raise RuntimeError(
+                            "pytest-bootstrap package contains an alias or "
+                            f"special directory: {directory.relative_to(repo)}"
+                        )
+                for name in file_names:
+                    source = current_source / name
+                    relative = source.relative_to(repo)
+                    metadata = source.lstat()
+                    if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink > 1:
+                        raise RuntimeError(
+                            "pytest-bootstrap package files must be unaliased "
+                            f"regular files: {relative.as_posix()}"
+                        )
+                    total_bytes += metadata.st_size
+                    copied.append(relative.as_posix())
+                    if len(copied) > _PYTEST_BOOTSTRAP_MAX_FILES:
+                        raise RuntimeError(
+                            "pytest-bootstrap package exceeds its file limit"
+                        )
+                    if total_bytes > _PYTEST_BOOTSTRAP_MAX_BYTES:
+                        raise RuntimeError(
+                            "pytest-bootstrap package exceeds its byte limit"
+                        )
+                    target = destination / relative
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(source, target, follow_symlinks=False)
+    return copied
 
 
 def _configured_test_control_paths(repo: Path, commands: list[str]) -> set[str]:
@@ -1087,6 +1172,7 @@ def _sandbox(
     *,
     dependency_environment: Path | None = None,
     dependency_environment_readonly: bool = False,
+    pytest_bootstrap_environment: Path | None = None,
 ) -> DockerSandbox:
     return DockerSandbox(
         workdir=repo,
@@ -1098,6 +1184,7 @@ def _sandbox(
         dependency_environment_readonly=dependency_environment_readonly,
         evaluator_helper_path=_TRUSTED_PYTEST_HELPER,
         evaluator_bin_path=_EVALUATOR_BIN,
+        evaluator_bootstrap_path=pytest_bootstrap_environment,
     )
 
 
@@ -1370,6 +1457,7 @@ def collect_visible_passing(
     test_timeout: int,
     dependency_environment: Path,
     setup_artifact_environment: Path,
+    pytest_bootstrap_environment: Path,
     pristine_repo: Path,
     test_commands: list[str],
 ) -> set[str]:
@@ -1414,6 +1502,7 @@ def collect_visible_passing(
         test_timeout,
         dependency_environment=dependency_environment,
         dependency_environment_readonly=True,
+        pytest_bootstrap_environment=pytest_bootstrap_environment,
     )
     sandbox.configure_protected_test_paths(
         protected_files,
@@ -1506,6 +1595,7 @@ def evaluate_solution(
     pristine_repo: Path | None = None,
     dependency_environment: Path | None = None,
     setup_artifact_environment: Path | None = None,
+    pytest_bootstrap_environment: Path | None = None,
     setup_artifact_conflicts: list[str] | None = None,
 ) -> EvalResult:
     """Post-run evaluation in one sandbox: the after-state visible run (for
@@ -1583,6 +1673,7 @@ def evaluate_solution(
         test_timeout,
         dependency_environment=dependency_environment,
         dependency_environment_readonly=dependency_environment is not None,
+        pytest_bootstrap_environment=pytest_bootstrap_environment,
     )
     protected_files, protected_directories = scoring_oracle_manifest(
         repo,

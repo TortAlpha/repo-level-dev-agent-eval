@@ -56,6 +56,7 @@ from .evaluation import (
     EvalResult,
     collect_visible_passing,
     evaluate_solution,
+    freeze_pytest_bootstrap_packages,
     freeze_test_oracle,
     frozen_setup_artifact_files,
     prepare_scoring_dependencies,
@@ -1112,12 +1113,17 @@ def main() -> int:
         *(suite.command for suite in task.hidden_suites()),
     ]
     frozen_oracle = repo_dir.parent / "pristine_oracle"
+    pytest_bootstrap_environment = repo_dir.parent / "pytest_bootstrap"
     if not args.dry_run:
         try:
             freeze_test_oracle(
                 repo_dir,
                 frozen_oracle,
                 test_commands=scoring_commands,
+            )
+            freeze_pytest_bootstrap_packages(
+                repo_dir,
+                pytest_bootstrap_environment,
             )
         except RuntimeError as exc:
             raise SystemExit(str(exc)) from exc
@@ -1244,6 +1250,7 @@ def main() -> int:
                 test_timeout=config.test_timeout_seconds,
                 dependency_environment=dependency_environment,
                 setup_artifact_environment=setup_artifact_environment,
+                pytest_bootstrap_environment=pytest_bootstrap_environment,
                 pristine_repo=frozen_oracle,
                 test_commands=scoring_commands,
             )
@@ -1269,6 +1276,7 @@ def main() -> int:
         "frozen_scoring_oracle_tree": frozen_oracle,
         "frozen_dependency_environment_tree": dependency_environment,
         "frozen_setup_artifact_tree": setup_artifact_environment,
+        "frozen_pytest_bootstrap_tree": pytest_bootstrap_environment,
     }
     frozen_evaluation_trees = {
         name: filesystem_tree_identity(path)
@@ -1296,6 +1304,9 @@ def main() -> int:
         ],
         "frozen_setup_artifact_tree": frozen_evaluation_trees[
             "frozen_setup_artifact_tree"
+        ],
+        "frozen_pytest_bootstrap_tree": frozen_evaluation_trees[
+            "frozen_pytest_bootstrap_tree"
         ],
     }
 
@@ -1685,6 +1696,7 @@ def evaluate_and_report(
         pristine_repo=task_ws / "pristine_oracle",
         dependency_environment=task_ws / "scoring_dependencies",
         setup_artifact_environment=task_ws / "setup_artifacts",
+        pytest_bootstrap_environment=task_ws / "pytest_bootstrap",
         setup_artifact_conflicts=setup_artifact_conflicts,
     )
     if config.langsmith_tracing_enabled and result.hidden_passed is not None:
