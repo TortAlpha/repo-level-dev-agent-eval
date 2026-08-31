@@ -55,6 +55,12 @@ sweagent run --config /tmp/SWE-agent/config/default.yaml \
 
 ## Gotchas (all handled in the adapter; listed so they aren't rediscovered)
 
+- **Freeze the host-side runtime, not only two package versions.** Comparable
+  external runs content-hash the Python executable and stdlib plus the complete
+  marker-resolved dependency closure rooted at `sweagent` and `swe-rex`
+  (including LiteLLM). Sweep children receive the aggregate hash, and the runner
+  validates the same closure before and after the episode. Inherited
+  `PYTHON*`, `LITELLM_*`, and dynamic-loader injection variables are removed.
 - **litellm can't price many OpenRouter models** → SWE-agent's cost guard
   aborts (`ModelConfigurationError: ... set ... cost_limit ... to 0`). The
   adapter passes `per_instance_cost_limit=0 total_cost_limit=0`

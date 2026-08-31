@@ -1,5 +1,16 @@
 export type AgentStatus = "running" | "planning" | "editing" | "needs_revision" | "solved" | "failed" | "handoff" | string;
 export type ActionTransport = "text_json" | "tools" | "auto";
+export type ReasoningEffort = "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
+
+export interface ReasoningCapability {
+  supports_reasoning: boolean;
+  supports_effort: boolean;
+  supported_efforts: ReasoningEffort[] | null;
+  default_effort: ReasoningEffort | null;
+  mandatory: boolean | null;
+  default_enabled: boolean | null;
+  supports_max_tokens: boolean | null;
+}
 
 export interface MetricSet {
   n_runs: number;
@@ -38,6 +49,11 @@ export interface RunRecord {
   agent_mode: string;
   provider: "openrouter" | "local" | string | null;
   action_transport: string | null;
+  reasoning_effort: ReasoningEffort | null;
+  reasoning_max_tokens: number | null;
+  model_routes: Record<string, Record<string, unknown>>;
+  reproducibility: Record<string, unknown>;
+  run_fingerprint: string | null;
   model: string;
   status: AgentStatus;
   steps: number;
@@ -57,11 +73,16 @@ export interface RunRecord {
   input_tokens: number | null;
   output_tokens: number | null;
   cached_input_tokens: number | null;
+  cache_write_input_tokens: number | null;
+  reasoning_tokens: number | null;
   total_tokens: number | null;
   cost_usd: number | null;
+  effective_cost_usd: number | null;
   estimated_cost_usd: number | null;
   provider_reported_cost_usd: number | null;
+  provider_cost_calls: number | null;
   provider_cost_complete: boolean;
+  cost_source: string | null;
   model_policy: {
     type?: string;
     base_model?: string;
@@ -78,6 +99,7 @@ export interface RunRecord {
   action_counts: Record<string, number>;
   regressions: number | null;
   test_oracle_tampered: boolean | null;
+  test_oracle_tamper_attempts: number | null;
   workspace: string | null;
   task_type: string | null;
   size: string | null;
@@ -208,7 +230,8 @@ export interface JobRecord {
   model: string | null;
   agent?: string | null;
   action_transport?: string | null;
-  reasoning_effort?: string | null;
+  reasoning_effort?: ReasoningEffort | null;
+  reasoning_max_tokens?: number | null;
   session?: string | null;
   dry_run: boolean;
   command: string[];
@@ -225,7 +248,8 @@ export interface LaunchPayload {
   model?: string;
   agent?: string;
   action_transport?: ActionTransport;
-  reasoning_effort?: string;
+  reasoning_effort?: ReasoningEffort;
+  reasoning_max_tokens?: number;
   role_models?: string[];
   developer_escalation_model?: string;
   developer_escalate_after_no_edit_episodes?: number;
@@ -250,7 +274,8 @@ export interface SweepPayload {
   models: string;  // comma-separated models ("" = provider default)
   agents?: string;  // comma-separated agents; manifest matrix can fix this
   action_transport?: ActionTransport;
-  reasoning_effort?: string;
+  reasoning_effort?: ReasoningEffort;
+  reasoning_max_tokens?: number;
   role_models?: string[];
   developer_escalation_model?: string;
   developer_escalate_after_no_edit_episodes?: number;
@@ -280,10 +305,13 @@ export interface Meta {
   generated_at: string;
   agents: string[];
   action_transports: ActionTransport[];
-  reasoning_efforts?: string[];
+  reasoning_efforts?: ReasoningEffort[];
   // Models that accept the `reasoning` config (OpenRouter catalog);
   // null/absent = catalog unavailable, treat support as unknown.
   reasoning_models?: string[] | null;
+  reasoning_capabilities?: Record<string, ReasoningCapability>;
+  reasoning_catalog_source?: "openrouter" | "openrouter_cache" | "model_profiles" | string;
+  reasoning_catalog_complete?: boolean;
   providers: string[];
   model_presets: string[];
   models_seen: string[];

@@ -12,7 +12,7 @@ Available actions:
 
 {"action": "run_shell", "command": "git diff"}
 {"action": "inspect_file", "path": "relative/path.py", "offset": 1, "limit": 400}
-{"action": "search", "query": "text or regex", "path": ".", "max_results": 80}
+{"action": "search", "query": "text or regex", "path": ".", "max_results": 80, "mode": "auto"}
 {"action": "report", "summary": "APPROVE or REVISE with concrete issues"}
 
 Rules:

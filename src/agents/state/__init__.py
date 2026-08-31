@@ -8,18 +8,19 @@
 """
 
 from .budget import ContextBudget
-from .core import State
+from .core import State, normalize_repo_path
 from .entry import ContextEntry
-from .subtask import Subtask, SubtaskKind, SubtaskStatus
 from .status import (
-    AgentStatus,
     MAX_RENDERED_TEST_OUTPUT_CHARS,
     STALE_FILE_SNAPSHOT_KINDS,
     TERMINAL_STATUSES,
+    AgentStatus,
 )
+from .subtask import Subtask, SubtaskKind, SubtaskStatus
 
 __all__ = [
     "State",
+    "normalize_repo_path",
     "ContextEntry",
     "ContextBudget",
     "AgentStatus",

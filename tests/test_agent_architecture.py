@@ -14,6 +14,7 @@ from src.agents.actions import (
     EditFileAction,
     FinishAction,
     ReopenSubtaskAction,
+    ReportAction,
     RunShellAction,
     RunTestsAction,
     SearchAction,
@@ -738,6 +739,35 @@ class AgentArchitectureInvariantTests(unittest.TestCase):
         adaptive._developer_episodes = 1
         self.assertIs(adaptive._select_role_model("developer", merged), strong)
 
+    def test_role_merge_preserves_test_oracle_tamper_attempts(self) -> None:
+        model = LangChainModel(
+            model="tester",
+            chat=FakeListChatModel(responses=["unused"]),
+        )
+        role_agent = build_role_agent(ROLES["tester"], model, "text_json")
+        compactor = ContextCompactor(
+            budget=ContextBudget(window_tokens=8192, reserved_output_tokens=1024),
+            mode="checkpoint",
+        )
+
+        def tampered_step(state, *_args):  # noqa: ANN001
+            return (
+                state.record_test_oracle_tamper(),
+                ReportAction(action="report", summary="rejected tamper"),
+            )
+
+        with patch.object(SingleAgent, "_step", side_effect=tampered_step):
+            merged, _ = run_role(
+                ROLES["tester"],
+                agent=role_agent,
+                executor=self.executor,
+                compactor=compactor,
+                state=self.state(),
+                instruction="verify",
+            )
+
+        self.assertEqual(merged.test_oracle_tamper_attempts, 1)
+
     def test_policy_rejection_does_not_count_as_parse_failure(self) -> None:
         state = self.state(active_role="developer")
         rejected = self.executor.execute(
@@ -881,6 +911,7 @@ class AgentArchitectureInvariantTests(unittest.TestCase):
         )
         compactor = ContextCompactor(
             budget=ContextBudget(window_tokens=1000, reserved_output_tokens=100),
+            mode="summarize",
             model=model,
             summary_max_chars=500,
         )

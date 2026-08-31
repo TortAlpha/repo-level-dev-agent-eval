@@ -60,6 +60,10 @@ class RunRecord:
     provider: str | None = None
     action_transport: str | None = None
     reasoning_effort: str | None = None
+    reasoning_max_tokens: int | None = None
+    model_routes: dict = field(default_factory=dict)
+    reproducibility: dict = field(default_factory=dict)
+    run_fingerprint: str | None = None
     # Tools-transport health: steps that fell back to text parsing, and
     # whether an explicit tools request was downgraded by the live probe.
     tools_fallback_calls: int | None = None
@@ -81,13 +85,20 @@ class RunRecord:
     input_tokens: int | None = None
     output_tokens: int | None = None
     cached_input_tokens: int | None = None
+    cache_write_input_tokens: int | None = None
+    reasoning_tokens: int | None = None
     total_tokens: int | None = None
     cost_usd: float | None = None
     provider_reported_cost_usd: float | None = None
     provider_cost_calls: int | None = None
+    provider_cost_complete: bool | None = None
+    usage_accounting_complete: bool | None = None
+    recorded_effective_cost_usd: float | None = None
+    cost_source: str | None = None
     action_counts: dict[str, int] = field(default_factory=dict)
     regressions: int | None = None  # visible tests passing before but not after
     test_oracle_tampered: bool | None = None
+    test_oracle_tamper_attempts: int | None = None
     workspace: str | None = None  # repo dir of this run (for quality scoring)
     task_type: str | None = None  # bugfix/feature (recorded, or joined)
     task_set_id: str | None = None
@@ -124,6 +135,13 @@ class RunRecord:
     @property
     def effective_cost_usd(self) -> float | None:
         """Complete provider billing wins; otherwise use the token estimate."""
+        if (
+            self.usage_accounting_complete is False
+            or self.cost_source == "unknown_incomplete_usage"
+        ):
+            return None
+        if self.recorded_effective_cost_usd is not None:
+            return self.recorded_effective_cost_usd
         if (
             self.provider_reported_cost_usd is not None
             and self.provider_cost_calls is not None
@@ -176,6 +194,13 @@ class RunRecord:
             provider=row.get("provider"),
             action_transport=row.get("action_transport"),
             reasoning_effort=row.get("reasoning_effort"),
+            reasoning_max_tokens=row.get("reasoning_max_tokens"),
+            model_routes=dict(row.get("model_routes") or {}),
+            reproducibility=dict(row.get("reproducibility") or {}),
+            run_fingerprint=(
+                row.get("run_fingerprint")
+                or dict(row.get("reproducibility") or {}).get("run_fingerprint")
+            ),
             tools_fallback_calls=(
                 int(row["tools_fallback_calls"])
                 if row.get("tools_fallback_calls") is not None
@@ -218,13 +243,26 @@ class RunRecord:
             input_tokens=row.get("input_tokens"),
             output_tokens=row.get("output_tokens"),
             cached_input_tokens=row.get("cached_input_tokens"),
+            cache_write_input_tokens=row.get("cache_write_input_tokens"),
+            reasoning_tokens=row.get("reasoning_tokens"),
             total_tokens=row.get("total_tokens"),
             cost_usd=row.get("cost_usd"),
             provider_reported_cost_usd=row.get("provider_reported_cost_usd"),
             provider_cost_calls=row.get("provider_cost_calls"),
+            provider_cost_complete=_bool_or_none(row.get("provider_cost_complete")),
+            usage_accounting_complete=_bool_or_none(
+                row.get("usage_accounting_complete")
+            ),
+            recorded_effective_cost_usd=row.get("effective_cost_usd"),
+            cost_source=row.get("cost_source"),
             action_counts=dict(row.get("action_counts", {})),
             regressions=row.get("regressions"),
             test_oracle_tampered=_bool_or_none(row.get("test_oracle_tampered")),
+            test_oracle_tamper_attempts=(
+                int(row["test_oracle_tamper_attempts"])
+                if row.get("test_oracle_tamper_attempts") is not None
+                else None
+            ),
             workspace=row.get("workspace"),
             task_type=row.get("task_type"),
             task_set_id=row.get("task_set_id"),

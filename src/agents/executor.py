@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 import shlex
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from pydantic import BaseModel, Field
 
@@ -25,7 +25,12 @@ from .actions import (
 from .sandbox import DockerSandbox
 from .state import State
 from .tracing import trace_action_execution
-from .workspace import Workspace
+from .workspace import (
+    TEST_ORACLE_DIR_NAMES,
+    Workspace,
+    WorktreeSnapshot,
+    is_test_oracle_path,
+)
 
 MAX_OBSERVATION_CHARS = 12000
 EDIT_SNIPPET_CHARS = 600
@@ -47,7 +52,6 @@ _TEST_LAUNCHERS = (
 )
 _SHELL_OPERATORS = ("&&", "||", ";", "|", ">", "<")
 _ENV_ASSIGNMENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
-_TEST_DIR_NAMES = frozenset({"test", "tests", "testing"})
 
 
 def _is_test_invocation(command: str) -> bool:
@@ -77,14 +81,7 @@ def _is_test_path(path: str) -> bool:
     rewritten by an agent. New regression tests remain allowed for the single
     agent and tester role.
     """
-    normalized = Path(path)
-    parts = {part.lower() for part in normalized.parts[:-1]}
-    name = normalized.name.lower()
-    return (
-        bool(parts & _TEST_DIR_NAMES)
-        or name.startswith("test_")
-        or name == "conftest.py"
-    )
+    return is_test_oracle_path(path)
 
 
 _SAFE_FULL_SUITE_SUFFIXES = frozenset(
@@ -144,6 +141,28 @@ class ActionExecutor(BaseModel):
     sandbox: DockerSandbox
     denied_shell_commands: tuple[str, ...] = DENIED_SHELL_COMMANDS
     max_observation_chars: int = Field(default=MAX_OBSERVATION_CHARS, gt=0)
+
+    def model_post_init(self, __context: object) -> None:
+        """Install the immutable test-oracle boundary before Docker starts."""
+        protected_files: list[str] = []
+        protected_directories: set[str] = set()
+        for path in self.workspace.baseline_tracked_files():
+            if not is_test_oracle_path(path):
+                continue
+            parts = PurePosixPath(path).parts[:-1]
+            test_root: str | None = None
+            for index, part in enumerate(parts, start=1):
+                if part.lower() in TEST_ORACLE_DIR_NAMES:
+                    test_root = PurePosixPath(*parts[:index]).as_posix()
+                    break
+            if test_root is None:
+                protected_files.append(path)
+            else:
+                protected_directories.add(test_root)
+        self.sandbox.configure_protected_test_paths(
+            protected_files,
+            readonly_directories=sorted(protected_directories),
+        )
 
     @trace_action_execution
     def execute(self, state: State, action: AgentAction) -> State:
@@ -225,12 +244,13 @@ class ActionExecutor(BaseModel):
         )
 
     def _inspect_file(self, state: State, action: InspectFileAction) -> State:
-        lines = self.workspace.read_file(action.path).splitlines()
+        rel_path = self.workspace.to_relative(self.workspace.resolve(action.path))
+        lines = self.workspace.read_file(rel_path).splitlines()
         total = len(lines)
         start = min(max(action.offset, 1), total or 1)
         window = lines[start - 1 : start - 1 + action.limit]
         end = start - 1 + len(window)
-        header = f"File: {action.path} (lines {start}-{end} of {total})"
+        header = f"File: {rel_path} (lines {start}-{end} of {total})"
         if end < total:
             header += (
                 f"  [+{total - end} more lines below — inspect_file with "
@@ -238,24 +258,28 @@ class ActionExecutor(BaseModel):
             )
         rendered = self._truncate(f"{header}\n\n" + "\n".join(window))
         return (
-            state.with_relevant_files([action.path])
+            state.with_relevant_files([rel_path])
             .with_observation(rendered)
-            .with_context(kind="inspect_file", path=action.path, text=rendered)
+            .with_context(kind="inspect_file", path=rel_path, text=rendered)
             .record_research_step()
             .advance_step()
         )
 
     def _list_dir(self, state: State, action: ListDirectoryAction) -> State:
-        output = self._truncate(self.workspace.list_files(action.path))
+        rel_path = self.workspace.to_relative(self.workspace.resolve(action.path))
+        output = self._truncate(self.workspace.list_files(rel_path))
         return (
             state.with_observation(output)
-            .with_context(kind="list_dir", path=action.path, text=output)
+            .with_context(kind="list_dir", path=rel_path, text=output)
             .record_research_step()
             .advance_step()
         )
 
     def _search(self, state: State, action: SearchAction) -> State:
-        key = self.workspace.search_key(action.query, action.path)
+        rel_path = self.workspace.to_relative(self.workspace.resolve(action.path))
+        key = self.workspace.search_key(
+            action.query, rel_path, action.max_results, action.mode
+        )
         cached = state.search_results.get(key)
         if cached is not None:
             output = self._truncate(
@@ -267,7 +291,7 @@ class ActionExecutor(BaseModel):
                 state.with_observation(output)
                 .with_context(
                     kind="search_reused",
-                    path=action.path,
+                    path=rel_path,
                     text=f"query={action.query!r}\n{output}",
                 )
                 .record_research_step()
@@ -275,14 +299,16 @@ class ActionExecutor(BaseModel):
             )
 
         output = self._truncate(
-            self.workspace.search(action.query, action.path, action.max_results)
+            self.workspace.search(
+                action.query, rel_path, action.max_results, action.mode
+            )
         )
         return (
             state.record_search_result(key, output)
             .with_observation(output)
             .with_context(
                 kind="search",
-                path=action.path,
+                path=rel_path,
                 text=f"query={action.query!r}\n{output}",
             )
             .record_research_step()
@@ -329,9 +355,26 @@ class ActionExecutor(BaseModel):
         self._validate_shell_command(action.command)
         if state.active_role == "reviewer":
             self._validate_reviewer_command(action.command)
+        before = self._snapshot_before_shell()
         result = self.sandbox.run_shell(action.command, action.timeout_seconds)
-        output = self._truncate(result.output or "Command passed.")
+        state, tampered, mutation_error = self._reconcile_shell_mutations(
+            state, before
+        )
+        output = self._truncate(result.output or "Command passed.", keep_tail=True)
         entry_text = f"$ {action.command}\n{output}"
+        if tampered or mutation_error:
+            reason = mutation_error or (
+                "Protected benchmark tests were modified through the shell "
+                f"and restored: {', '.join(tampered)}."
+            )
+            return (
+                state.with_error(reason)
+                .with_context(
+                    kind="policy_rejection",
+                    text=f"{entry_text}\nerror: {reason}",
+                )
+                .advance_step()
+            )
         if _is_test_invocation(action.command):
             # Same bookkeeping as run_tests: sets test_passed (unblocks
             # finish) and consumes one test iteration from the budget.
@@ -393,8 +436,25 @@ class ActionExecutor(BaseModel):
                     "directly or target an unchanged test."
                 )
 
+        before = self._snapshot_before_shell()
         result = self.sandbox.run_tests(command, action.timeout_seconds)
-        output = self._truncate(result.output or "Tests passed.")
+        state, tampered, mutation_error = self._reconcile_shell_mutations(
+            state, before
+        )
+        output = self._truncate(result.output or "Tests passed.", keep_tail=True)
+        if tampered or mutation_error:
+            reason = mutation_error or (
+                "Protected benchmark tests were modified during the test run "
+                f"and restored: {', '.join(tampered)}."
+            )
+            return (
+                state.with_error(reason)
+                .with_context(
+                    kind="policy_rejection",
+                    text=f"$ {command}\n{output}\nerror: {reason}",
+                )
+                .advance_step()
+            )
         status = "PASSED" if result.success else "FAILED"
         return state.with_context(
             kind=("compatibility_check" if compatibility_check else "run_tests"),
@@ -481,6 +541,64 @@ class ActionExecutor(BaseModel):
             if denied in normalized:
                 raise ValueError(f"Denied shell command: {command}")
 
+    def _snapshot_before_shell(self) -> WorktreeSnapshot | None:
+        """Take a bounded snapshot only for real Git benchmark workspaces."""
+        if not self.workspace.is_git_checkout():
+            return None
+        return self.workspace.worktree_snapshot()
+
+    def _reconcile_shell_mutations(
+        self,
+        state: State,
+        before: WorktreeSnapshot | None,
+    ) -> tuple[State, list[str], str | None]:
+        """Track shell writes and restore any tracked test-oracle changes."""
+        if before is None:
+            return state, [], None
+        try:
+            after = self.workspace.worktree_snapshot()
+        except ValueError as exc:
+            # The command crossed the workspace trust boundary in a way we
+            # cannot audit. Invalidate prior verification and fail closed.
+            return (
+                state.with_changed_files([]),
+                [],
+                f"Could not verify shell workspace mutations: {exc}",
+            )
+
+        head_changed = before.head != after.head
+        raw_changed = before.changed_paths(after)
+        protected = [
+            path
+            for path in raw_changed
+            if _is_test_path(path) and self.workspace.is_tracked(path)
+        ]
+        if protected:
+            state = state.record_test_oracle_tamper()
+        try:
+            if head_changed:
+                self.workspace.restore_git_head()
+            self.workspace.restore_tracked_files(protected)
+            final = self.workspace.worktree_snapshot()
+        except ValueError as exc:
+            return (
+                state.with_changed_files([]),
+                protected,
+                f"Could not restore protected workspace state: {exc}",
+            )
+
+        changed = before.changed_paths(final)
+        if changed or head_changed:
+            changed_files: list[Path | str] = list(changed)
+            state = state.with_changed_files(changed_files)
+            # Shell actions can rewrite files without going through the
+            # structured edit/write handlers.  Invalidate any earlier file
+            # snapshots here as well so context compaction cannot rescue a
+            # byte-for-byte view of content that is no longer current.
+            for path in changed_files:
+                state = state.invalidate_path(str(path))
+        return state, protected, None
+
     def _validate_file_change(self, state: State, path: str, *, is_write: bool) -> None:
         is_test = _is_test_path(path)
         tracked = self.workspace.is_tracked(path)
@@ -523,9 +641,14 @@ class ActionExecutor(BaseModel):
                 "and `git status --short`."
             )
 
-    def _truncate(self, text: str) -> str:
+    def _truncate(self, text: str, *, keep_tail: bool = False) -> str:
         if len(text) <= self.max_observation_chars:
             return text
+        if not keep_tail:
+            return (
+                f"{text[: self.max_observation_chars]}\n"
+                f"... truncated after {self.max_observation_chars} characters ..."
+            )
         return (
             f"... truncated to last {self.max_observation_chars} characters ...\n"
             f"{text[-self.max_observation_chars :]}"

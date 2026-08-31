@@ -19,13 +19,26 @@ from src.agents.sandbox import DockerSandbox
 from src.agents.state import State
 from src.agents.swe_agent import SweAgentAdapter
 from src.benchmark.collection import DEFAULT_COLLECTION, TaskSpec
+from src.benchmark.evaluation import EvalResult
 from src.benchmark.runner import (
     agent_model_policy,
     agent_settings,
+    benchmark_exit_code,
+    eval_metrics,
     plan,
     record_infrastructure_failure,
 )
-from src.benchmark.sweep import _combinations, _selected_tasks
+from src.benchmark.sweep import (
+    Combination,
+    _combinations,
+    _remove_failed_workspace,
+    _run_command,
+    _selected_tasks,
+    _task_input_snapshot,
+)
+from src.benchmark.sweep import (
+    parse_args as parse_sweep_args,
+)
 from src.benchmark.task_sets import load_task_set
 from src.config import OpenRouterConfig
 from src.console.server import AGENTS, ApiError, ConsoleHandler, _origin_allowed
@@ -51,7 +64,8 @@ class BenchmarkFairnessTests(unittest.TestCase):
         self.assertEqual(swe_single_agents, ["single"])
         self.assertEqual(swe_graph_agents, ["multi-graph"])
         self.assertEqual(len(task_set.previously_exercised), 21)
-        self.assertEqual(len(set(task_set.tasks()) - set(task_set.previously_exercised)), 20)
+        unexercised = set(task_set.tasks()) - set(task_set.previously_exercised)
+        self.assertEqual(len(unexercised), 20)
 
     def test_manifest_selection_never_expands_to_all_verified_rows(self) -> None:
         args = argparse.Namespace(
@@ -81,7 +95,9 @@ class BenchmarkFairnessTests(unittest.TestCase):
 
         self.assertEqual(first, second)
         self.assertEqual({item.task for item in first[:4]}, {tasks[0]})
-        self.assertEqual({item.agent for item in first[:4]}, set(args.agents.split(",")))
+        self.assertEqual(
+            {item.agent for item in first[:4]}, set(args.agents.split(","))
+        )
 
     def test_setup_container_can_be_disconnected_before_agent_actions(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -91,7 +107,9 @@ class BenchmarkFairnessTests(unittest.TestCase):
                 network_disabled=False,
             )
             completed = subprocess.CompletedProcess([], 0, stdout="", stderr="")
-            with patch("src.agents.sandbox.subprocess.run", return_value=completed) as run:
+            with patch(
+                "src.agents.sandbox.subprocess.run", return_value=completed
+            ) as run:
                 sandbox.disable_network()
 
         self.assertTrue(sandbox.network_disabled)
@@ -213,7 +231,9 @@ class BenchmarkFairnessTests(unittest.TestCase):
             Path("repo"),
             "pytest",
             adapter,
-            argparse.Namespace(no_score=False, no_regression=False, enable_review=False),
+            argparse.Namespace(
+                no_score=False, no_regression=False, enable_review=False
+            ),
         )
 
         self.assertFalse(settings["research_guard_enabled"])
@@ -272,6 +292,145 @@ class BenchmarkFairnessTests(unittest.TestCase):
 
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("--stop-on-error requires --concurrency 1", result.stderr)
+
+    def test_parallel_cleanup_removes_only_the_preassigned_run(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / "task-11111111-1111-1111-1111-111111111111"
+            concurrent = root / "task-22222222-2222-2222-2222-222222222222"
+            target.mkdir()
+            concurrent.mkdir()
+
+            _remove_failed_workspace(
+                "task",
+                "11111111-1111-1111-1111-111111111111",
+                argparse.Namespace(keep_workspaces=False),
+                root=root,
+            )
+
+            self.assertFalse(target.exists())
+            self.assertTrue(concurrent.exists())
+
+    def test_parallel_command_propagates_run_and_image_identity(self) -> None:
+        with patch.object(sys, "argv", ["sweep", "--tasks", "task"]):
+            args = parse_sweep_args()
+        args.expected_task_inputs = {
+            "task": {
+                "source_repository": {"worktree_sha256": "source-hash"},
+                "task_sha256": "task-hash",
+                "hidden_tree_sha256": "hidden-hash",
+            }
+        }
+        args.expected_collection_sha256 = "collection-hash"
+        args.expected_harness_tree_sha256 = "harness-hash"
+        args.expected_policy_kernel_sha256 = "kernel-hash"
+        args.expected_pricing_sha256 = "pricing-hash"
+        args.expected_sweagent_distribution_sha256 = "sweagent-hash"
+        args.expected_swerex_distribution_sha256 = "swerex-hash"
+        args.expected_swe_runtime_sha256 = "swe-runtime-hash"
+        command = _run_command(
+            Combination("task", "model", "model", "single"),
+            args,
+            run_id="11111111-1111-1111-1111-111111111111",
+            expected_docker_image_id="sha256:locked",
+        )
+
+        self.assertEqual(
+            command[command.index("--run-id") + 1],
+            "11111111-1111-1111-1111-111111111111",
+        )
+        self.assertEqual(
+            command[command.index("--expected-docker-image-id") + 1],
+            "sha256:locked",
+        )
+        expected_contract = {
+            "--expected-source-worktree-sha256": "source-hash",
+            "--expected-task-sha256": "task-hash",
+            "--expected-hidden-tree-sha256": "hidden-hash",
+            "--expected-collection-sha256": "collection-hash",
+            "--expected-harness-tree-sha256": "harness-hash",
+            "--expected-policy-kernel-sha256": "kernel-hash",
+            "--expected-pricing-sha256": "pricing-hash",
+            "--expected-sweagent-distribution-sha256": "sweagent-hash",
+            "--expected-swerex-distribution-sha256": "swerex-hash",
+            "--expected-swe-runtime-sha256": "swe-runtime-hash",
+        }
+        for flag, expected in expected_contract.items():
+            with self.subTest(flag=flag):
+                self.assertEqual(command[command.index(flag) + 1], expected)
+
+    def test_task_snapshot_records_resolved_image_object(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            task_file = root / "task.md"
+            task_file.write_text("task", encoding="utf-8")
+            task = TaskSpec(
+                task_id="task",
+                repo_path=root / "repo",
+                task_file_path=task_file,
+                size="small",
+                task_type="bugfix",
+                visible_test_command="pytest",
+                hidden_test_command="",
+                hidden_semantic_test_command="",
+                hidden_compat_test_command="",
+                hidden_pr_parity_test_command="",
+                hidden_tests_path=Path(),
+                base_commit="abc",
+                task_status="pr_task_verified",
+                setup_commands=[],
+                docker_image="repo:latest",
+            )
+            image = {
+                "reference": "repo:latest",
+                "resolved": True,
+                "image_id": "sha256:locked",
+                "repo_digests": ["repo@sha256:locked"],
+            }
+            with (
+                patch(
+                    "src.benchmark.sweep.load_collection",
+                    return_value={"task": task},
+                ),
+                patch(
+                    "src.benchmark.sweep.source_repository_identity",
+                    return_value={"head_commit": "abc"},
+                ),
+                patch(
+                    "src.benchmark.sweep.docker_image_identity",
+                    return_value=image,
+                ),
+            ):
+                snapshot = _task_input_snapshot(
+                    ["task"], Path("collection.csv"), "python:3.11-slim"
+                )
+
+        self.assertEqual(snapshot["task"]["docker_image_identity"], image)
+
+    def test_unscored_test_oracle_tampering_is_a_process_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            state = State(
+                task="x",
+                workdir=Path(directory),
+                status="solved",
+                test_oracle_tamper_attempts=1,
+            )
+            result = EvalResult(task_success=None, test_oracle_tampered=True)
+
+            exit_code = benchmark_exit_code(state, result)
+
+        self.assertEqual(exit_code, 1)
+        self.assertIsNone(result.task_success)
+
+    def test_eval_metrics_records_excluded_agent_tests(self) -> None:
+        metrics = eval_metrics(
+            EvalResult(excluded_agent_test_files=["tests/test_agent_added.py"])
+        )
+
+        self.assertEqual(metrics["excluded_agent_test_file_count"], 1)
+        self.assertEqual(
+            metrics["excluded_agent_test_files"], ["tests/test_agent_added.py"]
+        )
 
 
 if __name__ == "__main__":

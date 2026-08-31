@@ -34,7 +34,10 @@ class ContextBudget(BaseModel):
         return input_tokens * self.chars_per_token
 
     def prompt_chars(self, state: State) -> int:
-        return self.overhead_chars + len(state.to_string())
+        # ``to_string`` intentionally omits native provider metadata so hidden
+        # reasoning cannot leak into logs/prompts. It is nevertheless sent in
+        # tool history and must count toward compaction thresholds.
+        return self.overhead_chars + len(state.to_string()) + state.hidden_context_chars
 
     def needs_compaction(self, state: State) -> bool:
         threshold = self.input_budget_chars * self.high_watermark

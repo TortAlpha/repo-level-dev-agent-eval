@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+: "${REPO_EVAL_REAL_PYTHON:?missing evaluator Python interpreter}"
+exec "$REPO_EVAL_REAL_PYTHON" -I -S \
+  /tmp/repo-eval-bin/_python_shim.py "$@"

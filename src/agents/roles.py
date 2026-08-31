@@ -167,6 +167,9 @@ def run_role(
             "step": role_state.step,
             "iteration": role_state.iteration,
             "failed_test_runs": role_state.failed_test_runs,
+            "test_oracle_tamper_attempts": (
+                role_state.test_oracle_tamper_attempts
+            ),
             "action_counts": role_state.action_counts,
             "compaction_count": role_state.compaction_count,
             "role_steps": role_steps,

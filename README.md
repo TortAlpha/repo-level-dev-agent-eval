@@ -12,6 +12,11 @@ The repository contains the agent implementations, Docker benchmark harness,
 hidden evaluation, experiment runner, metrics pipeline, result artifacts, and a
 local web console. The final primary comparison is complete.
 
+The recorded `final_v1` results below are historical and remain immutable. The
+current runtime is the separately fingerprinted
+[pseudo-SWE-agent kernel v2](docs/agent_kernel_v2.md); new kernel-v2 runs must
+use new sessions and must not be pooled silently with `final_v1`.
+
 ## Result at a Glance
 
 The main benchmark contains **102 scored runs over 39 unique tasks**:
@@ -60,9 +65,15 @@ This is an executable benchmark system, not only a project specification.
 - immutable agent state and explicit structured actions;
 - repository inspection, search, editing, shell, and test tools;
 - text-JSON and native tool-call transports;
-- bounded context with summarization and mechanical fact preservation;
+- fully accounted bounded context with deterministic checkpointing by default;
+- model-generated summarization and context dropping as explicit ablations;
 - deterministic reuse of previous searches after compaction;
+- provider-native reasoning replay stored in durable agent state;
 - per-run cost limits and campaign-wide sweep budgets;
+- provider billing provenance and executable prompt/tool/policy fingerprints;
+- canonical reasoning effort (`none` through `max`) or a capability-gated,
+  mutually exclusive exact reasoning-token budget, with per-role settings
+  recorded as heterogeneous ablations;
 - LangSmith tracing with agent, role, model, and session metadata.
 
 ### Agent architectures
@@ -82,6 +93,13 @@ This is an executable benchmark system, not only a project specification.
 
 The multi-agent runtime also supports fixed role-specific models and adaptive
 developer escalation to a stronger model.
+
+The external SWE-agent modes are separately fingerprinted all-online
+ablations. Comparable built-in runs keep the pseudo-SWE-agent action kernel;
+the adapter fingerprints and revalidates its Python runtime and complete
+resolved dependency closure, sanitizes inherited Python/LiteLLM injection
+settings, and rejects arbitrary passthrough flags, missing usage trajectories,
+and reasoning controls it cannot faithfully forward.
 
 ### Strengthened single-agent baseline
 
@@ -106,10 +124,17 @@ ablations rather than final baseline runs.
 - visible tests available to the agent;
 - hidden semantic and compatibility suites;
 - before/after regression evaluation;
-- read-only protection for benchmark tests and hidden test oracles;
+- scalable read-only test-root protection plus exact root-level runner mounts;
+- shell-side mutation auditing with durable attempted-oracle-tamper metrics;
+- final reconstruction from `HEAD + archived patch`, with section-aware
+  pytest-config attestation, a pristine frozen dependency environment, and a
+  trusted direct/wrapper pytest bootstrap;
+- exact hidden-fixture manifests and single-invocation, fail-closed JUnit
+  execution evidence kept outside the writable checkout;
 - infrastructure failures recorded separately from task failures;
 - archived patches, run metadata, model usage, and experiment fingerprints;
-- resumable sequential sweeps with deterministic ordering.
+- resumable sweeps with deterministic ordering, session/campaign leases, and
+  parent-to-child input hash contracts.
 
 ### Analysis and web console
 
@@ -376,10 +401,15 @@ tests/                      harness and architecture regression tests
 - Final sessions record task-set, collection, pricing, harness, and settings
   fingerprints.
 - Existing benchmark tests and hidden tests are read-only to agents.
+- Attempted shell-side test-oracle changes remain recorded after automatic
+  rollback and invalidate evaluator success.
 - Infrastructure failures are stored separately and do not silently become
   task failures.
-- Cost uses complete provider-reported billing when available; otherwise it
-  falls back to the versioned token-pricing estimate.
+- Cost uses complete provider-reported billing when available; partial billing
+  is combined with the full versioned static estimate as an explicit upper
+  bound, while missing usage makes cost unknown rather than zero.
+- New built-in runs fingerprint the exact prompts, action schemas, policy
+  sources/configuration, model routes, and task text.
 - Exploratory sessions and ablations are not mixed into final aggregates.
 
 ## Limitations
@@ -408,6 +438,7 @@ These limitations are discussed in detail in the
 - [Role-specific and adaptive model routing](docs/role_model_routing.md)
 - [Task benchmark observations](docs/task_benchmark_observations.md)
 - [SWE-agent integration](docs/swe_agent.md)
+- [Pseudo-SWE-agent kernel v2 and comparison protocol](docs/agent_kernel_v2.md)
 
 ## References
 

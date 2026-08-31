@@ -7,6 +7,9 @@ from typing import Annotated, Any, Literal, TypeAlias
 
 from pydantic import BaseModel, Field, TypeAdapter, ValidationError
 
+MAX_SHELL_ACTION_TIMEOUT_SECONDS = 600
+MAX_TEST_ACTION_TIMEOUT_SECONDS = 1200
+
 
 class ActionBase(BaseModel):
     """Shared optional fields for every action.
@@ -44,9 +47,10 @@ class ListDirectoryAction(ActionBase):
 
 class SearchAction(ActionBase):
     action: Literal["search"]
-    query: str
+    query: str = Field(min_length=1)
     path: str = "."
     max_results: int = Field(default=80, ge=1, le=500)
+    mode: Literal["auto", "regex", "literal"] = "auto"
 
 
 class WriteFileAction(ActionBase):
@@ -66,14 +70,18 @@ class EditFileAction(ActionBase):
 class RunShellAction(ActionBase):
     action: Literal["run_shell"]
     command: str
-    timeout_seconds: int | None = Field(default=None, gt=0)
+    timeout_seconds: int | None = Field(
+        default=None, gt=0, le=MAX_SHELL_ACTION_TIMEOUT_SECONDS
+    )
 
 
 class RunTestsAction(ActionBase):
     action: Literal["run_tests"]
     command: str | None = None
     purpose: Literal["verification", "compatibility"] = "verification"
-    timeout_seconds: int | None = Field(default=None, gt=0)
+    timeout_seconds: int | None = Field(
+        default=None, gt=0, le=MAX_TEST_ACTION_TIMEOUT_SECONDS
+    )
 
 
 class FinishAction(ActionBase):
@@ -210,7 +218,7 @@ class ActionSpace:
         if len(types) == 1:
             self.adapter: TypeAdapter[Any] = TypeAdapter(types[0])
         else:
-            union = types[0]
+            union: Any = types[0]
             for t in types[1:]:
                 union = union | t
             self.adapter = TypeAdapter(
@@ -299,7 +307,9 @@ def parse_action(text: str, space: str | None = None) -> AgentAction:
         ) from exc
 
 
-def _validation_message(data: Any, exc: ValidationError, space: str | None = None) -> str:
+def _validation_message(
+    data: Any, exc: ValidationError, space: str | None = None
+) -> str:
     """Actionable validation feedback for the model.
 
     Raw pydantic errors (union_tag_not_found, docs URLs) are noise a model

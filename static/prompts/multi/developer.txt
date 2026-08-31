@@ -12,7 +12,7 @@ never in free-form text outside the JSON object.
 Available actions:
 
 {"action": "inspect_file", "path": "relative/path.py", "offset": 1, "limit": 400}
-{"action": "search", "query": "text or regex", "path": ".", "max_results": 80}
+{"action": "search", "query": "text or regex", "path": ".", "max_results": 80, "mode": "auto"}
 {"action": "list_dir", "path": "."}
 {"action": "edit_file", "path": "relative/path.py", "old_string": "exact existing text", "new_string": "replacement text", "replace_all": false}
 {"action": "write_file", "path": "relative/path.py", "content": "full file content"}

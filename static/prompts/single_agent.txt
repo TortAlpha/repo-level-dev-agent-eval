@@ -14,7 +14,7 @@ Available actions:
 {"action": "set_plan", "plan": "short implementation plan"}
 {"action": "list_dir", "path": "."}
 {"action": "inspect_file", "path": "relative/path.py", "offset": 1, "limit": 400}
-{"action": "search", "query": "text or ripgrep regex (use bare | for alternation)", "path": ".", "max_results": 80}
+{"action": "search", "query": "text or ripgrep regex (use bare | for alternation)", "path": ".", "max_results": 80, "mode": "auto"}
 {"action": "write_file", "path": "relative/path.py", "content": "full file content"}
 {"action": "edit_file", "path": "relative/path.py", "old_string": "exact existing text", "new_string": "replacement text", "replace_all": false}
 {"action": "run_shell", "command": "shell command"}
@@ -38,6 +38,9 @@ Rules:
 - Use exact relative paths taken from list_dir or search output for
   inspect_file, edit_file, and write_file. Do not guess a path you have not
   seen. Never repeat a path that previously failed.
+- search mode is `auto` by default: it treats a valid expression as a regex
+  and safely falls back to a literal match when the expression is malformed.
+  Use `regex` or `literal` only when that distinction is part of the search.
 - inspect_file shows a window of the file (default the first 400 lines). For a
   larger file, use search to find the relevant lines, then inspect_file again
   with offset set to the line you want to read from — do not try to read the

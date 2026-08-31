@@ -9,30 +9,33 @@ import random
 import shutil
 import subprocess
 import sys
+import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import ExitStack
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
-from ..config import load_config
+from ..agents.swe_agent import MANAGED_BASE_IMAGE, ensure_managed_base_image
+from ..config import REASONING_EFFORTS, apply_reasoning_overrides, load_config
 from ..metrics.pricing import PRICING_CSV
+from ..run.reproducibility import (
+    HARNESS_SOURCE_PATHS,
+    docker_image_identity,
+    external_swe_runtime_snapshot,
+    filesystem_tree_identity,
+    harness_source_manifest,
+    source_repository_identity,
+    sweep_reproducibility_artifacts,
+)
+from ..run.results import _advisory_jsonl_lock, _append_jsonl_record
 from .collection import DEFAULT_COLLECTION, load_collection
 from .task_sets import TaskSet, load_task_set
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_RESULTS_DIR = Path("experiments/results")
-HARNESS_PATHS = (
-    Path("src/agents"),
-    Path("src/benchmark"),
-    Path("src/run"),
-    Path("src/metrics"),
-    Path("src/config.py"),
-    Path("static/prompts"),
-    Path("static/pricing.csv"),
-    Path("eval/task_sets"),
-    Path("pyproject.toml"),
-    Path("docs/final_benchmark_task_set.md"),
-)
+HARNESS_PATHS = tuple(Path(path) for path in HARNESS_SOURCE_PATHS)
+ROLE_NAMES = ("orchestrator", "planner", "developer", "tester", "reviewer")
 
 
 @dataclass(frozen=True)
@@ -101,7 +104,9 @@ def parse_args() -> argparse.Namespace:
         help="Named task/architecture matrix from the selected task set.",
     )
     parser.add_argument(
-        "--models", default="", help="Comma-separated models (empty = provider default)."
+        "--models",
+        default="",
+        help="Comma-separated models (empty = provider default).",
     )
     parser.add_argument(
         "--agents",
@@ -121,9 +126,24 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--action-transport", choices=["text_json", "tools", "auto"], default=None
     )
-    parser.add_argument("--reasoning-effort", default=None)
+    parser.add_argument("--reasoning-effort", choices=REASONING_EFFORTS, default=None)
+    parser.add_argument(
+        "--reasoning-max-tokens",
+        type=int,
+        default=None,
+        help=(
+            "Exact reasoning-token budget; requires a route whose frozen "
+            "profile explicitly verifies end-to-end support."
+        ),
+    )
     parser.add_argument("--role-model", action="append", default=None)
+    parser.add_argument("--role-reasoning-effort", action="append", default=None)
     parser.add_argument("--developer-escalation-model", default=None)
+    parser.add_argument(
+        "--developer-escalation-reasoning-effort",
+        choices=REASONING_EFFORTS,
+        default=None,
+    )
     parser.add_argument("--developer-escalate-after-no-edit-episodes", type=int)
     parser.add_argument("--developer-escalate-after-failed-tests", type=int)
     parser.add_argument("--max-cost-usd", type=float, default=None)
@@ -227,6 +247,14 @@ def _selected_tasks(
 
 def _combinations(args: argparse.Namespace, tasks: list[str]) -> list[Combination]:
     config = load_config(args.provider)
+    try:
+        apply_reasoning_overrides(
+            config,
+            effort=getattr(args, "reasoning_effort", None),
+            max_tokens=getattr(args, "reasoning_max_tokens", None),
+        )
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
     model_args = _split(args.models) or [""]
     agents = _split(args.agents) or ["single"]
 
@@ -248,19 +276,30 @@ def _combinations(args: argparse.Namespace, tasks: list[str]) -> list[Combinatio
 
     result: list[Combination] = []
     for task in tasks:
-        within_task = [combo(task, model, agent) for model in model_args for agent in agents]
+        within_task = [
+            combo(task, model, agent) for model in model_args for agent in agents
+        ]
         random.Random(f"{args.seed}:{task}").shuffle(within_task)
         result.extend(within_task)
     return result
 
 
-def _run_command(item: Combination, args: argparse.Namespace) -> list[str]:
+def _run_command(
+    item: Combination,
+    args: argparse.Namespace,
+    *,
+    run_id: str | None = None,
+    expected_docker_image_id: str | None = None,
+) -> list[str]:
+    expected_task_input = getattr(args, "expected_task_inputs", {}).get(item.task, {})
     cmd = [
         sys.executable,
         "-m",
         "src.benchmark.runner",
         "--task-id",
         item.task,
+        "--collection",
+        str(args.collection),
         "--agent",
         item.agent,
     ]
@@ -270,12 +309,20 @@ def _run_command(item: Combination, args: argparse.Namespace) -> list[str]:
         ("--session", args.session),
         ("--action-transport", args.action_transport),
         ("--reasoning-effort", args.reasoning_effort),
+        ("--reasoning-max-tokens", args.reasoning_max_tokens),
         ("--developer-escalation-model", args.developer_escalation_model),
+        (
+            "--developer-escalation-reasoning-effort",
+            args.developer_escalation_reasoning_effort,
+        ),
         (
             "--developer-escalate-after-no-edit-episodes",
             args.developer_escalate_after_no_edit_episodes,
         ),
-        ("--developer-escalate-after-failed-tests", args.developer_escalate_after_failed_tests),
+        (
+            "--developer-escalate-after-failed-tests",
+            args.developer_escalate_after_failed_tests,
+        ),
         ("--max-cost-usd", args.max_cost_usd),
         ("--context-budget-tokens", args.context_budget_tokens),
         ("--max-subtasks", args.max_subtasks),
@@ -283,24 +330,81 @@ def _run_command(item: Combination, args: argparse.Namespace) -> list[str]:
             "--decomposition-implementation-warning-steps",
             args.decomposition_implementation_warning_steps,
         ),
-        ("--decomposition-implementation-hard-limit", args.decomposition_implementation_hard_limit),
-        ("--decomposition-verification-step-reserve", args.decomposition_verification_step_reserve),
+        (
+            "--decomposition-implementation-hard-limit",
+            args.decomposition_implementation_hard_limit,
+        ),
+        (
+            "--decomposition-verification-step-reserve",
+            args.decomposition_verification_step_reserve,
+        ),
         ("--decomposition-max-repair-cycles", args.decomposition_max_repair_cycles),
         ("--single-research-warning-steps", args.single_research_warning_steps),
         ("--single-research-hard-limit", args.single_research_hard_limit),
-        ("--single-post-plan-research-warning-steps", args.single_post_plan_research_warning_steps),
-        ("--single-post-plan-research-hard-limit", args.single_post_plan_research_hard_limit),
+        (
+            "--single-post-plan-research-warning-steps",
+            args.single_post_plan_research_warning_steps,
+        ),
+        (
+            "--single-post-plan-research-hard-limit",
+            args.single_post_plan_research_hard_limit,
+        ),
         ("--max-steps", args.max_steps),
         ("--max-iterations", args.max_iterations),
         ("--experiment-fingerprint", getattr(args, "experiment_fingerprint", None)),
         ("--task-set-id", getattr(args, "task_set_id", None)),
         ("--campaign-id", args.campaign),
+        ("--run-id", run_id),
+        ("--expected-docker-image-id", expected_docker_image_id),
+        (
+            "--expected-swe-env-image-id",
+            getattr(args, "expected_swe_env_image_id", None),
+        ),
+        (
+            "--expected-source-worktree-sha256",
+            (expected_task_input.get("source_repository") or {}).get("worktree_sha256"),
+        ),
+        ("--expected-task-sha256", expected_task_input.get("task_sha256")),
+        (
+            "--expected-hidden-tree-sha256",
+            expected_task_input.get("hidden_tree_sha256") or "absent",
+        ),
+        (
+            "--expected-collection-sha256",
+            getattr(args, "expected_collection_sha256", None),
+        ),
+        (
+            "--expected-harness-tree-sha256",
+            getattr(args, "expected_harness_tree_sha256", None),
+        ),
+        (
+            "--expected-policy-kernel-sha256",
+            getattr(args, "expected_policy_kernel_sha256", None),
+        ),
+        (
+            "--expected-pricing-sha256",
+            getattr(args, "expected_pricing_sha256", None),
+        ),
+        (
+            "--expected-sweagent-distribution-sha256",
+            getattr(args, "expected_sweagent_distribution_sha256", None),
+        ),
+        (
+            "--expected-swerex-distribution-sha256",
+            getattr(args, "expected_swerex_distribution_sha256", None),
+        ),
+        (
+            "--expected-swe-runtime-sha256",
+            getattr(args, "expected_swe_runtime_sha256", None),
+        ),
     ):
         if value not in (None, ""):
             cmd.extend([flag, str(value)])
     if item.agent.startswith("multi"):
         for role_model in args.role_model or []:
             cmd.extend(["--role-model", role_model])
+        for role_effort in args.role_reasoning_effort or []:
+            cmd.extend(["--role-reasoning-effort", role_effort])
     if args.single_research_guard is not None:
         cmd.append(
             "--single-research-guard"
@@ -363,14 +467,31 @@ def _record_key(row: dict) -> tuple[str, str, str]:
 
 def _session_records(session: str | None) -> list[dict]:
     session_id = session or "default"
-    return [row for row in _load_raw_runs() if row.get("session_id", "default") == session_id]
+    return [
+        row
+        for row in _load_raw_runs()
+        if row.get("session_id", "default") == session_id
+    ]
 
 
 def _effective_cost(row: dict) -> float | None:
+    if (
+        row.get("usage_accounting_complete") is False
+        or row.get("cost_source") == "unknown_incomplete_usage"
+    ):
+        return None
+    recorded = row.get("effective_cost_usd")
+    if recorded is not None:
+        return float(recorded)
     reported = row.get("provider_reported_cost_usd")
     reported_calls = row.get("provider_cost_calls")
     llm_calls = row.get("llm_calls")
-    if reported is not None and reported_calls and llm_calls and reported_calls >= llm_calls:
+    if (
+        reported is not None
+        and reported_calls
+        and llm_calls
+        and reported_calls >= llm_calls
+    ):
         return float(reported)
     estimated = row.get("cost_usd")
     return float(estimated) if estimated is not None else None
@@ -391,9 +512,20 @@ def _budget_records(args: argparse.Namespace) -> list[dict]:
 
 
 def _budget_cost(args: argparse.Namespace) -> float:
-    return sum(
-        cost for row in _budget_records(args) if (cost := _effective_cost(row)) is not None
-    )
+    rows = _budget_records(args)
+    costs = [_effective_cost(row) for row in rows]
+    unknown = [
+        str(row.get("run_id") or row.get("task_id") or "unknown")
+        for row, cost in zip(rows, costs, strict=False)
+        if cost is None
+    ]
+    if unknown and args.max_total_cost_usd is not None:
+        sample = ", ".join(unknown[:5])
+        raise SystemExit(
+            "Cannot enforce --max-total-cost-usd: effective cost is unknown "
+            f"for {len(unknown)} recorded run(s): {sample}."
+        )
+    return sum(cost for cost in costs if cost is not None)
 
 
 def _harness_snapshot() -> dict:
@@ -401,76 +533,107 @@ def _harness_snapshot() -> dict:
         ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=False
     ).stdout.strip()
     status = subprocess.run(
-        ["git", "status", "--porcelain", "--untracked-files=all", "--", *map(str, HARNESS_PATHS)],
+        [
+            "git",
+            "status",
+            "--porcelain",
+            "--untracked-files=all",
+            "--",
+            *map(str, HARNESS_PATHS),
+        ],
         capture_output=True,
         text=True,
         check=False,
     ).stdout.splitlines()
-    files: list[tuple[str, str]] = []
-    for candidate in HARNESS_PATHS:
-        paths = candidate.rglob("*") if candidate.is_dir() else [candidate]
-        for path in paths:
-            if path.is_file() and "__pycache__" not in path.parts:
-                files.append((path.as_posix(), hashlib.sha256(path.read_bytes()).hexdigest()))
-    tree_payload = "\n".join(f"{path}\0{digest}" for path, digest in sorted(files))
+    source_manifest = harness_source_manifest(ROOT)
     return {
         "git_commit": commit or None,
         "dirty": bool(status),
         "dirty_entries": status,
-        "tree_sha256": hashlib.sha256(tree_payload.encode()).hexdigest(),
-        "file_count": len(files),
+        **source_manifest,
     }
 
 
-def _hash_tree(path: Path) -> str | None:
-    if not path.exists():
-        return None
-    candidates = [path] if path.is_file() else list(path.rglob("*"))
-    rows: list[str] = []
-    for item in candidates:
-        if item.is_file() and "__pycache__" not in item.parts:
-            relative = item.name if path.is_file() else item.relative_to(path).as_posix()
-            rows.append(f"{relative}\0{hashlib.sha256(item.read_bytes()).hexdigest()}")
-    return hashlib.sha256("\n".join(sorted(rows)).encode()).hexdigest()
-
-
-def _task_input_snapshot(tasks: list[str], collection_path: Path) -> dict[str, dict]:
+def _task_input_snapshot(
+    tasks: list[str],
+    collection_path: Path,
+    default_docker_image: str,
+) -> dict[str, dict]:
     collection = load_collection(collection_path)
     result: dict[str, dict] = {}
+    image_cache: dict[str, dict] = {}
     for task_id in tasks:
         task = collection[task_id]
-        status = subprocess.run(
-            ["git", "-C", str(task.repo_path), "status", "--porcelain", "--untracked-files=all"],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        head = subprocess.run(
-            ["git", "-C", str(task.repo_path), "rev-parse", "HEAD"],
-            capture_output=True,
-            text=True,
-            check=False,
-        ).stdout.strip()
-        if status.returncode != 0 or not head:
-            raise SystemExit(f"cannot inspect pristine source repository for {task_id}")
-        if status.stdout.strip():
-            raise SystemExit(f"source repository is dirty for {task_id}: {task.repo_path}")
-        if task.base_commit and head != task.base_commit:
-            raise SystemExit(
-                f"source repository HEAD mismatch for {task_id}: {head} != {task.base_commit}"
+        try:
+            source = source_repository_identity(
+                task.repo_path,
+                declared_base_commit=task.base_commit or None,
+                require_clean=True,
+                # Visible test runners may be intentionally ignored by Git
+                # and preserved by workspace cleanup. Their bytes are part of
+                # the evaluator contract and must lock sweep resume too.
+                include_ignored_files=True,
             )
+        except (RuntimeError, ValueError) as exc:
+            raise SystemExit(f"invalid source repository for {task_id}: {exc}") from exc
+        image = task.docker_image or default_docker_image or "python:3.11-slim"
+        if image not in image_cache:
+            try:
+                image_cache[image] = docker_image_identity(
+                    image,
+                    require_resolved=True,
+                )
+            except RuntimeError as exc:
+                raise SystemExit(f"invalid Docker image for {task_id}: {exc}") from exc
+        hidden_tree = filesystem_tree_identity(task.hidden_tests_path)
         result[task_id] = {
-            "base_commit": head,
+            "base_commit": source["head_commit"],
+            "source_repository": source,
             "task_sha256": _sha256_file(task.task_file_path),
-            "hidden_tree_sha256": _hash_tree(task.hidden_tests_path),
-            "docker_image": task.docker_image or "python:3.11-slim",
+            "hidden_tree_sha256": (
+                hidden_tree["sha256"] if hidden_tree is not None else None
+            ),
+            "hidden_fixture_tree": hidden_tree,
+            "docker_image": image,
+            "docker_image_identity": image_cache[image],
             "visible_test_command": task.visible_test_command,
             "required_hidden_suites": [
                 {"name": suite.name, "command": suite.command}
                 for suite in task.required_hidden_suites()
             ],
+            "hidden_suites": [
+                {
+                    "name": suite.name,
+                    "command": suite.command,
+                    "required": suite.required,
+                    "reuse_visible_result": suite.reuse_visible_result,
+                }
+                for suite in task.hidden_suites()
+            ],
         }
     return result
+
+
+def _resolved_role_assignments(
+    config,
+    raw_values: list[str] | None,
+    *,
+    field_prefix: str,
+) -> dict[str, str | None]:
+    values = {
+        role: getattr(config, f"{field_prefix}_{role}", None) for role in ROLE_NAMES
+    }
+    for raw in raw_values or []:
+        if "=" not in raw:
+            raise SystemExit(f"Invalid role assignment {raw!r}; expected ROLE=VALUE.")
+        role, value = (part.strip() for part in raw.split("=", 1))
+        if role not in ROLE_NAMES or not value:
+            raise SystemExit(
+                f"Invalid role assignment {raw!r}; role must be one of "
+                f"{', '.join(ROLE_NAMES)}."
+            )
+        values[role] = value
+    return values
 
 
 def _snapshot_payload(
@@ -480,26 +643,114 @@ def _snapshot_payload(
     combos: list[Combination],
 ) -> dict:
     config = load_config(args.provider)
+    try:
+        apply_reasoning_overrides(
+            config,
+            effort=args.reasoning_effort,
+            max_tokens=args.reasoning_max_tokens,
+        )
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+    swe_execution_image_identity = None
+    external_swe_distributions = None
+    external_swe_runtime = None
+    if any(item.agent in {"swe-agent", "multi-swe"} for item in combos):
+        external_swe_runtime = external_swe_runtime_snapshot("sweagent")
+        external_swe_distributions = {
+            name: external_swe_runtime["dependency_closure"]["distributions"].get(
+                name
+            )
+            for name in ("sweagent", "swe-rex")
+        }
+        if not external_swe_runtime["verifiable"]:
+            closure = external_swe_runtime["dependency_closure"]
+            missing = closure.get("missing_distributions") or []
+            detail = f"; missing distributions: {', '.join(missing)}" if missing else ""
+            raise SystemExit(
+                "external SWE sweep requires a verifiable Python runtime and "
+                f"resolved dependency closure{detail}"
+            )
+        try:
+            ensure_managed_base_image()
+            swe_execution_image_identity = docker_image_identity(
+                MANAGED_BASE_IMAGE,
+                require_resolved=True,
+            )
+        except RuntimeError as exc:
+            raise SystemExit(
+                f"invalid managed SWE-agent execution image: {exc}"
+            ) from exc
     settings = {
         key: value
         for key, value in vars(args).items()
         if key not in {"resume", "plan_only", "allow_dirty_harness", "stop_on_error"}
     }
     payload = {
-        "schema_version": 1,
+        "schema_version": 2,
         "session_id": args.session or "default",
         "created_at": _utc_now(),
         "task_set": task_set.task_set_id if task_set else None,
         "task_set_path": str(task_set.path) if task_set else None,
         "task_set_sha256": task_set.sha256 if task_set else None,
+        "swe_execution_image_identity": swe_execution_image_identity,
+        "external_swe_distributions": external_swe_distributions,
+        "external_swe_runtime": external_swe_runtime,
         "previously_exercised": task_set.previously_exercised if task_set else [],
         "collection_sha256": _sha256_file(args.collection),
         "pricing_sha256": _sha256_file(PRICING_CSV),
         "tasks": tasks,
-        "task_inputs": _task_input_snapshot(tasks, args.collection),
+        "task_inputs": _task_input_snapshot(
+            tasks,
+            args.collection,
+            config.docker_image or "python:3.11-slim",
+        ),
         "ordered_combinations": [
-            {"task": item.task, "model": item.model_name, "agent": item.agent}
+            {
+                "task": item.task,
+                "model": item.model_name,
+                "agent": item.agent,
+                "model_route": {
+                    "provider": spec.provider_name,
+                    "base_url": spec.base_url,
+                    "context_window_tokens": spec.context_window_tokens,
+                    "max_output_tokens": spec.max_output_tokens,
+                    "model_context_window_capability_tokens": (
+                        spec.model_context_window_capability_tokens
+                    ),
+                    "model_max_output_tokens": spec.model_max_output_tokens,
+                    "reasoning_effort": spec.reasoning_effort,
+                    "reasoning_max_tokens": spec.reasoning_max_tokens,
+                    "effective_reasoning_effort": (
+                        spec.reasoning_effort
+                        if spec.reasoning_effort is not None
+                        else spec.provider_default_reasoning_effort
+                    ),
+                    "reasoning_configuration_source": (
+                        "explicit_max_tokens"
+                        if spec.reasoning_max_tokens is not None
+                        else "explicit_effort"
+                        if spec.reasoning_effort is not None
+                        else "provider_default_snapshot"
+                        if spec.provider_default_reasoning_effort is not None
+                        else "capability_unknown"
+                    ),
+                    "supported_reasoning_efforts": list(
+                        spec.supported_reasoning_efforts
+                    ),
+                    "provider_default_reasoning_effort": (
+                        spec.provider_default_reasoning_effort
+                    ),
+                    "reasoning_capability_known": (spec.reasoning_capability_known),
+                    "supports_reasoning_max_tokens": (
+                        spec.supports_reasoning_max_tokens
+                    ),
+                    "model_profile_version": spec.model_profile_version,
+                    "model_profile_source": spec.model_profile_source,
+                    "model_profile_fetched_at": spec.model_profile_fetched_at,
+                },
+            }
             for item in combos
+            for spec in [config.provider_spec(item.model_name)]
         ],
         "settings": _json_safe(settings),
         "resolved_config": {
@@ -507,7 +758,8 @@ def _snapshot_payload(
             "provider_default_model": config.provider_spec().model_name,
             "temperature": config.temperature,
             "max_tokens": config.max_tokens,
-            "reasoning_effort": args.reasoning_effort or config.reasoning_effort,
+            "reasoning_effort": config.reasoning_effort,
+            "reasoning_max_tokens": config.reasoning_max_tokens,
             "action_transport": (
                 args.action_transport or config.agent_action_transport
             ),
@@ -540,8 +792,7 @@ def _snapshot_payload(
                     or config.single_research_warning_steps
                 ),
                 "hard": (
-                    args.single_research_hard_limit
-                    or config.single_research_hard_limit
+                    args.single_research_hard_limit or config.single_research_hard_limit
                 ),
                 "post_plan_warning": (
                     args.single_post_plan_research_warning_steps
@@ -552,15 +803,62 @@ def _snapshot_payload(
                     or config.single_post_plan_research_hard_limit
                 ),
             },
-            "role_models": {
-                role: getattr(config, f"role_model_{role}", None)
-                for role in ("orchestrator", "planner", "developer", "tester", "reviewer")
-            },
-            "developer_escalation_model": (
-                args.developer_escalation_model
-                or config.developer_escalation_model
+            "role_models": _resolved_role_assignments(
+                config,
+                args.role_model,
+                field_prefix="role_model",
             ),
+            "role_reasoning_efforts": _resolved_role_assignments(
+                config,
+                args.role_reasoning_effort,
+                field_prefix="role_reasoning_effort",
+            ),
+            "developer_escalation_model": (
+                args.developer_escalation_model or config.developer_escalation_model
+            ),
+            "developer_escalation_reasoning_effort": (
+                args.developer_escalation_reasoning_effort
+                or config.developer_escalation_reasoning_effort
+            ),
+            "developer_escalate_after_no_edit_episodes": (
+                args.developer_escalate_after_no_edit_episodes
+                or config.developer_escalate_after_no_edit_episodes
+            ),
+            "developer_escalate_after_failed_tests": (
+                args.developer_escalate_after_failed_tests
+                or config.developer_escalate_after_failed_tests
+            ),
+            "max_cost_usd": (
+                args.max_cost_usd
+                if args.max_cost_usd is not None
+                else config.max_cost_usd
+            ),
+            "docker_image": config.docker_image,
+            "decomposition": {
+                "max_subtasks": (
+                    args.max_subtasks or config.single_decomposition_max_subtasks
+                ),
+                "implementation_warning_steps": (
+                    args.decomposition_implementation_warning_steps
+                    or config.single_decomposition_implementation_warning_steps
+                ),
+                "implementation_hard_limit": (
+                    args.decomposition_implementation_hard_limit
+                    or config.single_decomposition_implementation_hard_limit
+                ),
+                "verification_step_reserve": (
+                    args.decomposition_verification_step_reserve
+                    if args.decomposition_verification_step_reserve is not None
+                    else config.single_decomposition_verification_step_reserve
+                ),
+                "max_repair_cycles": (
+                    args.decomposition_max_repair_cycles
+                    if args.decomposition_max_repair_cycles is not None
+                    else config.single_decomposition_max_repair_cycles
+                ),
+            },
         },
+        "reproducibility_artifacts": sweep_reproducibility_artifacts(),
         "harness": _harness_snapshot(),
     }
     comparable = {key: value for key, value in payload.items() if key != "created_at"}
@@ -591,7 +889,8 @@ def _prepare_snapshot(args: argparse.Namespace, payload: dict) -> None:
     existing_runs = _session_records(args.session)
     if (previous or existing_runs) and not args.resume and not args.plan_only:
         raise SystemExit(
-            f"session {args.session or 'default'!r} already exists; use --resume or a new session"
+            f"session {args.session or 'default'!r} already exists; "
+            "use --resume or a new session"
         )
     if payload["harness"]["dirty"] and not args.allow_dirty_harness:
         message = (
@@ -603,7 +902,9 @@ def _prepare_snapshot(args: argparse.Namespace, payload: dict) -> None:
         print(f"WARNING: {message}", flush=True)
     if not args.plan_only and not previous:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+        path.write_text(
+            json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
 
 
 def _classify_missing_record(output: str) -> str:
@@ -620,7 +921,10 @@ def _classify_missing_record(output: str) -> str:
         )
     ):
         return "provider_error"
-    if any(marker in lower for marker in ("evaluation", "hidden tests", "test oracle", "junit")):
+    if any(
+        marker in lower
+        for marker in ("evaluation", "hidden tests", "test oracle", "junit")
+    ):
         return "evaluation_error"
     if any(
         marker in lower
@@ -638,9 +942,7 @@ def _classify_missing_record(output: str) -> str:
 
 def _append_attempt(payload: dict) -> None:
     path = DEFAULT_RESULTS_DIR / "sweep_attempts.jsonl"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8") as handle:
-        handle.write(json.dumps(payload, ensure_ascii=False) + "\n")
+    _append_jsonl_record(path, payload)
 
 
 def _archive_and_cleanup(record: dict, args: argparse.Namespace) -> None:
@@ -654,12 +956,16 @@ def _archive_and_cleanup(record: dict, args: argparse.Namespace) -> None:
         archive_dir.mkdir(parents=True, exist_ok=True)
         target = archive_dir / f"{record['run_id']}.patch"
         shutil.copy2(patch, target)
-        if hashlib.sha256(patch.read_bytes()).digest() != hashlib.sha256(
-            target.read_bytes()
-        ).digest():
-            raise RuntimeError(f"patch archive verification failed for {record['run_id']}")
-        with (archive_dir / "index.jsonl").open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps({
+        if (
+            hashlib.sha256(patch.read_bytes()).digest()
+            != hashlib.sha256(target.read_bytes()).digest()
+        ):
+            raise RuntimeError(
+                f"patch archive verification failed for {record['run_id']}"
+            )
+        _append_jsonl_record(
+            archive_dir / "index.jsonl",
+            {
                 "run_id": record["run_id"],
                 "task_id": record.get("task_id"),
                 "session_id": record.get("session_id"),
@@ -667,7 +973,8 @@ def _archive_and_cleanup(record: dict, args: argparse.Namespace) -> None:
                 "archive": str(target),
                 "sha256": hashlib.sha256(target.read_bytes()).hexdigest(),
                 "bytes": target.stat().st_size,
-            }, ensure_ascii=False) + "\n")
+            },
+        )
     if not args.keep_workspaces and task_workspace.is_dir():
         root = Path("experiments/workspaces").resolve()
         resolved = task_workspace.resolve()
@@ -675,28 +982,37 @@ def _archive_and_cleanup(record: dict, args: argparse.Namespace) -> None:
             shutil.rmtree(resolved)
 
 
-def _remove_failed_workspaces(task: str, before: set[Path], args: argparse.Namespace) -> None:
+def _remove_failed_workspace(
+    task: str,
+    run_id: str,
+    args: argparse.Namespace,
+    *,
+    root: Path = Path("experiments/workspaces"),
+) -> None:
     if args.keep_workspaces:
         return
-    root = Path("experiments/workspaces")
-    after = set(root.glob(f"{task}-*")) if root.is_dir() else set()
-    for path in after - before:
-        if path.resolve().is_relative_to(root.resolve()):
-            shutil.rmtree(path, ignore_errors=True)
+    path = root / f"{task}-{run_id}"
+    if path.is_dir() and path.resolve().is_relative_to(root.resolve()):
+        shutil.rmtree(path, ignore_errors=True)
 
 
-def _run_once(index: int, total: int, item: Combination, args: argparse.Namespace) -> AttemptResult:
-    before_ids = {str(row.get("run_id")) for row in _load_raw_runs()}
-    workspace_root = Path("experiments/workspaces")
-    before_workspaces = (
-        set(workspace_root.glob(f"{item.task}-*"))
-        if workspace_root.is_dir()
-        else set()
-    )
+def _run_once(
+    index: int,
+    total: int,
+    item: Combination,
+    args: argparse.Namespace,
+) -> AttemptResult:
+    run_id = str(uuid.uuid4())
+    expected_image_id = getattr(args, "expected_docker_image_ids", {}).get(item.task)
     header = f"[{index}/{total}] {item.agent} · {item.model_name} · {item.task}"
     print(f"\n===== {header} =====", flush=True)
     process = subprocess.Popen(
-        _run_command(item, args),
+        _run_command(
+            item,
+            args,
+            run_id=run_id,
+            expected_docker_image_id=expected_image_id,
+        ),
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
@@ -710,26 +1026,27 @@ def _run_once(index: int, total: int, item: Combination, args: argparse.Namespac
         if len(output) > 400:
             output = output[-400:]
     returncode = process.wait()
-    new_rows = [row for row in _load_raw_runs() if str(row.get("run_id")) not in before_ids]
-    matches = [
-        row
-        for row in new_rows
-        if row.get("session_id", "default") == (args.session or "default")
-        and _record_key(row) == _combo_key(item)
-    ]
+    matches = [row for row in _load_raw_runs() if str(row.get("run_id")) == run_id]
     record = matches[-1] if matches else None
     tail = "".join(output)[-6000:]
-    if record is not None:
+    if record is not None and record.get("run_record_complete") is True:
         classification = "task_success" if record.get("task_success") else "task_failed"
         _archive_and_cleanup(record, args)
+    elif record is not None:
+        # Kernel-v2 writes the scientific row only after every fallible
+        # post-processing step and marks it explicitly. A stale/legacy partial
+        # row for this freshly generated run id must never suppress an
+        # infrastructure retry or be archived as a completed observation.
+        classification = "postprocessing_error"
+        record = None
+        _remove_failed_workspace(item.task, run_id, args)
     else:
         classification = _classify_missing_record(tail)
-        _remove_failed_workspaces(item.task, before_workspaces, args)
+        _remove_failed_workspace(item.task, run_id, args)
     return AttemptResult(classification, returncode, record, tail)
 
 
-def main() -> int:
-    args = parse_args()
+def _main_with_args(args: argparse.Namespace) -> int:
     if args.task_groups and not args.task_set:
         raise SystemExit("--task-groups requires --task-set")
     if args.matrix and not args.task_set:
@@ -742,7 +1059,8 @@ def main() -> int:
         raise SystemExit("versioned task-set sweeps require an explicit --session")
     if args.task_set and args.max_total_cost_usd is not None and not args.campaign:
         raise SystemExit(
-            "final task-set budget guards require --campaign so the limit spans all block sessions"
+            "final task-set budget guards require --campaign so the limit spans "
+            "all block sessions"
         )
     if args.concurrency != 1 and (
         args.task_set or args.resume or args.max_total_cost_usd is not None
@@ -765,6 +1083,29 @@ def main() -> int:
     snapshot = _snapshot_payload(args, tasks, task_set, combos)
     args.experiment_fingerprint = snapshot["fingerprint"]
     args.task_set_id = task_set.task_set_id if task_set else None
+    args.expected_docker_image_ids = {
+        task_id: item["docker_image_identity"]["image_id"]
+        for task_id, item in snapshot["task_inputs"].items()
+    }
+    swe_image = snapshot.get("swe_execution_image_identity") or {}
+    args.expected_swe_env_image_id = swe_image.get("image_id")
+    args.expected_task_inputs = snapshot["task_inputs"]
+    args.expected_collection_sha256 = snapshot["collection_sha256"]
+    args.expected_harness_tree_sha256 = snapshot["harness"]["tree_sha256"]
+    args.expected_policy_kernel_sha256 = snapshot["reproducibility_artifacts"][
+        "policy_kernel"
+    ]["sources"]["aggregate_sha256"]
+    args.expected_pricing_sha256 = snapshot["pricing_sha256"]
+    swe_distributions = snapshot.get("external_swe_distributions") or {}
+    args.expected_sweagent_distribution_sha256 = (
+        swe_distributions.get("sweagent") or {}
+    ).get("aggregate_sha256")
+    args.expected_swerex_distribution_sha256 = (
+        swe_distributions.get("swe-rex") or {}
+    ).get("aggregate_sha256")
+    args.expected_swe_runtime_sha256 = (
+        snapshot.get("external_swe_runtime") or {}
+    ).get("aggregate_sha256")
     _prepare_snapshot(args, snapshot)
 
     print(
@@ -793,18 +1134,20 @@ def main() -> int:
         result: AttemptResult | None = None
         for attempt_number in range(args.infrastructure_retries + 1):
             result = _run_once(index, len(combos), item, args)
-            _append_attempt({
-                "finished_at": _utc_now(),
-                "session_id": args.session or "default",
-                "task_id": item.task,
-                "model": item.model_name,
-                "agent_mode": item.agent,
-                "attempt": attempt_number + 1,
-                "classification": result.classification,
-                "returncode": result.returncode,
-                "run_id": result.record.get("run_id") if result.record else None,
-                "output_tail": result.output_tail if result.record is None else "",
-            })
+            _append_attempt(
+                {
+                    "finished_at": _utc_now(),
+                    "session_id": args.session or "default",
+                    "task_id": item.task,
+                    "model": item.model_name,
+                    "agent_mode": item.agent,
+                    "attempt": attempt_number + 1,
+                    "classification": result.classification,
+                    "returncode": result.returncode,
+                    "run_id": result.record.get("run_id") if result.record else None,
+                    "output_tail": result.output_tail if result.record is None else "",
+                }
+            )
             if result.record is not None:
                 break
             if attempt_number < args.infrastructure_retries:
@@ -830,7 +1173,8 @@ def main() -> int:
         print(
             "\nExploratory parallel sweep finished: "
             f"success={successes}, task_failed={task_failures}, "
-            f"infrastructure_failed={infrastructure_failures}, recorded_cost=${spent:.4f}.",
+            f"infrastructure_failed={infrastructure_failures}, "
+            f"recorded_cost=${spent:.4f}.",
             flush=True,
         )
         return 2 if infrastructure_failures else 0
@@ -838,13 +1182,17 @@ def main() -> int:
     for index, item in enumerate(combos, 1):
         if _combo_key(item) in completed:
             skipped += 1
-            print(f"[{index}/{len(combos)}] resume skip · {item.agent} · {item.task}", flush=True)
+            print(
+                f"[{index}/{len(combos)}] resume skip · {item.agent} · {item.task}",
+                flush=True,
+            )
             continue
         if args.max_total_cost_usd is not None:
             spent = _budget_cost(args)
             if spent >= args.max_total_cost_usd:
                 print(
-                    f"Global cost guard reached: ${spent:.4f} >= ${args.max_total_cost_usd:.4f}.",
+                    f"Global cost guard reached: ${spent:.4f} >= "
+                    f"${args.max_total_cost_usd:.4f}.",
                     flush=True,
                 )
                 aborted = True
@@ -870,6 +1218,31 @@ def main() -> int:
         flush=True,
     )
     return 2 if aborted or infrastructure_failures else 0
+
+
+def _sweep_lease_paths(args: argparse.Namespace) -> list[Path]:
+    scopes = [f"session-{args.session or 'default'}"]
+    if args.campaign:
+        scopes.append(f"campaign-{args.campaign}")
+    paths: list[Path] = []
+    for scope in scopes:
+        safe = "".join(
+            char if char.isalnum() or char in "-_" else "_" for char in scope
+        )
+        paths.append(DEFAULT_RESULTS_DIR / "leases" / safe)
+    # Global ordering prevents a deadlock between campaign/session contenders.
+    return sorted(paths, key=lambda path: path.as_posix())
+
+
+def main() -> int:
+    args = parse_args()
+    # One process owns selection, resume claims, and global budget accounting
+    # for the entire session/campaign. JSONL's per-append lock protects bytes;
+    # this longer lease prevents duplicate combinations and budget races.
+    with ExitStack() as stack:
+        for path in _sweep_lease_paths(args):
+            stack.enter_context(_advisory_jsonl_lock(path))
+        return _main_with_args(args)
 
 
 if __name__ == "__main__":

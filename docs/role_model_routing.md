@@ -13,6 +13,45 @@ python -m src.benchmark.runner \
 The run record stores a `model_policy` with `type: shared` and the resolved
 model for every role.
 
+## Reasoning Policy
+
+Reasoning is homogeneous by default too. `--reasoning-effort` accepts
+`none`, `minimal`, `low`, `medium`, `high`, `xhigh`, or `max` and is applied to
+the primary model and every role route:
+
+```bash
+python -m src.benchmark.runner \
+  --task-id sqlparse_pr_768 \
+  --agent multi-graph \
+  --model openai/gpt-5.6-terra-pro \
+  --reasoning-effort high
+```
+
+`--reasoning-max-tokens N` is a gated alternative for a route whose frozen
+profile explicitly verifies that the provider preserves an exact hidden-
+reasoning budget end to end. Merely accepting or translating the field is not
+enough. It is mutually exclusive with effort and may not exceed the configured
+completion budget. The bundled v1 profiles do not currently assert this
+guarantee, so comparable runs should use effort.
+
+Known routes are checked against the dated model-capability registry. Unknown
+routes remain usable with effort controls and are marked capability-unknown in
+`model_routes`, but exact token budgets fail closed for unknown and local
+routes. Provider defaults, requested controls, and the registry version are
+recorded in the run fingerprint.
+
+Role-specific effort is an explicit heterogeneous ablation:
+
+```bash
+--role-reasoning-effort planner=low \
+--role-reasoning-effort developer=high \
+--developer-escalation-reasoning-effort xhigh
+```
+
+The escalation effort requires an escalation model. Do not use role-specific
+reasoning in a primary homogeneous architecture comparison; if it is used,
+report it as a separate model-policy condition.
+
 ## Fixed Role Models
 
 Use repeatable `--role-model ROLE=MODEL` flags. Unspecified roles continue to

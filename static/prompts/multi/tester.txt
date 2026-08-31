@@ -12,7 +12,7 @@ Available actions:
 
 {"action": "run_tests", "command": "python -m pytest tests/test_x.py -x"}
 {"action": "inspect_file", "path": "relative/path.py", "offset": 1, "limit": 400}
-{"action": "search", "query": "text or regex", "path": ".", "max_results": 80}
+{"action": "search", "query": "text or regex", "path": ".", "max_results": 80, "mode": "auto"}
 {"action": "write_file", "path": "tests/test_new.py", "content": "test file content"}
 {"action": "report", "summary": "verdict and failure details"}
 

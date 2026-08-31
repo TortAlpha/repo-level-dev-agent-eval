@@ -34,7 +34,7 @@ class SingleAgent(BaseModel):
     # Compactor working budget; None = the full window (see Config).
     context_budget_tokens: int | None = Field(default=None, gt=0)
     max_response_tokens: int = Field(default=4096, gt=0)
-    compaction_mode: CompactionMode = "summarize"
+    compaction_mode: CompactionMode = "checkpoint"
     max_repeated_actions: int = Field(default=3, gt=1)
     max_parse_failures: int = Field(default=5, gt=0)
     # Strong-baseline progress guard. Multi-agent roles disable this because
@@ -94,11 +94,23 @@ class SingleAgent(BaseModel):
             return None
         return sum(cost for cost in costs if cost is not None)
 
+    def effective_cost_usd(self) -> float | None:
+        """Exact provider billing when complete, conservative estimate otherwise."""
+        costs = [model.effective_cost_usd for model in self.usage_models()]
+        if any(cost is None for cost in costs):
+            return None
+        return sum(cost for cost in costs if cost is not None)
+
     def _enforce_cost_limit(self, state: State) -> State:
         if self.max_cost_usd is None or state.is_terminal:
             return state
-        cost = self.estimated_cost_usd()
-        if cost is None or cost < self.max_cost_usd:
+        cost = self.effective_cost_usd()
+        if cost is None:
+            raise RuntimeError(
+                "Cannot enforce max_cost_usd because model usage/cost "
+                "accounting is incomplete."
+            )
+        if cost < self.max_cost_usd:
             return state
         reason = f"Cost limit reached: ${cost:.4f} >= ${self.max_cost_usd:.4f}."
         return state.mark_handoff(reason).with_context(kind="cost_limit", text=reason)
@@ -280,6 +292,12 @@ class SingleAgent(BaseModel):
                         generated.action_json,
                         tool_call_id=generated.tool_call_id,
                         tool_name=generated.tool_name,
+                        provider_assistant_message=(
+                            generated.provider_assistant_message
+                        ),
+                        provider_reasoning_details=(
+                            generated.provider_reasoning_details
+                        ),
                     ),
                     previous_action,
                 )
@@ -312,16 +330,31 @@ class SingleAgent(BaseModel):
         action_json = generated.action_json
         tool_call_id = generated.tool_call_id or None
         tool_name = generated.tool_name or None
+        provider_assistant_message = generated.provider_assistant_message
+        provider_reasoning_details = generated.provider_reasoning_details
         if self.research_guard_enabled and isinstance(
             action, (InspectFileAction, ListDirectoryAction, SearchAction)
         ):
             _, _, hard = self._research_limits(state)
             if state.research_streak >= hard:
-                return self._reject_excess_research(state), action
+                return (
+                    self._reject_excess_research(state).with_last_action_json(
+                        action_json,
+                        tool_call_id,
+                        tool_name,
+                        provider_assistant_message,
+                        provider_reasoning_details,
+                    ),
+                    action,
+                )
         if same_action(action, previous_action):
             return (
                 self._reject_repeat(state, action).with_last_action_json(
-                    action_json, tool_call_id, tool_name
+                    action_json,
+                    tool_call_id,
+                    tool_name,
+                    provider_assistant_message,
+                    provider_reasoning_details,
                 ),
                 action,
             )
@@ -335,7 +368,13 @@ class SingleAgent(BaseModel):
             )
             return (
                 state.with_context(kind=action.action, text=text)
-                .with_last_action_json(action_json, tool_call_id, tool_name)
+                .with_last_action_json(
+                    action_json,
+                    tool_call_id,
+                    tool_name,
+                    provider_assistant_message,
+                    provider_reasoning_details,
+                )
                 .advance_step(),
                 action,
             )
@@ -343,7 +382,11 @@ class SingleAgent(BaseModel):
         try:
             return (
                 executor.execute(state, action).with_last_action_json(
-                    action_json, tool_call_id, tool_name
+                    action_json,
+                    tool_call_id,
+                    tool_name,
+                    provider_assistant_message,
+                    provider_reasoning_details,
                 ),
                 action,
             )
@@ -351,7 +394,13 @@ class SingleAgent(BaseModel):
             return (
                 state.with_error(str(exc))
                 .with_context(kind="policy_rejection", text=f"error: {exc}")
-                .with_last_action_json(action_json, tool_call_id, tool_name)
+                .with_last_action_json(
+                    action_json,
+                    tool_call_id,
+                    tool_name,
+                    provider_assistant_message,
+                    provider_reasoning_details,
+                )
                 .advance_step(),
                 action,
             )
@@ -364,6 +413,8 @@ class SingleAgent(BaseModel):
         *,
         tool_call_id: str | None = None,
         tool_name: str | None = None,
+        provider_assistant_message: dict | None = None,
+        provider_reasoning_details: dict | list | None = None,
     ) -> State:
         """Handle model responses that are not executable JSON actions.
 
@@ -383,7 +434,13 @@ class SingleAgent(BaseModel):
             return (
                 state.mark_handoff(reason)
                 .with_context(kind=kind, text=reason)
-                .with_last_action_json(response, tool_call_id, tool_name)
+                .with_last_action_json(
+                    response,
+                    tool_call_id,
+                    tool_name,
+                    provider_assistant_message,
+                    provider_reasoning_details,
+                )
             )
 
         if self.resolved_action_transport == "tools":
@@ -396,7 +453,13 @@ class SingleAgent(BaseModel):
         return (
             state.with_error(str(error))
             .with_context(kind=kind, text=guidance)
-            .with_last_action_json(response, tool_call_id, tool_name)
+            .with_last_action_json(
+                response,
+                tool_call_id,
+                tool_name,
+                provider_assistant_message,
+                provider_reasoning_details,
+            )
             .advance_step()
         )
 

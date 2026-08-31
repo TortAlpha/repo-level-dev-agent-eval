@@ -12,7 +12,7 @@ Available actions:
 
 {"action": "list_dir", "path": "."}
 {"action": "inspect_file", "path": "relative/path.py", "offset": 1, "limit": 400}
-{"action": "search", "query": "text or regex", "path": ".", "max_results": 80}
+{"action": "search", "query": "text or regex", "path": ".", "max_results": 80, "mode": "auto"}
 {"action": "set_plan", "plan": "the implementation plan"}
 {"action": "report", "summary": "handoff note for the developer"}
 

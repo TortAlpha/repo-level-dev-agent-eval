@@ -17,6 +17,7 @@ from pathlib import Path
 from urllib.parse import unquote, urlparse
 from urllib.request import urlopen
 
+from ..config import MODEL_PROFILES, REASONING_EFFORTS
 from ..metrics.compute import compute_metrics, group_by
 from ..metrics.difficulty import attach_difficulty, empirical_difficulty
 from ..metrics.pricing import estimate_cost
@@ -54,7 +55,6 @@ AGENTS = (
     "multi-swe",
 )
 ACTION_TRANSPORTS = ("text_json", "tools", "auto")
-REASONING_EFFORTS = ("low", "medium", "high")
 # Suggested models for the launcher (free text still allowed).
 MODEL_PRESETS = (
     "openai/gpt-4o-mini",
@@ -369,6 +369,11 @@ class JobStore:
                 "agent": clean_optional_str(payload.get("agent")),
                 "action_transport": clean_optional_str(payload.get("action_transport")),
                 "reasoning_effort": clean_optional_str(payload.get("reasoning_effort")),
+                "reasoning_max_tokens": (
+                    int(payload["reasoning_max_tokens"])
+                    if payload.get("reasoning_max_tokens") not in (None, "")
+                    else None
+                ),
                 "session": clean_optional_str(payload.get("session")),
                 "dry_run": bool(payload.get("dry_run", False)),
             },
@@ -395,6 +400,11 @@ class JobStore:
                 ),
                 "action_transport": clean_optional_str(payload.get("action_transport")),
                 "reasoning_effort": clean_optional_str(payload.get("reasoning_effort")),
+                "reasoning_max_tokens": (
+                    int(payload["reasoning_max_tokens"])
+                    if payload.get("reasoning_max_tokens") not in (None, "")
+                    else None
+                ),
                 "session": clean_optional_str(payload.get("session")),
                 "dry_run": False,
             },
@@ -540,14 +550,7 @@ class JobStore:
                 )
             command.extend(["--action-transport", transport])
 
-        effort = clean_optional_str(payload.get("reasoning_effort"))
-        if effort:
-            if effort not in REASONING_EFFORTS:
-                raise ApiError(
-                    f"unsupported reasoning_effort: {effort}",
-                    HTTPStatus.BAD_REQUEST,
-                )
-            command.extend(["--reasoning-effort", effort])
+        append_reasoning_flags(command, payload, provider)
 
         for key, flag, lower, upper in (
             ("max_steps", "--max-steps", 1, 200),
@@ -580,9 +583,13 @@ class JobStore:
             agents = agents or "single"
             for agent in _split_csv(agents):
                 if agent not in AGENTS:
-                    raise ApiError(f"unsupported agent: {agent}", HTTPStatus.BAD_REQUEST)
+                    raise ApiError(
+                        f"unsupported agent: {agent}", HTTPStatus.BAD_REQUEST
+                    )
         task_set = clean_optional_str(payload.get("task_set"))
-        tasks = clean_optional_str(payload.get("tasks")) or (None if task_set else "all")
+        tasks = clean_optional_str(payload.get("tasks")) or (
+            None if task_set else "all"
+        )
         if tasks and tasks != "all":
             known = {task["task_id"] for task in load_tasks(self.root)}
             for task_id in _split_csv(tasks):
@@ -627,15 +634,8 @@ class JobStore:
                 )
             command.extend(["--action-transport", transport])
 
-        effort = clean_optional_str(payload.get("reasoning_effort"))
-        if effort:
-            if effort not in REASONING_EFFORTS:
-                raise ApiError(
-                    f"unsupported reasoning_effort: {effort}",
-                    HTTPStatus.BAD_REQUEST,
-                )
-            command.extend(["--reasoning-effort", effort])
         append_model_policy_flags(command, payload)
+        append_reasoning_flags(command, payload, provider)
         for key, flag, lower, upper in (
             ("max_steps", "--max-steps", 1, 200),
             ("max_iterations", "--max-iterations", 1, 50),
@@ -659,10 +659,12 @@ class JobStore:
                 command.append(flag)
         max_total_cost = payload.get("max_total_cost_usd")
         if max_total_cost not in (None, ""):
-            command.extend([
-                "--max-total-cost-usd",
-                str(clean_float(max_total_cost, "max_total_cost_usd", 0.0)),
-            ])
+            command.extend(
+                [
+                    "--max-total-cost-usd",
+                    str(clean_float(max_total_cost, "max_total_cost_usd", 0.0)),
+                ]
+            )
         return command
 
     def _job_files(self) -> list[Path]:
@@ -699,37 +701,165 @@ class JobStore:
         return job
 
 
-# OpenRouter catalog of models whose endpoints accept the `reasoning` config.
-# Cached because the launcher polls meta; None means "catalog unavailable",
-# which the frontend treats as unknown (no restrictions). OpenRouter silently
-# ignores `reasoning` for unsupported models, so this is UX, not safety.
-_REASONING_MODELS_TTL_S = 6 * 3600
-_reasoning_models_cache: tuple[float, list[str] | None] = (0.0, None)
-_reasoning_models_lock = threading.Lock()
+# OpenRouter's catalog is the launcher's capability snapshot.  It is used for
+# both UI guidance and server-side validation so the console never knowingly
+# sends an effort that the selected route does not support.  A reviewed local
+# profile snapshot keeps known benchmark models useful while offline; because
+# that fallback is intentionally incomplete, absent routes remain "unknown"
+# rather than being classified as unsupported.
+_REASONING_CATALOG_TTL_S = 6 * 3600
+_reasoning_catalog_cache: tuple[float, dict[str, dict] | None] = (0.0, None)
+_reasoning_catalog_lock = threading.Lock()
 
 
-def reasoning_models() -> list[str] | None:
-    global _reasoning_models_cache
-    with _reasoning_models_lock:
-        fetched_at, cached = _reasoning_models_cache
-        if cached is not None and time.time() - fetched_at < _REASONING_MODELS_TTL_S:
-            return cached
+def parse_reasoning_catalog(payload: object) -> dict[str, dict]:
+    """Normalize the public OpenRouter catalog into a stable console schema."""
+    rows = payload.get("data", []) if isinstance(payload, dict) else []
+    if not isinstance(rows, list):
+        return {}
+    capabilities: dict[str, dict] = {}
+    for row in rows:
+        if not isinstance(row, dict) or not isinstance(row.get("id"), str):
+            continue
+        model_id = row["id"].strip()
+        if not model_id:
+            continue
+        parameters = {
+            str(value)
+            for value in (row.get("supported_parameters") or [])
+            if isinstance(value, str)
+        }
+        reasoning = row.get("reasoning")
+        reasoning = reasoning if isinstance(reasoning, dict) else {}
+        raw_efforts = reasoning.get("supported_efforts")
+        supported_efforts = (
+            [effort for effort in REASONING_EFFORTS if effort in raw_efforts]
+            if isinstance(raw_efforts, list)
+            else None
+        )
+        supports_effort = "reasoning_effort" in parameters or bool(supported_efforts)
+        supports_reasoning = bool(
+            reasoning or {"reasoning", "reasoning_effort"}.intersection(parameters)
+        )
+        default_effort = reasoning.get("default_effort")
+        if default_effort not in REASONING_EFFORTS:
+            default_effort = None
+        mandatory = reasoning.get("mandatory")
+        if not isinstance(mandatory, bool):
+            mandatory = None
+        supports_max_tokens = reasoning.get("supports_max_tokens")
+        if not isinstance(supports_max_tokens, bool):
+            supports_max_tokens = None
+        default_enabled = reasoning.get("default_enabled")
+        if not isinstance(default_enabled, bool):
+            default_enabled = None
+        capabilities[model_id] = {
+            "supports_reasoning": supports_reasoning,
+            "supports_effort": supports_effort,
+            "supported_efforts": supported_efforts,
+            "default_effort": default_effort,
+            "mandatory": mandatory,
+            "default_enabled": default_enabled,
+            "supports_max_tokens": supports_max_tokens,
+        }
+    return capabilities
+
+
+def _profile_reasoning_capabilities() -> dict[str, dict]:
+    """Return the incomplete, reviewed fallback shipped with the harness."""
+    result: dict[str, dict] = {}
+    for model_id, profile in MODEL_PROFILES.items():
+        efforts = list(profile.supported_reasoning_efforts)
+        if not efforts and profile.supports_reasoning_max_tokens is None:
+            continue
+        result[model_id] = {
+            "supports_reasoning": bool(
+                efforts or profile.supports_reasoning_max_tokens
+            ),
+            "supports_effort": bool(efforts),
+            "supported_efforts": efforts or None,
+            "default_effort": profile.default_reasoning_effort,
+            "mandatory": None,
+            "default_enabled": None,
+            "supports_max_tokens": profile.supports_reasoning_max_tokens,
+        }
+    return result
+
+
+def _apply_reviewed_exact_token_capabilities(
+    capabilities: dict[str, dict],
+) -> dict[str, dict]:
+    """Expose exact budgets only when the frozen registry verifies them.
+
+    The live catalog may say that a route accepts ``reasoning.max_tokens``.
+    That alone does not establish that the routed backend preserves the value
+    exactly instead of translating it to an effort tier.  A live contradiction
+    still wins, but a live assertion is only publishable after review and a
+    fingerprinted ``ModelProfile`` entry.
+    """
+    reviewed: dict[str, dict] = {}
+    for model_id, capability in capabilities.items():
+        normalized = dict(capability)
+        advertised = capability.get("supports_max_tokens")
+        profile = MODEL_PROFILES.get(model_id)
+        frozen = profile.supports_reasoning_max_tokens if profile else None
+        if advertised is False or frozen is False:
+            normalized["supports_max_tokens"] = False
+        elif advertised is True and frozen is True:
+            normalized["supports_max_tokens"] = True
+        else:
+            normalized["supports_max_tokens"] = None
+        reviewed[model_id] = normalized
+    return reviewed
+
+
+def reasoning_catalog() -> dict:
+    """Return capabilities plus whether absence is authoritative."""
+    global _reasoning_catalog_cache
+    with _reasoning_catalog_lock:
+        fetched_at, cached = _reasoning_catalog_cache
+        if cached is not None and time.time() - fetched_at < _REASONING_CATALOG_TTL_S:
+            return {"source": "openrouter", "complete": True, "models": cached}
         try:
             with urlopen("https://openrouter.ai/api/v1/models", timeout=5) as response:
-                catalog = json.load(response).get("data", [])
-            models = sorted(
-                entry["id"]
-                for entry in catalog
-                if "reasoning" in (entry.get("supported_parameters") or [])
-            )
-            _reasoning_models_cache = (time.time(), models)
-            return models
+                capabilities = _apply_reviewed_exact_token_capabilities(
+                    parse_reasoning_catalog(json.load(response))
+                )
+            if not capabilities:
+                raise ValueError("OpenRouter model catalog was empty")
+            _reasoning_catalog_cache = (time.time(), capabilities)
+            return {
+                "source": "openrouter",
+                "complete": True,
+                "models": capabilities,
+            }
         except Exception:  # noqa: BLE001 - offline console keeps working
-            return cached
+            if cached is not None:
+                return {
+                    "source": "openrouter_cache",
+                    "complete": True,
+                    "models": cached,
+                }
+            return {
+                "source": "model_profiles",
+                "complete": False,
+                "models": _profile_reasoning_capabilities(),
+            }
+
+
+def reasoning_models() -> list[str]:
+    """Legacy metadata retained for older console bundles."""
+    catalog = reasoning_catalog()
+    return sorted(
+        model_id
+        for model_id, capability in catalog["models"].items()
+        if capability.get("supports_reasoning")
+    )
 
 
 def build_meta(root: Path) -> dict:
     """Launcher metadata: agents, providers, model presets, and known sessions."""
+    catalog = reasoning_catalog()
     records = load_records(root)
     sessions: dict[str, dict] = {}
     for record in records:
@@ -748,7 +878,14 @@ def build_meta(root: Path) -> dict:
         "agents": list(AGENTS),
         "action_transports": list(ACTION_TRANSPORTS),
         "reasoning_efforts": list(REASONING_EFFORTS),
-        "reasoning_models": reasoning_models(),
+        "reasoning_models": sorted(
+            model_id
+            for model_id, capability in catalog["models"].items()
+            if capability.get("supports_reasoning")
+        ),
+        "reasoning_capabilities": catalog["models"],
+        "reasoning_catalog_source": catalog["source"],
+        "reasoning_catalog_complete": catalog["complete"],
         "providers": sorted(PROVIDERS),
         "model_presets": list(MODEL_PRESETS),
         "models_seen": sorted({r.model for r in records if r.model}),
@@ -834,7 +971,7 @@ def serialize_sessions(
         ]
         finished = [record.finished_at for record in group if record.finished_at]
         started = [
-            job.get("started_at") for job in session_jobs if job.get("started_at")
+            str(job["started_at"]) for job in session_jobs if job.get("started_at")
         ]
         agents = {record.agent_mode for record in group if record.agent_mode}
         models = {record.model for record in group if record.model}
@@ -957,14 +1094,21 @@ def serialize_run(
         and record.input_tokens is not None
         and record.output_tokens is not None
     ):
-        estimated_cost = estimate_cost(record.model, record.input_tokens, record.output_tokens)
-    provider_cost_complete = bool(
-        record.provider_reported_cost_usd is not None
-        and record.provider_cost_calls is not None
-        and record.llm_calls is not None
-        and record.provider_cost_calls >= record.llm_calls
-    )
-    cost = record.provider_reported_cost_usd if provider_cost_complete else estimated_cost
+        estimated_cost = estimate_cost(
+            record.model, record.input_tokens, record.output_tokens
+        )
+    provider_cost_complete = record.provider_cost_complete
+    if provider_cost_complete is None:
+        provider_cost_complete = bool(
+            record.provider_reported_cost_usd is not None
+            and record.provider_cost_calls is not None
+            and record.llm_calls is not None
+            and record.provider_cost_calls >= record.llm_calls
+        )
+    effective_cost = record.effective_cost_usd
+    cost_source = record.cost_source
+    if cost_source is None and effective_cost is not None:
+        cost_source = "provider_actual" if provider_cost_complete else "static_estimate"
     return {
         "task_id": record.task_id,
         "run_id": record.run_id,
@@ -972,6 +1116,11 @@ def serialize_run(
         "agent_mode": record.agent_mode,
         "provider": record.provider,
         "action_transport": record.action_transport,
+        "reasoning_effort": record.reasoning_effort,
+        "reasoning_max_tokens": record.reasoning_max_tokens,
+        "model_routes": record.model_routes,
+        "reproducibility": record.reproducibility,
+        "run_fingerprint": record.run_fingerprint,
         "model": record.model,
         "status": record.status,
         "steps": record.steps,
@@ -991,11 +1140,19 @@ def serialize_run(
         "input_tokens": record.input_tokens,
         "output_tokens": record.output_tokens,
         "cached_input_tokens": record.cached_input_tokens,
+        "cache_write_input_tokens": record.cache_write_input_tokens,
+        "reasoning_tokens": record.reasoning_tokens,
         "total_tokens": record.total_tokens,
-        "cost_usd": cost,
+        # Keep cost_usd as a compatibility alias for old console bundles; the
+        # canonical field applies the run's conservative partial-actual rule.
+        "cost_usd": effective_cost,
+        "effective_cost_usd": effective_cost,
         "estimated_cost_usd": estimated_cost,
         "provider_reported_cost_usd": record.provider_reported_cost_usd,
+        "provider_cost_calls": record.provider_cost_calls,
         "provider_cost_complete": provider_cost_complete,
+        "usage_accounting_complete": record.usage_accounting_complete,
+        "cost_source": cost_source,
         "model_policy": record.model_policy,
         "role_usage": record.role_usage,
         "role_transports": record.role_transports,
@@ -1005,6 +1162,7 @@ def serialize_run(
         "action_counts": record.action_counts,
         "regressions": record.regressions,
         "test_oracle_tampered": record.test_oracle_tampered,
+        "test_oracle_tamper_attempts": record.test_oracle_tamper_attempts,
         "workspace": record.workspace,
         "task_type": record.task_type,
         "size": record.size,
@@ -1127,7 +1285,7 @@ def clean_optional_str(value: object) -> str | None:
 
 def clean_int(value: object, key: str, lower: int, upper: int) -> int:
     try:
-        parsed = int(value)
+        parsed = int(str(value))
     except (TypeError, ValueError) as exc:
         raise ApiError(f"{key} must be an integer", HTTPStatus.BAD_REQUEST) from exc
     if not lower <= parsed <= upper:
@@ -1140,12 +1298,128 @@ def clean_int(value: object, key: str, lower: int, upper: int) -> int:
 
 def clean_float(value: object, key: str, lower: float) -> float:
     try:
-        parsed = float(value)
+        parsed = float(str(value))
     except (TypeError, ValueError) as exc:
         raise ApiError(f"{key} must be a number", HTTPStatus.BAD_REQUEST) from exc
     if parsed <= lower:
         raise ApiError(f"{key} must be > {lower}", HTTPStatus.BAD_REQUEST)
     return parsed
+
+
+def selected_reasoning_models(payload: dict) -> list[str]:
+    """Collect every route that inherits the launcher's shared reasoning policy."""
+    models: list[str] = []
+    for key in ("model", "models"):
+        models.extend(_split_csv(str(payload.get(key) or "")))
+    raw_role_models = payload.get("role_models") or []
+    role_models = (
+        _split_csv(raw_role_models)
+        if isinstance(raw_role_models, str)
+        else raw_role_models
+    )
+    if isinstance(role_models, list):
+        for override in role_models:
+            if isinstance(override, str) and "=" in override:
+                model_id = override.split("=", 1)[1].strip()
+                if model_id:
+                    models.append(model_id)
+    escalation = clean_optional_str(payload.get("developer_escalation_model"))
+    if escalation:
+        models.append(escalation)
+    return list(dict.fromkeys(models))
+
+
+def append_reasoning_flags(command: list[str], payload: dict, provider: str) -> None:
+    """Validate and append one homogeneous reasoning policy.
+
+    Unknown effort capabilities remain launchable (important for local/new
+    routes). Exact token budgets are stricter: accepting a field is not proof
+    that a routed backend preserves the requested count, so every selected
+    route needs an explicitly verified frozen profile.
+    """
+    effort = clean_optional_str(payload.get("reasoning_effort"))
+    raw_max_tokens = payload.get("reasoning_max_tokens")
+    max_tokens = None
+    if raw_max_tokens not in (None, ""):
+        max_tokens = clean_int(
+            raw_max_tokens,
+            "reasoning_max_tokens",
+            1,
+            1_000_000,
+        )
+    if effort is not None and effort not in REASONING_EFFORTS:
+        raise ApiError(
+            f"unsupported reasoning_effort: {effort}",
+            HTTPStatus.BAD_REQUEST,
+        )
+    if effort is not None and max_tokens is not None:
+        raise ApiError(
+            "reasoning_effort and reasoning_max_tokens are mutually exclusive",
+            HTTPStatus.BAD_REQUEST,
+        )
+
+    selected_models = selected_reasoning_models(payload)
+    if max_tokens is not None:
+        if provider != "openrouter":
+            raise ApiError(
+                "reasoning_max_tokens requires an explicitly verified "
+                "OpenRouter exact-token route; local route capabilities are "
+                "unverified. Use reasoning_effort instead.",
+                HTTPStatus.BAD_REQUEST,
+            )
+        if not selected_models:
+            raise ApiError(
+                "reasoning_max_tokens requires an explicitly selected model "
+                "with a reviewed exact-token profile",
+                HTTPStatus.BAD_REQUEST,
+            )
+        for model_id in selected_models:
+            profile = MODEL_PROFILES.get(model_id)
+            if profile is None or profile.supports_reasoning_max_tokens is not True:
+                raise ApiError(
+                    "reasoning_max_tokens exactness is not verified for model "
+                    f"{model_id!r}; use reasoning_effort instead",
+                    HTTPStatus.BAD_REQUEST,
+                )
+
+    if provider == "openrouter" and (effort is not None or max_tokens is not None):
+        capabilities = reasoning_catalog()["models"]
+        for model_id in selected_models:
+            capability = capabilities.get(model_id)
+            if capability is None:
+                continue
+            if not capability.get("supports_reasoning"):
+                raise ApiError(
+                    f"model {model_id!r} does not support reasoning controls",
+                    HTTPStatus.BAD_REQUEST,
+                )
+            if effort is not None:
+                if capability.get("supports_effort") is False:
+                    raise ApiError(
+                        f"model {model_id!r} does not support reasoning effort",
+                        HTTPStatus.BAD_REQUEST,
+                    )
+                supported = capability.get("supported_efforts")
+                if isinstance(supported, list) and effort not in supported:
+                    raise ApiError(
+                        f"model {model_id!r} does not support reasoning effort "
+                        f"{effort!r}; supported: {', '.join(supported) or 'none'}",
+                        HTTPStatus.BAD_REQUEST,
+                    )
+            if (
+                max_tokens is not None
+                and capability.get("supports_max_tokens") is not True
+            ):
+                raise ApiError(
+                    f"model {model_id!r} does not have a currently verified "
+                    "reasoning_max_tokens guarantee",
+                    HTTPStatus.BAD_REQUEST,
+                )
+
+    if effort is not None:
+        command.extend(["--reasoning-effort", effort])
+    if max_tokens is not None:
+        command.extend(["--reasoning-max-tokens", str(max_tokens)])
 
 
 def append_model_policy_flags(command: list[str], payload: dict) -> None:

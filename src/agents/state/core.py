@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import posixpath
+from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from . import rendering
 from .entry import ContextEntry
-from .status import AgentStatus, STALE_FILE_SNAPSHOT_KINDS, TERMINAL_STATUSES
+from .status import STALE_FILE_SNAPSHOT_KINDS, TERMINAL_STATUSES, AgentStatus
 from .subtask import Subtask
 
 
@@ -79,6 +82,10 @@ class State(BaseModel):
     # earlier result without paying another repository scan or losing it to a
     # summary-of-a-summary.
     search_results: dict[str, str] = Field(default_factory=dict)
+    # Counts rejected attempts to mutate tracked benchmark tests through
+    # shell/test commands. The executor restores the files immediately, so a
+    # durable counter is required for post-run integrity metrics.
+    test_oracle_tamper_attempts: int = Field(default=0, ge=0)
     compaction_count: int = Field(default=0, ge=0)
     decomposition_required: bool = False
     decomposition_max_subtasks: int = Field(default=8, ge=4, le=12)
@@ -101,7 +108,12 @@ class State(BaseModel):
 
     @property
     def context_chars(self) -> int:
-        return sum(len(entry.text) for entry in self.context)
+        return sum(entry.context_chars for entry in self.context)
+
+    @property
+    def hidden_context_chars(self) -> int:
+        """History payload sent to the model but omitted from text rendering."""
+        return sum(entry.hidden_context_chars for entry in self.context)
 
     @property
     def active_subtask(self) -> Subtask | None:
@@ -156,10 +168,13 @@ class State(BaseModel):
         return self.model_copy(update={"container_id": container_id})
 
     def with_context(self, kind: str, text: str, path: str | None = None) -> State:
+        stored_path = (
+            normalize_repo_path(path) if kind == "inspect_file" and path else path
+        )
         entry = ContextEntry(
             step=self.step,
             kind=kind,
-            path=path,
+            path=stored_path,
             text=text.strip(),
             role=self.active_role,
         )
@@ -173,6 +188,8 @@ class State(BaseModel):
         action_json: str,
         tool_call_id: str | None = None,
         tool_name: str | None = None,
+        provider_assistant_message: dict[str, Any] | None = None,
+        provider_reasoning_details: dict[str, Any] | list[Any] | None = None,
     ) -> State:
         """Attach the raw action to the newest history entry, so the history
         can be replayed to the model as an assistant/user dialogue. When the
@@ -180,17 +197,27 @@ class State(BaseModel):
         replay can use the provider's tool-message protocol instead of text."""
         if not self.context:
             return self
-        last = self.context[-1].model_copy(update={
-            "action_json": action_json,
-            "tool_call_id": tool_call_id,
-            "tool_name": tool_name,
-        })
+        last = ContextEntry.model_validate(
+            {
+                **self.context[-1].model_dump(),
+                "action_json": action_json,
+                "tool_call_id": tool_call_id,
+                "tool_name": tool_name,
+                "provider_assistant_message": provider_assistant_message,
+                "provider_reasoning_details": provider_reasoning_details,
+            }
+        )
         return self.model_copy(update={"context": [*self.context[:-1], last]})
 
     def invalidate_path(self, path: str) -> State:
+        normalized = normalize_repo_path(path)
         updated = [
             entry.model_copy(update={"text": "[stale: file changed by a later edit]"})
-            if entry.kind in STALE_FILE_SNAPSHOT_KINDS and entry.path == path
+            if (
+                entry.kind in STALE_FILE_SNAPSHOT_KINDS
+                and entry.path
+                and normalize_repo_path(entry.path) == normalized
+            )
             else entry
             for entry in self.context
         ]
@@ -205,11 +232,11 @@ class State(BaseModel):
         """
         kept = list(self.context)
         dropped: list[ContextEntry] = []
-        total = sum(len(entry.text) for entry in kept)
+        total = sum(entry.context_chars for entry in kept)
 
         while total > target_chars and len(kept) > 1:
             removed = kept.pop(0)
-            total -= len(removed.text)
+            total -= removed.context_chars
             dropped.append(removed)
 
         return dropped, kept
@@ -232,12 +259,13 @@ class State(BaseModel):
 
     def with_changed_files(self, files: list[Path | str]) -> State:
         revision = self.workspace_revision + 1
+        normalized_files = [normalize_repo_path(path) for path in files]
         return self.model_copy(
             update={
-                "changed_files": _merge_paths(self.changed_files, files),
+                "changed_files": _merge_paths(self.changed_files, normalized_files),
                 "changed_file_revisions": {
                     **self.changed_file_revisions,
-                    **{str(Path(path)): revision for path in files},
+                    **{path: revision for path in normalized_files},
                 },
                 "status": "editing",
                 # A green result belongs to the workspace revision it tested.
@@ -264,6 +292,17 @@ class State(BaseModel):
     def record_search_result(self, key: str, result: str) -> State:
         return self.model_copy(
             update={"search_results": {**self.search_results, key: result}}
+        )
+
+    def record_test_oracle_tamper(self, count: int = 1) -> State:
+        if count < 1:
+            raise ValueError("test-oracle tamper count must be positive")
+        return self.model_copy(
+            update={
+                "test_oracle_tamper_attempts": (
+                    self.test_oracle_tamper_attempts + count
+                )
+            }
         )
 
     def record_research_guard_violation(self) -> State:
@@ -394,16 +433,22 @@ class State(BaseModel):
         return rendering.render_state(self)
 
 
-def _merge_paths(existing: list[Path], new_files: list[Path | str]) -> list[Path]:
+def _merge_paths(
+    existing: list[Path], new_files: Sequence[Path | str]
+) -> list[Path]:
     merged: list[Path] = []
     seen: set[str] = set()
 
     for path in [*existing, *new_files]:
-        normalized = Path(path)
-        key = str(normalized)
+        key = normalize_repo_path(path)
         if key in seen:
             continue
         seen.add(key)
-        merged.append(normalized)
+        merged.append(Path(key))
 
     return merged
+
+
+def normalize_repo_path(path: Path | str) -> str:
+    """Canonical lexical identity for a repository-relative path."""
+    return posixpath.normpath(Path(path).as_posix())
