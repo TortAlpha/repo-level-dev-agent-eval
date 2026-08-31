@@ -39,7 +39,7 @@ REASONING_EFFORTS: tuple[ReasoningEffort, ...] = (
     "xhigh",
     "max",
 )
-MODEL_PROFILE_REGISTRY_VERSION = "model-profile-registry-v1"
+MODEL_PROFILE_REGISTRY_VERSION = "model-profile-registry-v2"
 MODEL_PROFILE_SOURCE = "https://openrouter.ai/api/v1/models"
 MODEL_PROFILE_FETCHED_AT = "2026-08-31"
 
@@ -79,6 +79,17 @@ MODEL_PROFILES: dict[str, ModelProfile] = {
         context_window_tokens=1_048_576,
         max_output_tokens=384_000,
         supported_reasoning_efforts=("xhigh", "high"),
+        default_reasoning_effort="high",
+    ),
+    # Pin the current target of OpenRouter's floating
+    # ``~deepseek/deepseek-v4-flash-latest`` alias for reproducible runs.
+    # The conservative completion cap comes from the reviewed model page;
+    # individual providers may advertise a larger transport-level limit.
+    "deepseek/deepseek-v4-flash-0731": ModelProfile(
+        model_id="deepseek/deepseek-v4-flash-0731",
+        context_window_tokens=1_310_720,
+        max_output_tokens=131_072,
+        supported_reasoning_efforts=("max", "high", "low"),
         default_reasoning_effort="high",
     ),
     "openai/gpt-5.6-terra-pro": ModelProfile(

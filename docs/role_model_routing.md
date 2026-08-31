@@ -52,6 +52,30 @@ The escalation effort requires an escalation model. Do not use role-specific
 reasoning in a primary homogeneous architecture comparison; if it is used,
 report it as a separate model-policy condition.
 
+### DeepSeek V4 Flash benchmark profile
+
+OpenRouter's `~deepseek/deepseek-v4-flash-latest` identifier is a moving alias.
+At the 2026-08-31 snapshot it resolves to
+`deepseek/deepseek-v4-flash-0731`; scientific runs use that pinned identifier
+so a later alias update cannot silently change the model behind an existing
+session name or fingerprint.
+
+The pinned route exposes `low`, `high`, and `max`, with `high` as the provider
+default. DeepSeek documents that `medium` and `xhigh` map to `high`, and that
+sampling controls such as temperature are ignored in thinking mode. Use an
+explicit `--reasoning-effort high` (quality condition) or `low` (separate
+efficiency ablation), never an implicit default or a remapped synonym.
+
+When native tools are enabled, DeepSeek requires the complete prior reasoning
+payload to be replayed on later tool turns. Kernel v2 preserves the opaque
+provider assistant message for that purpose. The primary comparison still
+uses `text_json`, matching the historical action transport; a native-tools run
+is a separate transport ablation.
+
+Sources: [OpenRouter model catalog](https://openrouter.ai/api/v1/models),
+[OpenRouter reasoning guidance](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens),
+and [DeepSeek thinking-mode guidance](https://api-docs.deepseek.com/guides/thinking_mode/).
+
 ## Fixed Role Models
 
 Use repeatable `--role-model ROLE=MODEL` flags. Unspecified roles continue to

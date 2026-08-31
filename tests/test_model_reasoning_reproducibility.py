@@ -89,6 +89,25 @@ class ModelReasoningReproducibilityTests(unittest.TestCase):
                 reasoning_effort="medium",
             ).provider_spec()
 
+        deepseek = OpenRouterConfig(
+            _env_file=None,
+            openrouter_api_key="key",
+            openrouter_model_name="deepseek/deepseek-v4-flash-0731",
+            reasoning_effort="high",
+        ).provider_spec()
+        self.assertTrue(deepseek.reasoning_capability_known)
+        self.assertEqual(deepseek.model_context_window_capability_tokens, 1_310_720)
+        self.assertEqual(deepseek.model_max_output_tokens, 131_072)
+        self.assertEqual(deepseek.supported_reasoning_efforts, ("max", "high", "low"))
+        self.assertEqual(deepseek.provider_default_reasoning_effort, "high")
+        with self.assertRaisesRegex(ValueError, "not supported"):
+            OpenRouterConfig(
+                _env_file=None,
+                openrouter_api_key="key",
+                openrouter_model_name="deepseek/deepseek-v4-flash-0731",
+                reasoning_effort="medium",
+            ).provider_spec()
+
         unknown = OpenRouterConfig(
             _env_file=None,
             openrouter_api_key="key",
