@@ -55,6 +55,7 @@ deepseek/deepseek-v3.2,0.2145,0.3217
 deepseek/deepseek-v3.2-exp,0.27,0.41
 deepseek/deepseek-v4-flash,0.077,0.154
 deepseek/deepseek-v4-flash-0731,0.065,0.18,0.016,
+deepseek/deepseek-v4-flash-0731:nitro,0.44,1.32,0.07,
 deepseek/deepseek-v4-pro,0.435,0.87
 google/gemini-2.5-flash,0.3,2.5
 google/gemini-2.5-flash-image,0.3,2.5

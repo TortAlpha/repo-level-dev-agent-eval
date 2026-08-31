@@ -104,6 +104,15 @@ class ModelReasoningReproducibilityTests(unittest.TestCase):
         self.assertEqual(deepseek.model_max_output_tokens, 131_072)
         self.assertEqual(deepseek.supported_reasoning_efforts, ("max", "high", "low"))
         self.assertEqual(deepseek.provider_default_reasoning_effort, "high")
+        nitro = OpenRouterConfig(
+            _env_file=None,
+            openrouter_api_key="key",
+            openrouter_model_name="deepseek/deepseek-v4-flash-0731:nitro",
+            reasoning_effort="low",
+        ).provider_spec()
+        self.assertTrue(nitro.reasoning_capability_known)
+        self.assertEqual(nitro.reasoning_effort, "low")
+        self.assertEqual(nitro.supported_reasoning_efforts, ("max", "high", "low"))
         with self.assertRaisesRegex(ValueError, "not supported"):
             OpenRouterConfig(
                 _env_file=None,

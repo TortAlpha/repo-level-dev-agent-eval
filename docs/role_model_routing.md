@@ -72,6 +72,15 @@ provider assistant message for that purpose. The primary comparison still
 uses `text_json`, matching the historical action transport; a native-tools run
 is a separate transport ablation.
 
+OpenRouter's default routing favors lower price. For this model that can select
+a very slow endpoint and make a 16k non-streaming completion exceed the request
+timeout. The benchmark profile therefore also includes
+`deepseek/deepseek-v4-flash-0731:nitro`, which keeps the revision pinned while
+making throughput-first routing explicit in the model ID and run fingerprint.
+Because the selected endpoint may still vary, its static price is the maximum
+observed eligible endpoint price in the frozen snapshot; complete
+provider-reported billing replaces that conservative fallback at runtime.
+
 Sources: [OpenRouter model catalog](https://openrouter.ai/api/v1/models),
 [OpenRouter reasoning guidance](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens),
 and [DeepSeek thinking-mode guidance](https://api-docs.deepseek.com/guides/thinking_mode/).

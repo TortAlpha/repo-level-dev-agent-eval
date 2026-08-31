@@ -39,7 +39,7 @@ REASONING_EFFORTS: tuple[ReasoningEffort, ...] = (
     "xhigh",
     "max",
 )
-MODEL_PROFILE_REGISTRY_VERSION = "model-profile-registry-v2"
+MODEL_PROFILE_REGISTRY_VERSION = "model-profile-registry-v3"
 MODEL_PROFILE_SOURCE = "https://openrouter.ai/api/v1/models"
 MODEL_PROFILE_FETCHED_AT = "2026-08-31"
 
@@ -87,6 +87,15 @@ MODEL_PROFILES: dict[str, ModelProfile] = {
     # individual providers may advertise a larger transport-level limit.
     "deepseek/deepseek-v4-flash-0731": ModelProfile(
         model_id="deepseek/deepseek-v4-flash-0731",
+        context_window_tokens=1_310_720,
+        max_output_tokens=131_072,
+        supported_reasoning_efforts=("max", "high", "low"),
+        default_reasoning_effort="high",
+    ),
+    # ``:nitro`` keeps the model revision pinned while making throughput-first
+    # provider selection an explicit, fingerprinted routing condition.
+    "deepseek/deepseek-v4-flash-0731:nitro": ModelProfile(
+        model_id="deepseek/deepseek-v4-flash-0731:nitro",
         context_window_tokens=1_310_720,
         max_output_tokens=131_072,
         supported_reasoning_efforts=("max", "high", "low"),
