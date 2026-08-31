@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import shlex
 import shutil
+import stat
 import subprocess
 from pathlib import Path
 
@@ -18,11 +19,15 @@ from src.benchmark.evaluation import (
     _run_visible_junit,
     _sandbox,
     copy_hidden_oracle,
+    freeze_setup_artifacts,
     prepare_hidden_oracle_directories,
     prepare_scoring_dependencies,
+    restore_setup_artifacts,
     restore_test_oracle,
     scoring_oracle_manifest,
+    setup_artifact_manifest,
 )
+from src.benchmark.workspace import write_agent_patch
 
 
 def _commit(repo: Path) -> None:
@@ -290,6 +295,214 @@ def test_pristine_ignored_runner_is_restored(
 
     assert tampered == ["run_tests.sh"]
     assert runner.read_text(encoding="utf-8") == original
+
+
+def test_pristine_setup_runtime_artifacts_are_frozen_and_restored(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "repo"
+    package = repo / "src" / "example"
+    package.mkdir(parents=True)
+    (package / "__init__.py").write_text("", encoding="utf-8")
+    tests = repo / "tests"
+    tests.mkdir()
+    (tests / "test_original.py").write_text(
+        "def test_original():\n    assert True\n", encoding="utf-8"
+    )
+    (repo / ".gitignore").write_text(
+        "src/example/_version.py\n*.egg-info/\n__pycache__/\n",
+        encoding="utf-8",
+    )
+    _commit(repo)
+    package.chmod(0o700)
+    before_setup = setup_artifact_manifest(repo)
+
+    version = package / "_version.py"
+    version.write_text("__version__ = '1.2.3'\n", encoding="utf-8")
+    metadata = repo / "example.egg-info" / "PKG-INFO"
+    metadata.parent.mkdir()
+    metadata.write_text("Version: 1.2.3\n", encoding="utf-8")
+    cache = package / "__pycache__" / "cached.pyc"
+    cache.parent.mkdir()
+    cache.write_bytes(b"cache")
+    generated_test = tests / "test_generated.py"
+    generated_test.write_text("def test_generated(): pass\n", encoding="utf-8")
+    root_control = repo / "conftest.py"
+    root_control.write_text("pytest_plugins = []\n", encoding="utf-8")
+    generated_pytest_config = repo / "pytest.ini"
+    generated_pytest_config.write_text("[pytest]\naddopts = -q\n", encoding="utf-8")
+
+    frozen = tmp_path / "setup_artifacts"
+    copied = freeze_setup_artifacts(
+        repo,
+        frozen,
+        before_setup=before_setup,
+    )
+
+    assert copied == [
+        "example.egg-info/PKG-INFO",
+        "src/example/_version.py",
+    ]
+    assert (frozen / "src/example/_version.py").stat().st_mtime_ns == 1_000_000_000
+    assert stat.S_IMODE((frozen / "src/example").stat().st_mode) == 0o755
+    subprocess.run(["git", "-C", str(repo), "clean", "-fdx"], check=True)
+    assert not version.exists()
+    assert not metadata.exists()
+
+    restored = restore_setup_artifacts(repo, frozen)
+
+    assert restored == copied
+    assert version.read_text(encoding="utf-8") == "__version__ = '1.2.3'\n"
+    assert version.stat().st_mtime_ns == 1_000_000_000
+    assert stat.S_IMODE(version.parent.stat().st_mode) == 0o700
+    assert stat.S_IMODE(metadata.parent.stat().st_mode) == 0o755
+    assert metadata.read_text(encoding="utf-8") == "Version: 1.2.3\n"
+    assert not cache.exists()
+    assert not generated_test.exists()
+    assert not root_control.exists()
+    assert not generated_pytest_config.exists()
+
+
+def test_pristine_setup_artifact_alias_fails_closed(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    package = repo / "src" / "example"
+    package.mkdir(parents=True)
+    (package / "__init__.py").write_text("", encoding="utf-8")
+    (repo / ".gitignore").write_text("src/example/_version.py\n", encoding="utf-8")
+    _commit(repo)
+    before_setup = setup_artifact_manifest(repo)
+    outside = tmp_path / "outside.py"
+    outside.write_text("__version__ = 'forged'\n", encoding="utf-8")
+    (package / "_version.py").symlink_to(outside)
+
+    with pytest.raises(RuntimeError, match="unalias.*regular files"):
+        freeze_setup_artifacts(
+            repo,
+            tmp_path / "setup_artifacts",
+            before_setup=before_setup,
+        )
+
+
+def test_pristine_setup_tracked_mutation_fails_closed(tmp_path: Path) -> None:
+    _pristine, repo = _baseline(tmp_path)
+    before_setup = setup_artifact_manifest(repo)
+    (repo / "src" / "core.py").write_text("VALUE = 2\n", encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="setup modified tracked"):
+        freeze_setup_artifacts(
+            repo,
+            tmp_path / "setup_artifacts",
+            before_setup=before_setup,
+        )
+
+
+def test_pristine_setup_snapshot_is_only_the_setup_delta(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    package = repo / "src" / "example"
+    package.mkdir(parents=True)
+    (package / "__init__.py").write_text("", encoding="utf-8")
+    (repo / ".gitignore").write_text("*.egg-info/\n_version.py\n", encoding="utf-8")
+    _commit(repo)
+    stale = repo / "stale.egg-info" / "PKG-INFO"
+    stale.parent.mkdir()
+    stale.write_text("Version: stale\n", encoding="utf-8")
+    before_setup = setup_artifact_manifest(repo)
+    generated = repo / "_version.py"
+    generated.write_text("VERSION = 'fresh'\n", encoding="utf-8")
+
+    copied = freeze_setup_artifacts(
+        repo,
+        tmp_path / "setup_artifacts",
+        before_setup=before_setup,
+    )
+
+    assert copied == ["_version.py"]
+
+
+def test_pristine_setup_artifact_is_excluded_from_agent_patch(tmp_path: Path) -> None:
+    _pristine, repo = _baseline(tmp_path)
+    runtime = repo / "src" / "generated_runtime.py"
+    runtime.write_text("VERSION = '1.2.3'\n", encoding="utf-8")
+    (repo / "src" / "core.py").write_text("VALUE = 2\n", encoding="utf-8")
+    head = subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    patch = tmp_path / "agent.patch"
+    frozen = tmp_path / "setup_artifacts"
+    frozen_runtime = frozen / "src" / "generated_runtime.py"
+    frozen_runtime.parent.mkdir(parents=True)
+    shutil.copy2(runtime, frozen_runtime)
+
+    conflicts = write_agent_patch(
+        repo,
+        patch,
+        expected_head=head,
+        excluded_paths=["src/generated_runtime.py"],
+        frozen_artifact_root=frozen,
+    )
+
+    assert conflicts == []
+    payload = patch.read_text(encoding="utf-8")
+    assert "src/core.py" in payload
+    assert "generated_runtime.py" not in payload
+
+
+def test_changed_setup_artifact_is_a_scored_patch_conflict(tmp_path: Path) -> None:
+    _pristine, repo = _baseline(tmp_path)
+    runtime = repo / "src" / "generated_runtime.py"
+    runtime.write_text("VERSION = 'agent'\n", encoding="utf-8")
+    frozen = tmp_path / "setup_artifacts"
+    frozen_runtime = frozen / "src" / "generated_runtime.py"
+    frozen_runtime.parent.mkdir(parents=True)
+    frozen_runtime.write_text("VERSION = 'pristine'\n", encoding="utf-8")
+    head = subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    patch = tmp_path / "agent.patch"
+
+    conflicts = write_agent_patch(
+        repo,
+        patch,
+        expected_head=head,
+        excluded_paths=["src/generated_runtime.py"],
+        frozen_artifact_root=frozen,
+    )
+
+    assert conflicts == ["src/generated_runtime.py"]
+    assert "generated_runtime.py" not in patch.read_text(encoding="utf-8")
+
+
+def test_setup_artifact_restore_repairs_parent_alias_and_records_conflict(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "README.md").write_text("fixture\n", encoding="utf-8")
+    _commit(repo)
+    frozen = tmp_path / "setup_artifacts"
+    artifact = frozen / "generated" / "_version.py"
+    artifact.parent.mkdir(parents=True)
+    artifact.write_text("VERSION = 'pristine'\n", encoding="utf-8")
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (repo / "generated").symlink_to(outside, target_is_directory=True)
+    conflicts: list[str] = []
+
+    restored = restore_setup_artifacts(repo, frozen, conflicts=conflicts)
+
+    assert restored == ["generated/_version.py"]
+    assert conflicts == ["generated"]
+    assert not (repo / "generated").is_symlink()
+    assert (repo / "generated/_version.py").read_text(encoding="utf-8") == (
+        "VERSION = 'pristine'\n"
+    )
+    assert not (outside / "_version.py").exists()
 
 
 def test_symlink_test_parent_cannot_redirect_restore_outside_repo(

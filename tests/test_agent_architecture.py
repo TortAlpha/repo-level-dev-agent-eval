@@ -559,6 +559,7 @@ class AgentArchitectureInvariantTests(unittest.TestCase):
         self.assertTrue(task_success(True, True, None))
         self.assertFalse(task_success(True, True, 1))
         self.assertFalse(task_success(True, True, 0, test_oracle_tampered=True))
+        self.assertFalse(task_success(True, True, 0, setup_artifact_tampered=True))
 
     def test_developer_handoff_contains_planner_and_review_feedback(self) -> None:
         instruction = developer_instruction(

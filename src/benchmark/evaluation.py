@@ -7,6 +7,7 @@ agent behavior), so setup/test spans do not pollute the project.
 from __future__ import annotations
 
 import configparser
+import hashlib
 import os
 import posixpath
 import shlex
@@ -16,6 +17,7 @@ import subprocess
 import tomllib
 import uuid
 import xml.etree.ElementTree as ET
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from io import BytesIO
 from pathlib import Path, PurePosixPath
@@ -69,6 +71,8 @@ class EvalResult:
     task_success: bool | None = None
     regressions: int | None = None
     test_oracle_tampered: bool = False
+    setup_artifact_tampered: bool = False
+    setup_artifact_conflicts: list[str] = field(default_factory=list)
     excluded_agent_test_files: list[str] = field(default_factory=list)
     hidden_suite_results: dict[str, bool] = field(default_factory=dict)
 
@@ -78,6 +82,7 @@ def task_success(
     hidden_passed: bool,
     regressions: int | None,
     test_oracle_tampered: bool = False,
+    setup_artifact_tampered: bool = False,
 ) -> bool:
     """Ground-truth success for a submitted patch.
 
@@ -91,6 +96,7 @@ def task_success(
         and hidden_passed
         and regressions in (None, 0)
         and not test_oracle_tampered
+        and not setup_artifact_tampered
     )
 
 
@@ -117,6 +123,18 @@ _SCORING_SCAN_IGNORED_DIRS = frozenset(
 # interpreter/test caches and VCS metadata are excluded here.
 _HIDDEN_ORACLE_IGNORED_DIRS = frozenset({".git", ".pytest_cache", "__pycache__"})
 _HIDDEN_ORACLE_IGNORED_SUFFIXES = frozenset({".pyc", ".pyo"})
+
+# Pristine setup may generate import-critical source-tree files which an
+# editable install still reads during scoring (for example setuptools-scm's
+# ``src/package/_version.py``).  They are evaluator inputs, not agent output.
+# Cache/build trees remain disposable, and test-oracle paths are frozen by the
+# stricter oracle machinery instead of this runtime-artifact channel.
+_SETUP_ARTIFACT_IGNORED_DIRS = _SCORING_SCAN_IGNORED_DIRS
+_SETUP_ARTIFACT_IGNORED_SUFFIXES = frozenset({".pyc", ".pyo"})
+_SETUP_ARTIFACT_MAX_FILES = 4_096
+_SETUP_ARTIFACT_MAX_BYTES = 512 * 1024 * 1024
+_SETUP_ARTIFACT_PARENT_MODE = 0o755
+_SETUP_ARTIFACT_MTIME_NS = 1_000_000_000
 
 
 def _is_test_control_path(path: str) -> bool:
@@ -249,6 +267,293 @@ def _git_nul_paths(repo: Path, *arguments: str) -> set[str]:
         for item in result.stdout.split(b"\0")
         if item
     }
+
+
+def _safe_setup_artifact_relative(relative: str) -> PurePosixPath:
+    candidate = PurePosixPath(relative)
+    if candidate.is_absolute() or ".." in candidate.parts or not candidate.parts:
+        raise RuntimeError(f"unsafe pristine setup artifact path: {relative!r}")
+    return candidate
+
+
+def _setup_artifact_candidate(relative: str) -> bool:
+    candidate = _safe_setup_artifact_relative(relative)
+    return not (
+        any(part in _SETUP_ARTIFACT_IGNORED_DIRS for part in candidate.parts)
+        or candidate.suffix.lower() in _SETUP_ARTIFACT_IGNORED_SUFFIXES
+        or _is_scoring_oracle_path(relative)
+        or _is_test_control_path(relative)
+        or Path(relative).name.lower() in _PYTEST_CONFIG_NAMES
+    )
+
+
+def _normalize_setup_artifact_parents(
+    root: Path,
+    relative: str,
+    *,
+    synthesized: set[str] | None = None,
+) -> None:
+    current = root
+    parts = PurePosixPath(relative).parts[:-1]
+    for index, part in enumerate(parts, start=1):
+        current /= part
+        current_relative = PurePosixPath(*parts[:index]).as_posix()
+        if synthesized is not None and current_relative not in synthesized:
+            continue
+        metadata = current.lstat()
+        if not stat.S_ISDIR(metadata.st_mode):
+            raise RuntimeError(
+                f"setup-artifact parent is not a directory: {relative}"
+            )
+        os.chmod(current, _SETUP_ARTIFACT_PARENT_MODE, follow_symlinks=False)
+
+
+def setup_artifact_manifest(repo: Path) -> dict[str, str]:
+    """Describe eligible untracked/ignored files without following aliases."""
+    repo = repo.resolve()
+    validate_local_git_config(repo)
+    untracked = _git_nul_paths(repo, "ls-files", "--others", "--exclude-standard", "-z")
+    ignored = _git_nul_paths(
+        repo,
+        "ls-files",
+        "--others",
+        "--ignored",
+        "--exclude-standard",
+        "-z",
+    )
+    candidates = sorted(
+        relative
+        for relative in untracked | ignored
+        if _setup_artifact_candidate(relative)
+    )
+    if len(candidates) > _SETUP_ARTIFACT_MAX_FILES:
+        raise RuntimeError(
+            "setup-artifact inventory exceeds its file limit "
+            f"({len(candidates)} > {_SETUP_ARTIFACT_MAX_FILES})"
+        )
+    manifest: dict[str, str] = {}
+    total_bytes = 0
+    for relative in candidates:
+        source = repo / Path(relative)
+        _validate_plain_parent_chain(repo, relative, label="setup-artifact source")
+        try:
+            metadata = source.lstat()
+        except OSError as exc:
+            raise RuntimeError(
+                f"pristine setup artifact is unavailable: {relative}: {exc}"
+            ) from exc
+        mode = stat.S_IFMT(metadata.st_mode) | stat.S_IMODE(metadata.st_mode)
+        total_bytes += metadata.st_size
+        if total_bytes > _SETUP_ARTIFACT_MAX_BYTES:
+            raise RuntimeError(
+                "setup-artifact inventory exceeds its byte limit "
+                f"({total_bytes} > {_SETUP_ARTIFACT_MAX_BYTES})"
+            )
+        if stat.S_ISREG(metadata.st_mode):
+            digest = hashlib.sha256()
+            try:
+                with source.open("rb") as handle:
+                    while chunk := handle.read(1024 * 1024):
+                        digest.update(chunk)
+            except OSError as exc:
+                raise RuntimeError(
+                    f"pristine setup artifact is unreadable: {relative}: {exc}"
+                ) from exc
+            manifest[relative] = (
+                f"regular:{mode:o}:{metadata.st_nlink}:{metadata.st_size}:"
+                f"{digest.hexdigest()}"
+            )
+        elif stat.S_ISLNK(metadata.st_mode):
+            manifest[relative] = f"symlink:{mode:o}:{os.readlink(source)}"
+        else:
+            manifest[relative] = f"special:{mode:o}"
+    return manifest
+
+
+def freeze_setup_artifacts(
+    repo: Path,
+    destination: Path,
+    *,
+    before_setup: Mapping[str, str] | None = None,
+) -> list[str]:
+    """Freeze pristine setup-generated runtime files before model execution.
+
+    Only Git-untracked/ignored regular files outside the test oracle are
+    eligible.  The snapshot is stored outside the model-visible checkout and
+    fingerprinted with the other evaluator inputs.  This preserves generated
+    version modules and editable-install metadata without carrying arbitrary
+    ignored files created later by the model into final scoring.
+    """
+    repo = repo.resolve()
+    if destination.exists() or destination.is_symlink():
+        raise RuntimeError(
+            f"frozen setup-artifact destination already exists: {destination}"
+        )
+    validate_local_git_config(repo)
+    tracked_changes = _git_nul_paths(repo, "diff", "--name-only", "-z", "HEAD", "--")
+    if tracked_changes:
+        raise RuntimeError(
+            "pristine setup modified tracked repository files: "
+            + ", ".join(sorted(tracked_changes)[:20])
+        )
+    after_setup = setup_artifact_manifest(repo)
+    candidates = sorted(
+        relative
+        for relative, identity in after_setup.items()
+        if before_setup is None or before_setup.get(relative) != identity
+    )
+    if len(candidates) > _SETUP_ARTIFACT_MAX_FILES:
+        raise RuntimeError(
+            "pristine setup generated too many runtime artifacts "
+            f"({len(candidates)} > {_SETUP_ARTIFACT_MAX_FILES})"
+        )
+
+    destination.mkdir(parents=True)
+    total_bytes = 0
+    copied: list[str] = []
+    for relative in candidates:
+        source = repo / Path(relative)
+        _validate_plain_parent_chain(repo, relative, label="setup-artifact source")
+        try:
+            metadata = source.lstat()
+        except OSError as exc:
+            raise RuntimeError(
+                f"pristine setup artifact is unavailable: {relative}: {exc}"
+            ) from exc
+        if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink > 1:
+            raise RuntimeError(
+                f"pristine setup artifacts must be unaliased regular files: {relative}"
+            )
+        total_bytes += metadata.st_size
+        if total_bytes > _SETUP_ARTIFACT_MAX_BYTES:
+            raise RuntimeError(
+                "pristine setup generated too many runtime-artifact bytes "
+                f"({total_bytes} > {_SETUP_ARTIFACT_MAX_BYTES})"
+            )
+        target = destination / Path(relative)
+        _prepare_safe_destination(destination, relative, pristine=None)
+        _normalize_setup_artifact_parents(destination, relative)
+        shutil.copy2(source, target, follow_symlinks=False)
+        os.utime(
+            target,
+            ns=(_SETUP_ARTIFACT_MTIME_NS, _SETUP_ARTIFACT_MTIME_NS),
+            follow_symlinks=False,
+        )
+        copied.append(relative)
+    return copied
+
+
+def frozen_setup_artifact_files(source: Path) -> list[str]:
+    try:
+        source_metadata = source.lstat()
+    except OSError as exc:
+        raise RuntimeError(
+            f"frozen setup-artifact tree is unavailable: {source}: {exc}"
+        ) from exc
+    if not stat.S_ISDIR(source_metadata.st_mode) or source.is_symlink():
+        raise RuntimeError(f"frozen setup-artifact tree is unavailable: {source}")
+    source = source.resolve()
+    files: list[str] = []
+    total_bytes = 0
+    for current, directory_names, file_names in os.walk(source, followlinks=False):
+        current_path = Path(current)
+        for name in sorted(directory_names):
+            directory = current_path / name
+            relative = directory.relative_to(source).as_posix()
+            try:
+                metadata = directory.lstat()
+            except OSError as exc:
+                raise RuntimeError(
+                    f"frozen setup-artifact directory is unavailable: {relative}: {exc}"
+                ) from exc
+            if not stat.S_ISDIR(metadata.st_mode):
+                raise RuntimeError(
+                    f"frozen setup-artifact paths cannot traverse aliases: {relative}"
+                )
+        for name in sorted(file_names):
+            path = current_path / name
+            relative = path.relative_to(source).as_posix()
+            _safe_setup_artifact_relative(relative)
+            try:
+                metadata = path.lstat()
+            except OSError as exc:
+                raise RuntimeError(
+                    f"frozen setup artifact is unavailable: {relative}: {exc}"
+                ) from exc
+            if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink > 1:
+                raise RuntimeError(
+                    "frozen setup artifacts must remain unaliased regular files: "
+                    f"{relative}"
+                )
+            total_bytes += metadata.st_size
+            files.append(relative)
+    if len(files) > _SETUP_ARTIFACT_MAX_FILES:
+        raise RuntimeError(
+            "frozen setup-artifact tree exceeds its file limit "
+            f"({len(files)} > {_SETUP_ARTIFACT_MAX_FILES})"
+        )
+    if total_bytes > _SETUP_ARTIFACT_MAX_BYTES:
+        raise RuntimeError(
+            "frozen setup-artifact tree exceeds its byte limit "
+            f"({total_bytes} > {_SETUP_ARTIFACT_MAX_BYTES})"
+        )
+    return sorted(files)
+
+
+def restore_setup_artifacts(
+    repo: Path,
+    source: Path,
+    *,
+    conflicts: list[str] | None = None,
+) -> list[str]:
+    """Restore the frozen pristine runtime delta after agent patch replay."""
+    repo = repo.resolve()
+    validate_local_git_config(repo)
+    restored: list[str] = []
+    for relative in frozen_setup_artifact_files(source):
+        artifact = source / Path(relative)
+        synthesized_parents: set[str] = set()
+        current = repo
+        parent_missing_or_unsafe = False
+        parts = PurePosixPath(relative).parts[:-1]
+        for index, part in enumerate(parts, start=1):
+            current /= part
+            current_relative = PurePosixPath(*parts[:index]).as_posix()
+            if parent_missing_or_unsafe:
+                synthesized_parents.add(current_relative)
+                continue
+            try:
+                metadata = current.lstat()
+            except OSError:
+                synthesized_parents.add(current_relative)
+                parent_missing_or_unsafe = True
+                continue
+            if not stat.S_ISDIR(metadata.st_mode):
+                synthesized_parents.add(current_relative)
+                parent_missing_or_unsafe = True
+        repaired = _prepare_safe_destination(repo, relative, pristine=None)
+        _normalize_setup_artifact_parents(
+            repo,
+            relative,
+            synthesized=synthesized_parents,
+        )
+        if conflicts is not None:
+            conflicts.extend(sorted(repaired))
+        destination = repo / Path(relative)
+        if destination.exists() or destination.is_symlink():
+            metadata = destination.lstat()
+            if conflicts is not None and relative not in conflicts:
+                conflicts.append(relative)
+            if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink > 1:
+                _remove_scoring_entry(destination)
+        shutil.copy2(artifact, destination, follow_symlinks=False)
+        os.utime(
+            destination,
+            ns=(_SETUP_ARTIFACT_MTIME_NS, _SETUP_ARTIFACT_MTIME_NS),
+            follow_symlinks=False,
+        )
+        restored.append(relative)
+    return restored
 
 
 def _configured_test_control_paths(repo: Path, commands: list[str]) -> set[str]:
@@ -1062,31 +1367,61 @@ def collect_visible_passing(
     *,
     docker_image: str,
     network_disabled: bool,
-    setup_commands: list[str],
-    shell_timeout: int,
     test_timeout: int,
-    dependency_environment: Path | None = None,
+    dependency_environment: Path,
+    setup_artifact_environment: Path,
+    pristine_repo: Path,
+    test_commands: list[str],
 ) -> set[str]:
     """Baseline for the regression metric: visible tests passing on the
-    pristine repo, before the agent touches it."""
-    # Evaluator setup is infrastructure and may use the network. Tests run
-    # with the same post-setup isolation policy as the agent.
+    pristine repo, before the agent touches it.
+
+    Dependency setup has already completed in a separate sandbox. Restore the
+    frozen setup delta and run this baseline with the same read-only evaluator
+    inputs used by final scoring, so the before/after comparison is symmetric.
+    """
+    baseline_conflicts: list[str] = []
+    restored_setup_artifacts = restore_setup_artifacts(
+        repo,
+        setup_artifact_environment,
+        conflicts=baseline_conflicts,
+    )
+    if baseline_conflicts:
+        raise RuntimeError(
+            "pristine baseline was not cleaned before setup-artifact restore: "
+            + ", ".join(sorted(set(baseline_conflicts))[:20])
+        )
+    tampered = restore_test_oracle(
+        repo,
+        pristine_repo=pristine_repo,
+        test_commands=test_commands,
+    )
+    if tampered:
+        raise RuntimeError(
+            "pristine setup changed the frozen test oracle: "
+            + ", ".join(tampered[:20])
+        )
+    protected_files, protected_directories = scoring_oracle_manifest(
+        repo,
+        pristine_repo=pristine_repo,
+        test_commands=test_commands,
+    )
+    protected_files = sorted(set(protected_files) | set(restored_setup_artifacts))
     sandbox = _sandbox(
         repo,
         docker_image,
-        network_disabled and not setup_commands,
+        network_disabled,
         test_timeout,
         dependency_environment=dependency_environment,
+        dependency_environment_readonly=True,
+    )
+    sandbox.configure_protected_test_paths(
+        protected_files,
+        readonly_directories=protected_directories,
     )
     with tracing_context(enabled=False):
         try:
             sandbox.start()
-            _setup_and_isolate(
-                sandbox,
-                setup_commands,
-                shell_timeout,
-                isolate_after_setup=network_disabled,
-            )
             passed, passing, output = _run_visible_junit(
                 sandbox, repo, command, test_timeout
             )
@@ -1109,8 +1444,15 @@ def prepare_scoring_dependencies(
     shell_timeout: int,
     test_timeout: int,
     dependency_environment: Path,
+    setup_artifact_environment: Path | None = None,
 ) -> None:
     """Build a reusable evaluator environment from the pristine checkout."""
+    before_setup = (
+        setup_artifact_manifest(repo)
+        if setup_artifact_environment is not None
+        else None
+    )
+    before_pytest_configs = _pytest_config_candidates(repo)
     sandbox = _sandbox(
         repo,
         docker_image,
@@ -1119,6 +1461,7 @@ def prepare_scoring_dependencies(
         dependency_environment=dependency_environment,
     )
     with tracing_context(enabled=False):
+        setup_succeeded = False
         try:
             sandbox.start()
             _setup_and_isolate(
@@ -1127,8 +1470,25 @@ def prepare_scoring_dependencies(
                 shell_timeout,
                 isolate_after_setup=network_disabled,
             )
+            setup_succeeded = True
         finally:
             sandbox.stop()
+        after_pytest_configs = _pytest_config_candidates(repo)
+        if after_pytest_configs != before_pytest_configs:
+            changed = sorted(after_pytest_configs ^ before_pytest_configs)
+            raise RuntimeError(
+                "pristine setup added or removed pytest configuration: "
+                + ", ".join(changed[:20])
+            )
+        if setup_succeeded and setup_artifact_environment is not None:
+            # Snapshot only after container teardown. A setup command may have
+            # spawned background children; stopping the sandbox makes the host
+            # checkout and dependency bind quiescent before hashing/copying.
+            freeze_setup_artifacts(
+                repo,
+                setup_artifact_environment,
+                before_setup=before_setup,
+            )
 
 
 def evaluate_solution(
@@ -1145,6 +1505,8 @@ def evaluate_solution(
     test_timeout: int,
     pristine_repo: Path | None = None,
     dependency_environment: Path | None = None,
+    setup_artifact_environment: Path | None = None,
+    setup_artifact_conflicts: list[str] | None = None,
 ) -> EvalResult:
     """Post-run evaluation in one sandbox: the after-state visible run (for
     regressions, before any overlay) and then the withheld hidden tests.
@@ -1161,6 +1523,21 @@ def evaluate_solution(
         else task.repo_path.resolve()
     )
     result = EvalResult()
+
+    artifact_conflicts = list(setup_artifact_conflicts or [])
+    restored_setup_artifacts = []
+    if setup_artifact_environment is not None:
+        restored_setup_artifacts = restore_setup_artifacts(
+            repo,
+            setup_artifact_environment,
+            conflicts=artifact_conflicts,
+        )
+    result.setup_artifact_conflicts = sorted(set(artifact_conflicts))
+    result.setup_artifact_tampered = bool(result.setup_artifact_conflicts)
+    if result.setup_artifact_tampered:
+        print("\n=== Frozen setup-artifact conflict detected ===")
+        for path in result.setup_artifact_conflicts[:20]:
+            print(f"  - {path}")
 
     hidden_suites = task.hidden_suites() if do_hidden else []
     scoring_commands = [visible_command, *(suite.command for suite in hidden_suites)]
@@ -1212,6 +1589,7 @@ def evaluate_solution(
         pristine_repo=pristine,
         test_commands=scoring_commands,
     )
+    protected_files = sorted(set(protected_files) | set(restored_setup_artifacts))
     # An exact immutable file mount would keep showing the visible version
     # after the host overlays a hidden augmentation at the same path. Every
     # hidden fixture lives below a read-only directory mount, which already
@@ -1322,6 +1700,7 @@ def evaluate_solution(
                     result.hidden_passed,
                     result.regressions,
                     result.test_oracle_tampered,
+                    result.setup_artifact_tampered,
                 )
         finally:
             sandbox.stop()

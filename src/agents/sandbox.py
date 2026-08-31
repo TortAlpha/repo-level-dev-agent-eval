@@ -162,8 +162,7 @@ class DockerSandbox(BaseModel):
 
                 staged = snapshot / relative
                 staged.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copyfile(source, staged, follow_symlinks=False)
-                shutil.copymode(source, staged, follow_symlinks=False)
+                shutil.copy2(source, staged, follow_symlinks=False)
                 staged_files.append((staged, container_relative))
 
             for relative_name in self.protected_test_directories:

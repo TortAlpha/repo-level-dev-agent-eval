@@ -432,6 +432,20 @@ class BenchmarkFairnessTests(unittest.TestCase):
             metrics["excluded_agent_test_files"], ["tests/test_agent_added.py"]
         )
 
+    def test_unscored_setup_artifact_conflict_is_a_process_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            state = State(task="x", workdir=Path(directory), status="solved")
+            result = EvalResult(
+                task_success=None,
+                setup_artifact_tampered=True,
+                setup_artifact_conflicts=["src/package/_version.py"],
+            )
+
+            exit_code = benchmark_exit_code(state, result)
+
+        self.assertEqual(exit_code, 1)
+        self.assertIsNone(result.task_success)
+
 
 if __name__ == "__main__":
     unittest.main()

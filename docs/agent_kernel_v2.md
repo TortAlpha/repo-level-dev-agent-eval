@@ -60,6 +60,20 @@ reliability, and protocol controls shared by the compared built-in agents.
   repository `PYTHONPATH` and conventional `/workspace/src` entries, and
   therefore ignores submitted `pytest`, `sitecustomize`, and executable
   editable-install `.pth` launch shims while supporting normal src layouts.
+- Import-critical regular files generated or changed by pristine setup inside
+  the source tree (for example setuptools-scm/hatch-vcs `_version.py` modules)
+  are captured as an exact pre/post-setup delta before the first model action.
+  Setup runs alone; the checkout is then cleaned and the frozen dependency and
+  artifact trees are mounted read-only for both the visible baseline and final
+  scoring. The artifact tree is hashed as an evaluator input, restored after
+  `HEAD + agent.patch` reconstruction, and archived beside every retained
+  patch. Tracked setup mutations and aliases fail closed; caches, pre-existing
+  residue, and test/control paths are excluded. A submitted patch that
+  intersects a frozen artifact is recorded as a scored policy failure rather
+  than a retryable infrastructure error. The artifact channel deliberately
+  models regular files only: mtimes and synthesized parent-directory modes are
+  normalized, empty directories carry no semantics, and Docker's immutable
+  staging preserves the normalized metadata.
 - Direct pytest, `xvfb-run`, and immutable shell runners all pass through a
   read-only evaluator PATH shim. JUnit paths are injected inside that shim,
   and an isolated one-shot marker rejects wrappers which invoke pytest zero or

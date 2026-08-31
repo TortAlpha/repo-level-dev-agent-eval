@@ -57,7 +57,9 @@ from .evaluation import (
     collect_visible_passing,
     evaluate_solution,
     freeze_test_oracle,
+    frozen_setup_artifact_files,
     prepare_scoring_dependencies,
+    restore_test_oracle,
 )
 from .evaluation import (
     task_success as compute_task_success,
@@ -1091,6 +1093,10 @@ def main() -> int:
         else prepare_workspace(task, config.workspaces_dir, run_id).resolve()
     )
     if not args.dry_run:
+        # A task mirror may retain ignored output from an earlier local setup.
+        # Every executable run begins from HEAD plus the two explicitly
+        # preserved runner shims before any oracle/setup input is frozen.
+        clean_workspace_repo(repo_dir, config.workspaces_dir)
         try:
             validate_expected_input_contract(
                 args,
@@ -1204,48 +1210,48 @@ def main() -> int:
 
     scoring_setup = resolve_setup_commands(args, task)
     dependency_environment = repo_dir.parent / "scoring_dependencies"
+    setup_artifact_environment = repo_dir.parent / "setup_artifacts"
     baseline = None
-    if not args.no_regression:
-        try:
+    clean_workspace_repo(repo_dir, config.workspaces_dir)
+    try:
+        prepare_scoring_dependencies(
+            repo_dir,
+            docker_image=agent.docker_image,
+            network_disabled=agent.docker_network_disabled,
+            setup_commands=scoring_setup,
+            shell_timeout=config.shell_timeout_seconds,
+            test_timeout=config.test_timeout_seconds,
+            dependency_environment=dependency_environment,
+            setup_artifact_environment=setup_artifact_environment,
+        )
+        clean_workspace_repo(repo_dir, config.workspaces_dir)
+        post_setup_tampered = restore_test_oracle(
+            repo_dir,
+            pristine_repo=frozen_oracle,
+            test_commands=scoring_commands,
+        )
+        if post_setup_tampered:
+            raise RuntimeError(
+                "pristine setup changed the frozen test oracle: "
+                + ", ".join(post_setup_tampered[:20])
+            )
+        if not args.no_regression:
             baseline = collect_visible_passing(
                 repo_dir,
                 test_command,
                 docker_image=agent.docker_image,
                 network_disabled=agent.docker_network_disabled,
-                setup_commands=scoring_setup,
-                shell_timeout=config.shell_timeout_seconds,
                 test_timeout=config.test_timeout_seconds,
                 dependency_environment=dependency_environment,
+                setup_artifact_environment=setup_artifact_environment,
+                pristine_repo=frozen_oracle,
+                test_commands=scoring_commands,
             )
-        except Exception as exc:
-            record_infrastructure_failure(
-                config, args, task, run_id, "preflight", exc, usage_models, state, 0.0
-            )
-            raise
-    else:
-        try:
-            prepare_scoring_dependencies(
-                repo_dir,
-                docker_image=agent.docker_image,
-                network_disabled=agent.docker_network_disabled,
-                setup_commands=scoring_setup,
-                shell_timeout=config.shell_timeout_seconds,
-                test_timeout=config.test_timeout_seconds,
-                dependency_environment=dependency_environment,
-            )
-        except Exception as exc:
-            record_infrastructure_failure(
-                config,
-                args,
-                task,
-                run_id,
-                "preflight",
-                exc,
-                usage_models,
-                state,
-                0.0,
-            )
-            raise
+    except Exception as exc:
+        record_infrastructure_failure(
+            config, args, task, run_id, "preflight", exc, usage_models, state, 0.0
+        )
+        raise
     clean_workspace_repo(repo_dir, config.workspaces_dir)
     try:
         source_repository = source_repository_identity(
@@ -1262,6 +1268,7 @@ def main() -> int:
         "hidden_fixture_tree": repo_dir.parent / "hidden_tests",
         "frozen_scoring_oracle_tree": frozen_oracle,
         "frozen_dependency_environment_tree": dependency_environment,
+        "frozen_setup_artifact_tree": setup_artifact_environment,
     }
     frozen_evaluation_trees = {
         name: filesystem_tree_identity(path)
@@ -1286,6 +1293,9 @@ def main() -> int:
         ],
         "frozen_dependency_environment_tree": frozen_evaluation_trees[
             "frozen_dependency_environment_tree"
+        ],
+        "frozen_setup_artifact_tree": frozen_evaluation_trees[
+            "frozen_setup_artifact_tree"
         ],
     }
 
@@ -1430,10 +1440,12 @@ def main() -> int:
     # build/dependency artifacts from becoming unrecorded solution state.
     patch_path = repo_dir.parent / "agent.patch"
     try:
-        write_agent_patch(
+        setup_artifact_conflicts = write_agent_patch(
             repo_dir,
             patch_path,
             expected_head=str(source_repository["head_commit"]),
+            excluded_paths=frozen_setup_artifact_files(setup_artifact_environment),
+            frozen_artifact_root=setup_artifact_environment,
         )
         rebuild_scoring_checkout(repo_dir, patch_path, config.workspaces_dir)
     except Exception as exc:
@@ -1526,7 +1538,15 @@ def main() -> int:
             frozen_evaluation_paths,
         )
         eval_result = evaluate_and_report(
-            task, repo_dir.parent, test_command, baseline, config, args, agent, run_id
+            task,
+            repo_dir.parent,
+            test_command,
+            baseline,
+            config,
+            args,
+            agent,
+            run_id,
+            setup_artifact_conflicts=setup_artifact_conflicts,
         )
         validate_frozen_evaluation_trees(
             frozen_evaluation_trees,
@@ -1560,6 +1580,7 @@ def main() -> int:
                 eval_result.hidden_passed,
                 eval_result.regressions,
                 test_oracle_tampered=True,
+                setup_artifact_tampered=eval_result.setup_artifact_tampered,
             )
         elif eval_result.task_success is not None:
             eval_result.task_success = False
@@ -1568,6 +1589,8 @@ def main() -> int:
             # an observed policy violation must still fail the process rather
             # than falling back to the agent's self-reported solved status.
             metrics["policy_failure"] = "test_oracle_tampering"
+    if eval_result.setup_artifact_tampered and eval_result.task_success is None:
+        metrics["policy_failure"] = "setup_artifact_tampering"
     if config.langsmith_tracing_enabled and eval_result.task_success is not None:
         try:
             attach_run_feedback(
@@ -1643,6 +1666,8 @@ def evaluate_and_report(
     args: argparse.Namespace,
     agent: TaskAgent,
     run_id: str,
+    *,
+    setup_artifact_conflicts: list[str] | None = None,
 ) -> EvalResult:
     """Run the post-run evaluation (regressions + hidden tests) and push a
     LangSmith feedback score for the hidden verdict."""
@@ -1659,6 +1684,8 @@ def evaluate_and_report(
         test_timeout=config.test_timeout_seconds,
         pristine_repo=task_ws / "pristine_oracle",
         dependency_environment=task_ws / "scoring_dependencies",
+        setup_artifact_environment=task_ws / "setup_artifacts",
+        setup_artifact_conflicts=setup_artifact_conflicts,
     )
     if config.langsmith_tracing_enabled and result.hidden_passed is not None:
         try:
@@ -1677,6 +1704,8 @@ def eval_metrics(result: EvalResult) -> dict:
     out: dict = {
         "excluded_agent_test_files": list(result.excluded_agent_test_files),
         "excluded_agent_test_file_count": len(result.excluded_agent_test_files),
+        "setup_artifact_tampered": result.setup_artifact_tampered,
+        "setup_artifact_conflicts": list(result.setup_artifact_conflicts),
     }
     if result.task_success is not None:
         out["task_success"] = result.task_success
@@ -1699,6 +1728,8 @@ def benchmark_exit_code(final_state: State, result: EvalResult) -> int:
     if result.task_success is not None:
         return 0 if result.task_success else 1
     if final_state.test_oracle_tamper_attempts:
+        return 1
+    if result.setup_artifact_tampered:
         return 1
     return 0 if final_state.status == "solved" else 1
 

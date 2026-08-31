@@ -987,6 +987,63 @@ def _archive_and_cleanup(record: dict, args: argparse.Namespace) -> None:
             raise RuntimeError(
                 f"patch archive verification failed for {record['run_id']}"
             )
+        setup_artifact_source = task_workspace / "setup_artifacts"
+        if not setup_artifact_source.is_dir():
+            raise RuntimeError(
+                "completed run is missing its frozen setup-artifact replay tree: "
+                f"{record['run_id']}"
+            )
+        setup_artifact_archive_root = DEFAULT_RESULTS_DIR / "setup_artifacts"
+        setup_artifact_archive_root.mkdir(parents=True, exist_ok=True)
+        setup_artifact_target = setup_artifact_archive_root / str(record["run_id"])
+        source_artifact_identity = filesystem_tree_identity(setup_artifact_source)
+        if setup_artifact_target.exists():
+            if (
+                filesystem_tree_identity(setup_artifact_target)
+                != source_artifact_identity
+            ):
+                raise RuntimeError(
+                    "existing setup-artifact archive disagrees with workspace: "
+                    f"{record['run_id']}"
+                )
+        else:
+            temporary_target = setup_artifact_archive_root / (
+                f".{record['run_id']}.{uuid.uuid4().hex}.tmp"
+            )
+            try:
+                shutil.copytree(setup_artifact_source, temporary_target)
+                if (
+                    filesystem_tree_identity(temporary_target)
+                    != source_artifact_identity
+                ):
+                    raise RuntimeError(
+                        "temporary setup-artifact archive verification failed for "
+                        f"{record['run_id']}"
+                    )
+                temporary_target.replace(setup_artifact_target)
+            finally:
+                if temporary_target.exists():
+                    shutil.rmtree(temporary_target, ignore_errors=True)
+        archived_artifact_identity = filesystem_tree_identity(setup_artifact_target)
+        if source_artifact_identity != archived_artifact_identity:
+            raise RuntimeError(
+                f"setup-artifact archive verification failed for {record['run_id']}"
+            )
+        expected_artifact_identity = (
+            record.get("reproducibility", {})
+            .get("policy_kernel", {})
+            .get("configuration", {})
+            .get("evaluation_inputs", {})
+            .get("frozen_setup_artifact_tree")
+        )
+        if (
+            expected_artifact_identity is not None
+            and expected_artifact_identity != archived_artifact_identity
+        ):
+            raise RuntimeError(
+                "setup-artifact replay tree does not match the run fingerprint: "
+                f"{record['run_id']}"
+            )
         _append_jsonl_record(
             archive_dir / "index.jsonl",
             {
@@ -997,6 +1054,8 @@ def _archive_and_cleanup(record: dict, args: argparse.Namespace) -> None:
                 "archive": str(target),
                 "sha256": hashlib.sha256(target.read_bytes()).hexdigest(),
                 "bytes": target.stat().st_size,
+                "setup_artifact_archive": str(setup_artifact_target),
+                "setup_artifact_tree": archived_artifact_identity,
             },
         )
     if not args.keep_workspaces and task_workspace.is_dir():

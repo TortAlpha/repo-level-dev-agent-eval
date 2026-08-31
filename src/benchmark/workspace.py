@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import shutil
+import stat
 import subprocess
-from pathlib import Path
+from collections.abc import Iterable
+from pathlib import Path, PurePosixPath
 
 from ..git_safety import (
     safe_git_command,
@@ -101,7 +103,9 @@ def write_agent_patch(
     patch_path: Path,
     *,
     expected_head: str,
-) -> None:
+    excluded_paths: Iterable[str] = (),
+    frozen_artifact_root: Path | None = None,
+) -> list[str]:
     """Save the agent's diff vs the base commit for later quality scoring.
 
     Captured right after the agent finishes, before any evaluation overlay, so
@@ -119,6 +123,57 @@ def write_agent_patch(
     )
     if add.returncode != 0:
         raise RuntimeError(f"failed to stage agent patch:\n{add.stderr[-1000:]}")
+    staged_result = subprocess.run(
+        safe_git_command(
+            repo_dir,
+            "diff",
+            "--cached",
+            "--name-only",
+            "-z",
+            "--no-renames",
+            "HEAD",
+            "--",
+            ".",
+        ),
+        capture_output=True,
+        timeout=60,
+        check=False,
+        env=safe_git_env(),
+    )
+    if staged_result.returncode != 0:
+        error = staged_result.stderr.decode("utf-8", errors="replace")[-1000:]
+        raise RuntimeError(f"failed to inventory staged agent patch:\n{error}")
+    staged_paths = {
+        item.decode("utf-8", errors="surrogateescape")
+        for item in staged_result.stdout.split(b"\0")
+        if item
+    }
+    setup_artifact_excludes: list[str] = []
+    frozen_paths: set[PurePosixPath] = set()
+    for relative in sorted(set(excluded_paths)):
+        candidate = PurePosixPath(relative)
+        if candidate.is_absolute() or ".." in candidate.parts or not candidate.parts:
+            raise RuntimeError(f"unsafe agent-patch exclusion path: {relative!r}")
+        frozen_paths.add(candidate)
+        setup_artifact_excludes.append(f":(exclude,top,literal){candidate.as_posix()}")
+    conflicts: set[str] = set()
+    frozen_root = frozen_artifact_root.resolve() if frozen_artifact_root else None
+    for raw in staged_paths:
+        staged = PurePosixPath(raw)
+        if staged.is_absolute() or ".." in staged.parts or not staged.parts:
+            raise RuntimeError(f"unsafe staged agent-patch path: {raw!r}")
+        for frozen in frozen_paths:
+            if staged == frozen:
+                if frozen_root is None or not _same_plain_file(
+                    repo_dir,
+                    frozen_root,
+                    frozen,
+                ):
+                    conflicts.add(staged.as_posix())
+                break
+            if staged in frozen.parents or frozen in staged.parents:
+                conflicts.add(staged.as_posix())
+                break
     result = subprocess.run(
         safe_git_command(
             repo_dir,
@@ -131,6 +186,7 @@ def write_agent_patch(
             "--",
             ".",
             *_ARTIFACT_EXCLUDES,
+            *setup_artifact_excludes,
         ),
         capture_output=True,
         text=True,
@@ -141,6 +197,39 @@ def write_agent_patch(
     if result.returncode != 0:
         raise RuntimeError(f"failed to render agent patch:\n{result.stderr[-1000:]}")
     patch_path.write_text(result.stdout, encoding="utf-8")
+    return sorted(conflicts)
+
+
+def _same_plain_file(
+    left_root: Path, right_root: Path, relative: PurePosixPath
+) -> bool:
+    """Compare one frozen path without following model-controlled aliases."""
+    candidates: list[Path] = []
+    for root in (left_root.resolve(), right_root.resolve()):
+        current = root
+        for part in relative.parts[:-1]:
+            current /= part
+            try:
+                metadata = current.lstat()
+            except OSError:
+                return False
+            if not stat.S_ISDIR(metadata.st_mode):
+                return False
+        candidates.append(root / Path(relative))
+    try:
+        left_metadata = candidates[0].lstat()
+        right_metadata = candidates[1].lstat()
+    except OSError:
+        return False
+    if any(
+        not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink > 1
+        for metadata in (left_metadata, right_metadata)
+    ):
+        return False
+    return (
+        stat.S_IMODE(left_metadata.st_mode) == stat.S_IMODE(right_metadata.st_mode)
+        and candidates[0].read_bytes() == candidates[1].read_bytes()
+    )
 
 
 def rebuild_scoring_checkout(
