@@ -1,0 +1,16 @@
+diff --git a/parse/__init__.py b/parse/__init__.py
+index 8922db37a5434a887ce2dec44c54b87b852f9d17..968a5a3ac00a39786a0c1f5daeead19e9926b85f 100644
+--- a/parse/__init__.py
++++ b/parse/__init__.py
+@@ -727,7 +727,10 @@ class Parser(object):
+             self._group_index += 1
+             conv[group] = percentage
+         elif type == "f":
+-            s = r"\d*\.\d+"
++            if format.get("precision") == "0":
++                s = r"\d+"
++            else:
++                s = r"\d*\.\d+"
+             conv[group] = convert_first(float)
+         elif type == "F":
+             s = r"\d*\.\d+"
