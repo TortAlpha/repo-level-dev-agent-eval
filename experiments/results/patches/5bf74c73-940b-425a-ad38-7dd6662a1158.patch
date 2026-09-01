@@ -1,0 +1,31 @@
+diff --git a/tenacity/wait.py b/tenacity/wait.py
+index b28b788658e881f442b159e27e664e201f26a8ac..1115468a156358e88d1300747fe01c9cc5837931 100644
+--- a/tenacity/wait.py
++++ b/tenacity/wait.py
+@@ -252,14 +252,16 @@ class wait_exponential_jitter(wait_base):
+     def __init__(
+         self,
+         initial: float = 1,
+-        max: float = _utils.MAX_WAIT,
++        max: _utils.time_unit_type = _utils.MAX_WAIT,
+         exp_base: float = 2,
+-        jitter: float = 1,
++        jitter: _utils.time_unit_type = 1,
++        min: _utils.time_unit_type = 0,
+     ) -> None:
+         self.initial = initial
+-        self.max = max
++        self.max = _utils.to_seconds(max)
+         self.exp_base = exp_base
+-        self.jitter = jitter
++        self.jitter = _utils.to_seconds(jitter)
++        self.min = _utils.to_seconds(min)
+ 
+     def __call__(self, retry_state: "RetryCallState") -> float:
+         jitter = random.uniform(0, self.jitter)
+@@ -268,4 +270,4 @@ class wait_exponential_jitter(wait_base):
+             result = self.initial * exp + jitter
+         except OverflowError:
+             result = self.max
+-        return max(0, min(result, self.max))
++        return max(self.min, min(result, self.max))

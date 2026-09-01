@@ -1,0 +1,85 @@
+diff --git a/tenacity/wait.py b/tenacity/wait.py
+index b28b788658e881f442b159e27e664e201f26a8ac..1115468a156358e88d1300747fe01c9cc5837931 100644
+--- a/tenacity/wait.py
++++ b/tenacity/wait.py
+@@ -252,14 +252,16 @@ class wait_exponential_jitter(wait_base):
+     def __init__(
+         self,
+         initial: float = 1,
+-        max: float = _utils.MAX_WAIT,
++        max: _utils.time_unit_type = _utils.MAX_WAIT,
+         exp_base: float = 2,
+-        jitter: float = 1,
++        jitter: _utils.time_unit_type = 1,
++        min: _utils.time_unit_type = 0,
+     ) -> None:
+         self.initial = initial
+-        self.max = max
++        self.max = _utils.to_seconds(max)
+         self.exp_base = exp_base
+-        self.jitter = jitter
++        self.jitter = _utils.to_seconds(jitter)
++        self.min = _utils.to_seconds(min)
+ 
+     def __call__(self, retry_state: "RetryCallState") -> float:
+         jitter = random.uniform(0, self.jitter)
+@@ -268,4 +270,4 @@ class wait_exponential_jitter(wait_base):
+             result = self.initial * exp + jitter
+         except OverflowError:
+             result = self.max
+-        return max(0, min(result, self.max))
++        return max(self.min, min(result, self.max))
+diff --git a/tests/test_exponential_jitter_min_timedelta.py b/tests/test_exponential_jitter_min_timedelta.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..de03ce2a62ee42d41a5e96be98a212fd4a8ebc14
+--- /dev/null
++++ b/tests/test_exponential_jitter_min_timedelta.py
+@@ -0,0 +1,48 @@
++import datetime
++import types
++from unittest import mock
++
++from tenacity.wait import wait_exponential_jitter
++
++
++def _retry_state(attempt_number):
++    return types.SimpleNamespace(attempt_number=attempt_number)
++
++
++def test_min_lower_bound_applied():
++    # exponential value + jitter = 1*2^1 + 0 = 2, capped by max=10 gives 2,
++    # then min=5 floor is applied.
++    w = wait_exponential_jitter(initial=1, max=10, exp_base=2, jitter=1, min=5)
++    with mock.patch("tenacity.wait.random.uniform", return_value=0.0):
++        assert w(retry_state=_retry_state(2)) == 5.0
++
++
++def test_min_does_not_raise_when_already_above_min():
++    # 1*2^3 + 0.5 = 8.5, min=5, max=10 -> 8.5
++    w = wait_exponential_jitter(initial=1, max=10, exp_base=2, jitter=1, min=5)
++    with mock.patch("tenacity.wait.random.uniform", return_value=0.5):
++        assert w(retry_state=_retry_state(4)) == 8.5
++
++
++def test_accepts_timedelta_for_min_max_and_jitter():
++    w = wait_exponential_jitter(
++        initial=1,
++        max=datetime.timedelta(seconds=2),
++        exp_base=2,
++        jitter=datetime.timedelta(seconds=0.5),
++        min=datetime.timedelta(seconds=1),
++    )
++    # Verify conversion happened at construction time.
++    assert w.max == 2.0
++    assert w.jitter == 0.5
++    assert w.min == 1.0
++    # exponential 1*2^1 + jitter 0.1 = 2.1, capped by max=2 -> 2, floor min=1 -> 2
++    with mock.patch("tenacity.wait.random.uniform", return_value=0.1):
++        assert w(retry_state=_retry_state(2)) == 2.0
++
++
++def test_plain_numbers_backward_compatible():
++    # Old behavior: no min bound, so result is just min(result, max).
++    w = wait_exponential_jitter(initial=1, max=10, exp_base=2, jitter=1)
++    with mock.patch("tenacity.wait.random.uniform", return_value=0.5):
++        assert w(retry_state=_retry_state(1)) == 1.5  # 1*2^0 + 0.5
