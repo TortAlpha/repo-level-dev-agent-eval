@@ -1,0 +1,22 @@
+diff --git a/src/cachetools/_cachedmethod.py b/src/cachetools/_cachedmethod.py
+index cdf63d4f84671cc033bb7adcfd8180565ba042c8..79c4be923c3d83fba10b5d7c94be2d68479ad8fe 100644
+--- a/src/cachetools/_cachedmethod.py
++++ b/src/cachetools/_cachedmethod.py
+@@ -77,7 +77,7 @@ class _DescriptorBase:
+ 
+     def __get__(self, obj, objtype=None):
+         wrapper = self.Wrapper(obj)
+-        if self.__attrname is not None:
++        if self.__attrname is not None and obj is not None:
+             # replace descriptor instance with wrapper in instance dict
+             try:
+                 # In case of a race condition where another thread already replaced
+@@ -105,7 +105,7 @@ class _DescriptorBase:
+                     raise TypeError(msg) from None
+         elif self.__deprecated:
+             pass  # deprecated @classmethod, warning already raised elsewhere
+-        else:
++        elif self.__attrname is None:
+             msg = "Cannot use @cachedmethod instance without calling __set_name__ on it"
+             raise TypeError(msg) from None
+         return wrapper

@@ -1,0 +1,32 @@
+diff --git a/src/dotenv/parser.py b/src/dotenv/parser.py
+index eb100b478cc1383eeaad53c6fbf39b9cf7c6b2be..58d3f49f130e226ae001723793035492834b9a5f 100644
+--- a/src/dotenv/parser.py
++++ b/src/dotenv/parser.py
+@@ -69,6 +69,8 @@ class Error(Exception):
+ class Reader:
+     def __init__(self, stream: IO[str]) -> None:
+         self.string = stream.read()
++        if self.string.startswith("\ufeff"):
++            self.string = self.string[1:]
+         self.position = Position.start()
+         self.mark = Position.start()
+ 
+diff --git a/tests/test_bom_regression.py b/tests/test_bom_regression.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..5a843249a6ac635abe4579d3c08a135e8982d94d
+--- /dev/null
++++ b/tests/test_bom_regression.py
+@@ -0,0 +1,13 @@
++import io
++
++from dotenv.parser import parse_stream
++
++
++def test_parse_stream_strips_leading_bom():
++    test_input = "\ufeffFIRST=value1\nSECOND=value2\n"
++    result = parse_stream(io.StringIO(test_input))
++
++    bindings = list(result)
++    assert [b.key for b in bindings] == ["FIRST", "SECOND"]
++    assert bindings[0].original.string == "FIRST=value1\n"
++    assert bindings[0].original.line == 1

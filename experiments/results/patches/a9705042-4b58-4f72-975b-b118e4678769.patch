@@ -1,0 +1,48 @@
+diff --git a/h11/_headers.py b/h11/_headers.py
+index b97d020b634a9f47f5ae6aa3b30e2bd13a6c48c4..18bc508bf966905cc132bfe8992900da731cada7 100644
+--- a/h11/_headers.py
++++ b/h11/_headers.py
+@@ -173,6 +173,8 @@ def normalize_and_validate(
+                 raise LocalProtocolError("conflicting Content-Length headers")
+             value = lengths.pop()
+             validate(_content_length_re, value, "bad Content-Length")
++            if len(value) > 20:
++                raise LocalProtocolError("Content-Length too large")
+             if seen_content_length is None:
+                 seen_content_length = value
+                 new_headers.append((raw_name, name, value))
+diff --git a/h11/tests/test_pathological_content_length.py b/h11/tests/test_pathological_content_length.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..7f0770dc63d260237001ef1b8f14df8491a0ccfb
+--- /dev/null
++++ b/h11/tests/test_pathological_content_length.py
+@@ -0,0 +1,29 @@
++import pytest
++
++import h11
++from h11._headers import normalize_and_validate
++from h11._util import LocalProtocolError, RemoteProtocolError
++
++
++def test_normalize_rejects_huge_content_length():
++    # A Content-Length value with more than 20 digits must be rejected
++    huge = b"1" * 100
++    with pytest.raises(LocalProtocolError):
++        normalize_and_validate([(b"Content-Length", huge)])
++
++
++def test_connection_rejects_huge_content_length_response():
++    conn = h11.Connection(h11.SERVER)
++    # Send a response with a huge Content-Length value
++    data = (
++        b"HTTP/1.1 200 OK\r\n"
++        b"Content-Length: " + b"1" * 100 + b"\r\n"
++        b"\r\n"
++    )
++    with pytest.raises(RemoteProtocolError):
++        conn.receive_data(data)
++
++
++def test_normal_content_length_still_works():
++    headers = normalize_and_validate([(b"Content-Length", b"123")])
++    assert headers == [(b"content-length", b"123")]

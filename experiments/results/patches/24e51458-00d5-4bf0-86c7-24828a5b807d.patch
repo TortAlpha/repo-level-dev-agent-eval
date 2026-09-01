@@ -1,0 +1,46 @@
+diff --git a/h11/_headers.py b/h11/_headers.py
+index b97d020b634a9f47f5ae6aa3b30e2bd13a6c48c4..18bc508bf966905cc132bfe8992900da731cada7 100644
+--- a/h11/_headers.py
++++ b/h11/_headers.py
+@@ -173,6 +173,8 @@ def normalize_and_validate(
+                 raise LocalProtocolError("conflicting Content-Length headers")
+             value = lengths.pop()
+             validate(_content_length_re, value, "bad Content-Length")
++            if len(value) > 20:
++                raise LocalProtocolError("Content-Length too large")
+             if seen_content_length is None:
+                 seen_content_length = value
+                 new_headers.append((raw_name, name, value))
+diff --git a/h11/tests/test_content_length_too_large.py b/h11/tests/test_content_length_too_large.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..0ef6fb28429b8413c9e4a199994d3aba5b9d170a
+--- /dev/null
++++ b/h11/tests/test_content_length_too_large.py
+@@ -0,0 +1,27 @@
++import pytest
++
++from .._headers import normalize_and_validate
++from .._util import LocalProtocolError
++
++
++def test_content_length_too_large() -> None:
++    # A normal valid Content-Length should still work
++    assert normalize_and_validate([("Content-Length", "123")]) == [
++        (b"content-length", b"123")
++    ]
++
++    # An extremely long Content-Length (e.g., 100 digits) should be rejected promptly
++    long_value = "9" * 100
++    with pytest.raises(LocalProtocolError):
++        normalize_and_validate([("Content-Length", long_value)])
++
++    # Also test with a value that is exactly 20 digits (the boundary) should be accepted
++    boundary_value = "9" * 20
++    assert normalize_and_validate([("Content-Length", boundary_value)]) == [
++        (b"content-length", boundary_value.encode("ascii"))
++    ]
++
++    # And 21 digits should be rejected
++    too_long_value = "9" * 21
++    with pytest.raises(LocalProtocolError):
++        normalize_and_validate([("Content-Length", too_long_value)])

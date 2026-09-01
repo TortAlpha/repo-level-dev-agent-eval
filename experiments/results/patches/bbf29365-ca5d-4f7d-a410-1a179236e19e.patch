@@ -1,0 +1,55 @@
+diff --git a/src/croniter/croniter.py b/src/croniter/croniter.py
+index f73a6a9ab83ffbbb18c4dbb9fd4957c6dc3ba1d6..fde0afcd455d7ba61d997bb1fec390bcc8d574d5 100644
+--- a/src/croniter/croniter.py
++++ b/src/croniter/croniter.py
+@@ -1273,7 +1273,7 @@ class croniter:
+         if field_index == DAY_FIELD:
+             return ((dt.day - 1) % step) + 1
+         if field_index == MONTH_FIELD:
+-            return dt.month % step
++            return ((dt.month - 1) % step) + 1
+         if field_index == DOW_FIELD:
+             return (dt.weekday() + 1) % step
+ 
+diff --git a/src/croniter/tests/test_expand_from_start_time_regression.py b/src/croniter/tests/test_expand_from_start_time_regression.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..6c0c23f3867398e8fe6eee9a8e6f6d243a0a5a45
+--- /dev/null
++++ b/src/croniter/tests/test_expand_from_start_time_regression.py
+@@ -0,0 +1,36 @@
++import datetime
++
++from croniter import croniter
++
++
++def _collect_next_months(start_month, step, num_checks=8):
++    start = datetime.datetime(2024, start_month, 1, 0, 0)
++    itr = croniter("0 0 1 */%d *" % step, start, expand_from_start_time=True)
++    months = []
++    for _ in range(num_checks):
++        nxt = itr.get_next(datetime.datetime)
++        assert 1 <= nxt.month <= 12, "month out of range: %d" % nxt.month
++        months.append(nxt.month)
++    return months
++
++
++def _assert_month_cycle(start_month, step):
++    months = _collect_next_months(start_month, step)
++    expected = ((start_month - 1 + step) % 12) + 1
++    for month in months:
++        assert month == expected, "expected month %d, got %d in %r" % (expected, month, months)
++        expected = ((expected - 1 + step) % 12) + 1
++
++
++def test_expand_from_start_time_month_exact_multiple_june():
++    _assert_month_cycle(6, 3)
++
++
++def test_expand_from_start_time_month_exact_multiples():
++    for month in [3, 6, 9, 12]:
++        _assert_month_cycle(month, 3)
++
++
++def test_expand_from_start_time_month_non_multiple():
++    # May (month=5) is not a multiple of 3; behavior must remain unchanged
++    _assert_month_cycle(5, 3)

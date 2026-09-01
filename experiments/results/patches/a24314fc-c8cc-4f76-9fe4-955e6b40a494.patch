@@ -1,0 +1,33 @@
+diff --git a/src/pluggy/_hooks.py b/src/pluggy/_hooks.py
+index 7fde78c932dfa29cb6b06ead29f94adeae4875d1..2fd5d21bf493acef918102ec42fb71c4e31a04a8 100644
+--- a/src/pluggy/_hooks.py
++++ b/src/pluggy/_hooks.py
+@@ -440,11 +440,11 @@ class HookCaller:
+         return self._call_history is not None
+ 
+     def _remove_plugin(self, plugin: _Plugin) -> None:
+-        for i, method in enumerate(self._hookimpls):
+-            if method.plugin == plugin:
+-                del self._hookimpls[i]
+-                return
+-        raise ValueError(f"plugin {plugin!r} not found")
++        if not any(impl.plugin == plugin for impl in self._hookimpls):
++            raise ValueError(f"plugin {plugin!r} not found")
++        self._hookimpls[:] = [
++            impl for impl in self._hookimpls if impl.plugin != plugin
++        ]
+ 
+     def get_hookimpls(self) -> list[HookImpl]:
+         """Get all registered hook implementations for this hook."""
+diff --git a/src/pluggy/_manager.py b/src/pluggy/_manager.py
+index 1b994f255d1d3a1a8f427a0aab6385d9996549b7..9e51a4f589f43beb2fad86c0c8bf0148df7606ea 100644
+--- a/src/pluggy/_manager.py
++++ b/src/pluggy/_manager.py
+@@ -445,6 +445,7 @@ class PluginManager:
+             for hookimpl in hookcaller.get_hookimpls():
+                 if hookimpl.plugin is plugin:
+                     hookcallers.append(hookcaller)
++                    break
+         return hookcallers
+ 
+     def add_hookcall_monitoring(

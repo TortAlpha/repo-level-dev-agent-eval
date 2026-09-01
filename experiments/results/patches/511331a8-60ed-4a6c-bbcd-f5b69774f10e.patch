@@ -1,0 +1,61 @@
+diff --git a/src/humanize/filesize.py b/src/humanize/filesize.py
+index c495fed3ee9e724755800a0352c975335a9b1465..5744e2eeed8fb0938896836ee67f15bcbd746696 100644
+--- a/src/humanize/filesize.py
++++ b/src/humanize/filesize.py
+@@ -98,5 +98,11 @@ def naturalsize(
+ 
+     exp = int(min(log(abs_bytes, base), len(suffix)))
+     space = "" if gnu else " "
+-    ret: str = format % (bytes_ / (base**exp)) + space + _(suffix[exp - 1])
++    mantissa = bytes_ / (base**exp)
++    formatted = format % mantissa
++    if exp < len(suffix) and abs(float(formatted)) == base:
++        exp += 1
++        mantissa = bytes_ / (base**exp)
++        formatted = format % mantissa
++    ret: str = formatted + space + _(suffix[exp - 1])
+     return ret
+diff --git a/tests/test_filesize_rounding.py b/tests/test_filesize_rounding.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4284ed3ffa03acd80e001bb854a63e78c80ba62a
+--- /dev/null
++++ b/tests/test_filesize_rounding.py
+@@ -0,0 +1,38 @@
++import pytest
++from humanize import naturalsize
++
++
++def test_decimal_boundary_rounds_up():
++    # 999950 is just below 1,000,000; rounding to one decimal gives 1000.0 kB
++    # which should carry over to 1.0 MB.
++    assert naturalsize(999950) == "1.0 MB"
++    assert naturalsize(-999950) == "-1.0 MB"
++
++
++def test_binary_boundary_rounds_up():
++    # 1024**2 - 1 = 1048575; dividing by 1024 gives 1023.999... -> 1024.0 KiB
++    # which should carry over to 1.0 MiB.
++    assert naturalsize(1024**2 - 1, binary=True) == "1.0 MiB"
++    assert naturalsize(-(1024**2 - 1), binary=True) == "-1.0 MiB"
++
++
++def test_gnu_boundary_rounds_up():
++    # GNU mode uses binary units (1024) and no space. 1024**2 - 1 should
++    # round up from 1024.0K to 1.0M.
++    assert naturalsize(1024**2 - 1, gnu=True) == "1.0M"
++    assert naturalsize(-(1024**2 - 1), gnu=True) == "-1.0M"
++
++
++def test_largest_suffix_does_not_advance():
++    # 10**30 is exactly 1.0 QB (quettabyte) in decimal; it must not become
++    # 1000.0 RB or similar.
++    assert naturalsize(10**30) == "1.0 QB"
++    assert naturalsize(-10**30) == "-1.0 QB"
++
++
++def test_non_boundary_values_unchanged():
++    # Values that do not cross a rounded boundary keep their suffix.
++    assert naturalsize(999949) == "999.9 kB"
++    # 1024**2 - 100 = 1048476 -> 1023.9 KiB (does not round up to 1024.0)
++    assert naturalsize(1024**2 - 100, binary=True) == "1023.9 KiB"
++    assert naturalsize(1024**2 - 100, gnu=True) == "1023.9K"

@@ -1,0 +1,16 @@
+diff --git a/h11/_connection.py b/h11/_connection.py
+index e37d82a82a882c072cb938a90eb4486b51cdad99..9515bb5583b097250a91ee13177dae53a6b3023a 100644
+--- a/h11/_connection.py
++++ b/h11/_connection.py
+@@ -132,6 +132,11 @@ def _body_framing(
+     # Step 3: check for Content-Length
+     content_lengths = get_comma_header(event.headers, b"content-length")
+     if content_lengths:
++        # Reject pathologically large Content-Length values promptly. The
++        # maximum valid value fits in a 64-bit unsigned integer (20 digits);
++        # anything longer is unreasonably large and would be slow to parse.
++        if len(content_lengths[0]) > 20:
++            raise LocalProtocolError("Content-Length value too large")
+         return ("content-length", (int(content_lengths[0]),))
+ 
+     # Step 4: no applicable headers; fallback/default depends on type

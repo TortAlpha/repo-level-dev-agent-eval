@@ -1,0 +1,2064 @@
+{
+  "schema_version": 2,
+  "session_id": "kernel_v2_ds_v4_flash_0731_nitro_low_core_small_v4",
+  "created_at": "2026-08-31T20:09:10.478615+00:00",
+  "task_set": "final-v1",
+  "task_set_path": "eval/task_sets/final_v1.json",
+  "task_set_sha256": "d892c96228ad300a3702bbd0e57fad8b19afc364a6079ae903c85cb5d7076d25",
+  "swe_execution_image_identity": null,
+  "external_swe_distributions": null,
+  "external_swe_runtime": null,
+  "previously_exercised": [
+    "h11_pr_181",
+    "humanize_pr_329",
+    "pluggy_pr_646",
+    "w3lib_pr_272",
+    "parse_pr_165",
+    "parse_pr_227",
+    "cachetools_pr_57d2e48",
+    "tinydb_pr_616",
+    "python_dotenv_pr_640",
+    "toolz_pr_603",
+    "markdown_pr_1606",
+    "markdown_pr_1546",
+    "sqlparse_pr_642",
+    "sqlparse_pr_746",
+    "sqlparse_pr_664",
+    "more_itertools_pr_1166",
+    "more_itertools_pr_1153",
+    "boltons_pr_403",
+    "pydash_pr_cdd84b4",
+    "sqlglot_pr_7660486c",
+    "swepro_openlibrary_2abe28b4"
+  ],
+  "collection_sha256": "0d3d18079f06bc7bf62eeb93ed2681c99f74c25d689e57b4e08122645d2dc159",
+  "pricing_sha256": "8c9195ee2b84d3b5ec2188721942964bbaa5e56fdf28b25c4b49f844890f2570",
+  "tasks": [
+    "h11_pr_181",
+    "humanize_pr_329",
+    "pluggy_pr_646",
+    "w3lib_pr_272",
+    "parse_pr_165",
+    "parse_pr_227",
+    "cachetools_pr_57d2e48",
+    "tinydb_pr_616",
+    "python_dotenv_pr_640",
+    "tenacity_pr_628",
+    "freezegun_pr_546",
+    "croniter_pr_235"
+  ],
+  "task_inputs": {
+    "h11_pr_181": {
+      "base_commit": "31e626c64e1e28db3cd73a6aa0ac057f1b915c18",
+      "source_repository": {
+        "version": "source-repository-v1",
+        "vcs": "git",
+        "head_commit": "31e626c64e1e28db3cd73a6aa0ac057f1b915c18",
+        "head_tree": "d5f249b25537dfed36fa9943530fd5da66bf08f6",
+        "declared_base_commit": "31e626c64e1e28db3cd73a6aa0ac057f1b915c18",
+        "declared_base_commit_resolved": "31e626c64e1e28db3cd73a6aa0ac057f1b915c18",
+        "base_commit_validated": true,
+        "dirty": false,
+        "dirty_entry_count": 0,
+        "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tracked_diff_sha256": null,
+        "untracked_file_count": 0,
+        "untracked_tree_sha256": null,
+        "ignored_file_count": 0,
+        "ignored_tree_sha256": null,
+        "worktree_sha256": "3edbf9e24c57504b997b6721e163cdc7d7aa380c6d95cb4c265e4c63297f3d8f",
+        "ignored_files_included": true
+      },
+      "task_sha256": "a434b5941e38375cdf6128a3ad15ceb78cce40da3b9fd963c8b5019b7f4112e6",
+      "hidden_tree_sha256": "0a26b7d0364842fb12265fa6b6e47ce13a7b4680b3b91fb9403777fb0198f0bb",
+      "hidden_fixture_tree": {
+        "sha256": "0a26b7d0364842fb12265fa6b6e47ce13a7b4680b3b91fb9403777fb0198f0bb",
+        "file_count": 1
+      },
+      "docker_image": "python:3.11-slim",
+      "docker_image_identity": {
+        "reference": "python:3.11-slim",
+        "resolved": true,
+        "image_id": "sha256:b27df5841f3355e9473f9a516d38a6783b6c8dfeacaf2d14a240f443b368ddb6",
+        "repo_digests": [
+          "python@sha256:b27df5841f3355e9473f9a516d38a6783b6c8dfeacaf2d14a240f443b368ddb6"
+        ]
+      },
+      "visible_test_command": "python -m pytest h11",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/h11/tests/test_headers.py::test_normalize_and_validate"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest h11"
+        }
+      ],
+      "hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/h11/tests/test_headers.py::test_normalize_and_validate",
+          "required": true,
+          "reuse_visible_result": false
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest h11",
+          "required": true,
+          "reuse_visible_result": true
+        }
+      ]
+    },
+    "humanize_pr_329": {
+      "base_commit": "976484a655df046aa6849f440a4f0cd44fc4918c",
+      "source_repository": {
+        "version": "source-repository-v1",
+        "vcs": "git",
+        "head_commit": "976484a655df046aa6849f440a4f0cd44fc4918c",
+        "head_tree": "361b0323c6ba2ae2569ff3bec87bd0e015ef9435",
+        "declared_base_commit": "976484a655df046aa6849f440a4f0cd44fc4918c",
+        "declared_base_commit_resolved": "976484a655df046aa6849f440a4f0cd44fc4918c",
+        "base_commit_validated": true,
+        "dirty": false,
+        "dirty_entry_count": 0,
+        "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tracked_diff_sha256": null,
+        "untracked_file_count": 0,
+        "untracked_tree_sha256": null,
+        "ignored_file_count": 0,
+        "ignored_tree_sha256": null,
+        "worktree_sha256": "64dba725aa6f5e26fd0bc5de291f2378244ee98b5be573606793076aab7956c0",
+        "ignored_files_included": true
+      },
+      "task_sha256": "dd5b9268582b621372a82fe485f56f0fd52f76f652b8e084b6df062ba8a693c0",
+      "hidden_tree_sha256": "8e326585c2e24f6faea0103f1c86d7375dcf55400f1a235054f48ec0d0066c35",
+      "hidden_fixture_tree": {
+        "sha256": "8e326585c2e24f6faea0103f1c86d7375dcf55400f1a235054f48ec0d0066c35",
+        "file_count": 1
+      },
+      "docker_image": "python:3.11-slim",
+      "docker_image_identity": {
+        "reference": "python:3.11-slim",
+        "resolved": true,
+        "image_id": "sha256:b27df5841f3355e9473f9a516d38a6783b6c8dfeacaf2d14a240f443b368ddb6",
+        "repo_digests": [
+          "python@sha256:b27df5841f3355e9473f9a516d38a6783b6c8dfeacaf2d14a240f443b368ddb6"
+        ]
+      },
+      "visible_test_command": "python -m pytest tests",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_filesize.py::test_naturalsize"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests"
+        }
+      ],
+      "hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_filesize.py::test_naturalsize",
+          "required": true,
+          "reuse_visible_result": false
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests",
+          "required": true,
+          "reuse_visible_result": true
+        }
+      ]
+    },
+    "pluggy_pr_646": {
+      "base_commit": "6ab917ba3b2dc1dceba6a260a0c30cb947f6a69c",
+      "source_repository": {
+        "version": "source-repository-v1",
+        "vcs": "git",
+        "head_commit": "6ab917ba3b2dc1dceba6a260a0c30cb947f6a69c",
+        "head_tree": "ce5c06d2a7a61638c65c9905fad6b4450a08089a",
+        "declared_base_commit": "6ab917ba3b2dc1dceba6a260a0c30cb947f6a69c",
+        "declared_base_commit_resolved": "6ab917ba3b2dc1dceba6a260a0c30cb947f6a69c",
+        "base_commit_validated": true,
+        "dirty": false,
+        "dirty_entry_count": 0,
+        "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tracked_diff_sha256": null,
+        "untracked_file_count": 0,
+        "untracked_tree_sha256": null,
+        "ignored_file_count": 0,
+        "ignored_tree_sha256": null,
+        "worktree_sha256": "e8ef64da5832c2d858143ff60748dcd8e9172d68116a674d119b900185482bcd",
+        "ignored_files_included": true
+      },
+      "task_sha256": "1551def34b55a37bfda37e45b9e670b177eca436a8639008b7fc480fd4c15f9c",
+      "hidden_tree_sha256": "2874b42f8f3e537887a6f4b7d0abceeab8257cf8662113a30a7e5023a25dbb6b",
+      "hidden_fixture_tree": {
+        "sha256": "2874b42f8f3e537887a6f4b7d0abceeab8257cf8662113a30a7e5023a25dbb6b",
+        "file_count": 1
+      },
+      "docker_image": "python:3.11-slim",
+      "docker_image_identity": {
+        "reference": "python:3.11-slim",
+        "resolved": true,
+        "image_id": "sha256:b27df5841f3355e9473f9a516d38a6783b6c8dfeacaf2d14a240f443b368ddb6",
+        "repo_digests": [
+          "python@sha256:b27df5841f3355e9473f9a516d38a6783b6c8dfeacaf2d14a240f443b368ddb6"
+        ]
+      },
+      "visible_test_command": "python -m pytest testing",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/testing/test_pluginmanager.py::test_unregister_plugin_with_multi_hookimpls ../hidden_tests/testing/test_pluginmanager.py::test_get_hookcallers_no_duplicates"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest testing"
+        }
+      ],
+      "hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/testing/test_pluginmanager.py::test_unregister_plugin_with_multi_hookimpls ../hidden_tests/testing/test_pluginmanager.py::test_get_hookcallers_no_duplicates",
+          "required": true,
+          "reuse_visible_result": false
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest testing",
+          "required": true,
+          "reuse_visible_result": true
+        }
+      ]
+    },
+    "w3lib_pr_272": {
+      "base_commit": "012208453dfcc26ba0f7adc96f5b4981b9fd3687",
+      "source_repository": {
+        "version": "source-repository-v1",
+        "vcs": "git",
+        "head_commit": "012208453dfcc26ba0f7adc96f5b4981b9fd3687",
+        "head_tree": "ea1900b039452caf06f998e756bfac9dd468b0ce",
+        "declared_base_commit": "012208453dfcc26ba0f7adc96f5b4981b9fd3687",
+        "declared_base_commit_resolved": "012208453dfcc26ba0f7adc96f5b4981b9fd3687",
+        "base_commit_validated": true,
+        "dirty": false,
+        "dirty_entry_count": 0,
+        "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tracked_diff_sha256": null,
+        "untracked_file_count": 0,
+        "untracked_tree_sha256": null,
+        "ignored_file_count": 0,
+        "ignored_tree_sha256": null,
+        "worktree_sha256": "ee88c576bb5ce64b11acf015534440d8802e5118db6eeb55ba39158fb8266914",
+        "ignored_files_included": true
+      },
+      "task_sha256": "ac216a3620bf4bcdcb4deb5bd584717a618ec1055aabf3226a75eb8bf73f3f3b",
+      "hidden_tree_sha256": "645dc29267dd21353f8721b11e943932aba984b6496aa3aabe509e9c873a1515",
+      "hidden_fixture_tree": {
+        "sha256": "645dc29267dd21353f8721b11e943932aba984b6496aa3aabe509e9c873a1515",
+        "file_count": 1
+      },
+      "docker_image": "python:3.11-slim",
+      "docker_image_identity": {
+        "reference": "python:3.11-slim",
+        "resolved": true,
+        "image_id": "sha256:b27df5841f3355e9473f9a516d38a6783b6c8dfeacaf2d14a240f443b368ddb6",
+        "repo_digests": [
+          "python@sha256:b27df5841f3355e9473f9a516d38a6783b6c8dfeacaf2d14a240f443b368ddb6"
+        ]
+      },
+      "visible_test_command": "python -m pytest w3lib tests",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_url.py::TestCanonicalizeUrl::test_remove_fragments_ipv6_host"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest w3lib tests"
+        }
+      ],
+      "hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_url.py::TestCanonicalizeUrl::test_remove_fragments_ipv6_host",
+          "required": true,
+          "reuse_visible_result": false
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest w3lib tests",
+          "required": true,
+          "reuse_visible_result": true
+        }
+      ]
+    },
+    "parse_pr_165": {
+      "base_commit": "04314d815703ecab7b00a160085d82ebfa724447",
+      "source_repository": {
+        "version": "source-repository-v1",
+        "vcs": "git",
+        "head_commit": "04314d815703ecab7b00a160085d82ebfa724447",
+        "head_tree": "b7b50ace77e942a19313433eeb0deb62378e8688",
+        "declared_base_commit": "04314d815703ecab7b00a160085d82ebfa724447",
+        "declared_base_commit_resolved": "04314d815703ecab7b00a160085d82ebfa724447",
+        "base_commit_validated": true,
+        "dirty": false,
+        "dirty_entry_count": 0,
+        "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tracked_diff_sha256": null,
+        "untracked_file_count": 0,
+        "untracked_tree_sha256": null,
+        "ignored_file_count": 0,
+        "ignored_tree_sha256": null,
+        "worktree_sha256": "1306bfe78aa41ff6d84e0344eecc8b21c7aecc4020652148b4f72f5fa2ecf50d",
+        "ignored_files_included": true
+      },
+      "task_sha256": "658915523ad8310e4c9ec97396f39474d99652c1e05c5a730bc407ba41489073",
+      "hidden_tree_sha256": "4ce3d518533293197b85a9c43a543e175f47b4e990bc64a6eb1e6b6d01f42c02",
+      "hidden_fixture_tree": {
+        "sha256": "4ce3d518533293197b85a9c43a543e175f47b4e990bc64a6eb1e6b6d01f42c02",
+        "file_count": 1
+      },
+      "docker_image": "python:3.11-slim",
+      "docker_image_identity": {
+        "reference": "python:3.11-slim",
+        "resolved": true,
+        "image_id": "sha256:b27df5841f3355e9473f9a516d38a6783b6c8dfeacaf2d14a240f443b368ddb6",
+        "repo_digests": [
+          "python@sha256:b27df5841f3355e9473f9a516d38a6783b6c8dfeacaf2d14a240f443b368ddb6"
+        ]
+      },
+      "visible_test_command": "python -m pytest tests -o addopts=",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_parse.py -k flexible_datetime -o addopts="
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests -o addopts="
+        }
+      ],
+      "hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_parse.py -k flexible_datetime -o addopts=",
+          "required": true,
+          "reuse_visible_result": false
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests -o addopts=",
+          "required": true,
+          "reuse_visible_result": true
+        }
+      ]
+    },
+    "parse_pr_227": {
+      "base_commit": "71b443f4de2e9c82e117f935e347a1ab7fefdee1",
+      "source_repository": {
+        "version": "source-repository-v1",
+        "vcs": "git",
+        "head_commit": "71b443f4de2e9c82e117f935e347a1ab7fefdee1",
+        "head_tree": "dec89cc8218f04569ea39442735ec59e6e07ea30",
+        "declared_base_commit": "71b443f4de2e9c82e117f935e347a1ab7fefdee1",
+        "declared_base_commit_resolved": "71b443f4de2e9c82e117f935e347a1ab7fefdee1",
+        "base_commit_validated": true,
+        "dirty": false,
+        "dirty_entry_count": 0,
+        "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tracked_diff_sha256": null,
+        "untracked_file_count": 0,
+        "untracked_tree_sha256": null,
+        "ignored_file_count": 0,
+        "ignored_tree_sha256": null,
+        "worktree_sha256": "991b0ca8141de2ef56e935ad43da297a02669ebe4e16c7690881c2973c6b8695",
+        "ignored_files_included": true
+      },
+      "task_sha256": "14fad603d1b3ddacfb8aabb24beea2df710159e901105c15891249f069c7bb97",
+      "hidden_tree_sha256": "6dca18578dcc387ca57d9708475541c4b8f3bdd12a4a496613d5ebe7384ff3f9",
+      "hidden_fixture_tree": {
+        "sha256": "6dca18578dcc387ca57d9708475541c4b8f3bdd12a4a496613d5ebe7384ff3f9",
+        "file_count": 1
+      },
+      "docker_image": "python:3.11-slim",
+      "docker_image_identity": {
+        "reference": "python:3.11-slim",
+        "resolved": true,
+        "image_id": "sha256:b27df5841f3355e9473f9a516d38a6783b6c8dfeacaf2d14a240f443b368ddb6",
+        "repo_digests": [
+          "python@sha256:b27df5841f3355e9473f9a516d38a6783b6c8dfeacaf2d14a240f443b368ddb6"
+        ]
+      },
+      "visible_test_command": "python -m pytest tests -o addopts=",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_parse.py::test_numbers -o addopts="
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests -o addopts="
+        }
+      ],
+      "hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_parse.py::test_numbers -o addopts=",
+          "required": true,
+          "reuse_visible_result": false
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests -o addopts=",
+          "required": true,
+          "reuse_visible_result": true
+        }
+      ]
+    },
+    "cachetools_pr_57d2e48": {
+      "base_commit": "8011b71949e8d8d81a71359cca9477d67a2c9c0b",
+      "source_repository": {
+        "version": "source-repository-v1",
+        "vcs": "git",
+        "head_commit": "8011b71949e8d8d81a71359cca9477d67a2c9c0b",
+        "head_tree": "364b6780bbaaf0961fddcc4884681fb44102a7b1",
+        "declared_base_commit": "8011b71949e8d8d81a71359cca9477d67a2c9c0b",
+        "declared_base_commit_resolved": "8011b71949e8d8d81a71359cca9477d67a2c9c0b",
+        "base_commit_validated": true,
+        "dirty": false,
+        "dirty_entry_count": 0,
+        "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tracked_diff_sha256": null,
+        "untracked_file_count": 0,
+        "untracked_tree_sha256": null,
+        "ignored_file_count": 0,
+        "ignored_tree_sha256": null,
+        "worktree_sha256": "eea5b2ced96f59f86e662d6a3b7801e6a8b610c4528ddcbefcdd5e2a0e9cad4c",
+        "ignored_files_included": true
+      },
+      "task_sha256": "927f358963a39c90aeb2fa0485103721c196b3f50063e2e4103feb0930e2c307",
+      "hidden_tree_sha256": "0af235b5154eb1b9045e0732f926aac7dfa71b0f0d74209b780ecff001245034",
+      "hidden_fixture_tree": {
+        "sha256": "0af235b5154eb1b9045e0732f926aac7dfa71b0f0d74209b780ecff001245034",
+        "file_count": 1
+      },
+      "docker_image": "python:3.11-slim",
+      "docker_image_identity": {
+        "reference": "python:3.11-slim",
+        "resolved": true,
+        "image_id": "sha256:b27df5841f3355e9473f9a516d38a6783b6c8dfeacaf2d14a240f443b368ddb6",
+        "repo_digests": [
+          "python@sha256:b27df5841f3355e9473f9a516d38a6783b6c8dfeacaf2d14a240f443b368ddb6"
+        ]
+      },
+      "visible_test_command": "python -m pytest tests -o addopts=",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_cachedmethod.py -k autospec_no_warnings -o addopts="
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests -o addopts="
+        }
+      ],
+      "hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_cachedmethod.py -k autospec_no_warnings -o addopts=",
+          "required": true,
+          "reuse_visible_result": false
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests -o addopts=",
+          "required": true,
+          "reuse_visible_result": true
+        }
+      ]
+    },
+    "tinydb_pr_616": {
+      "base_commit": "8a2dc204c265c07ce8506a3599a28e720b6dcdd7",
+      "source_repository": {
+        "version": "source-repository-v1",
+        "vcs": "git",
+        "head_commit": "8a2dc204c265c07ce8506a3599a28e720b6dcdd7",
+        "head_tree": "0b597155931989535c9f4ec75690293a9f1dac92",
+        "declared_base_commit": "8a2dc204c265c07ce8506a3599a28e720b6dcdd7",
+        "declared_base_commit_resolved": "8a2dc204c265c07ce8506a3599a28e720b6dcdd7",
+        "base_commit_validated": true,
+        "dirty": false,
+        "dirty_entry_count": 0,
+        "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tracked_diff_sha256": null,
+        "untracked_file_count": 0,
+        "untracked_tree_sha256": null,
+        "ignored_file_count": 0,
+        "ignored_tree_sha256": null,
+        "worktree_sha256": "d25943ccf58659bc90e6d513a5caa6f3396f519460ce0eede1792d817dac45fe",
+        "ignored_files_included": true
+      },
+      "task_sha256": "25c115b1f1b220eb864c9411820071bc6b85873165781b67f249f870ee549a1f",
+      "hidden_tree_sha256": "18b748b5c12606fdc73f4042b112ca8e6c3e403985e8b251ce2a2392d0dacd75",
+      "hidden_fixture_tree": {
+        "sha256": "18b748b5c12606fdc73f4042b112ca8e6c3e403985e8b251ce2a2392d0dacd75",
+        "file_count": 1
+      },
+      "docker_image": "python:3.11-slim",
+      "docker_image_identity": {
+        "reference": "python:3.11-slim",
+        "resolved": true,
+        "image_id": "sha256:b27df5841f3355e9473f9a516d38a6783b6c8dfeacaf2d14a240f443b368ddb6",
+        "repo_digests": [
+          "python@sha256:b27df5841f3355e9473f9a516d38a6783b6c8dfeacaf2d14a240f443b368ddb6"
+        ]
+      },
+      "visible_test_command": "python -m pytest tests",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_tinydb.py::test_update_ids_missing ../hidden_tests/tests/test_tinydb.py::test_update_ids_mixed ../hidden_tests/tests/test_tinydb.py::test_remove_ids_missing ../hidden_tests/tests/test_tinydb.py::test_remove_ids_mixed ../hidden_tests/tests/test_tinydb.py::test_doc_id_missing_consistency"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests"
+        }
+      ],
+      "hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_tinydb.py::test_update_ids_missing ../hidden_tests/tests/test_tinydb.py::test_update_ids_mixed ../hidden_tests/tests/test_tinydb.py::test_remove_ids_missing ../hidden_tests/tests/test_tinydb.py::test_remove_ids_mixed ../hidden_tests/tests/test_tinydb.py::test_doc_id_missing_consistency",
+          "required": true,
+          "reuse_visible_result": false
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests",
+          "required": true,
+          "reuse_visible_result": true
+        }
+      ]
+    },
+    "python_dotenv_pr_640": {
+      "base_commit": "68ea2d10dd8e97e6dea67c32742085f27729e3fe",
+      "source_repository": {
+        "version": "source-repository-v1",
+        "vcs": "git",
+        "head_commit": "68ea2d10dd8e97e6dea67c32742085f27729e3fe",
+        "head_tree": "1ecaf64f849babcd1976fa238a5e016da81d812e",
+        "declared_base_commit": "68ea2d10dd8e97e6dea67c32742085f27729e3fe",
+        "declared_base_commit_resolved": "68ea2d10dd8e97e6dea67c32742085f27729e3fe",
+        "base_commit_validated": true,
+        "dirty": false,
+        "dirty_entry_count": 0,
+        "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tracked_diff_sha256": null,
+        "untracked_file_count": 0,
+        "untracked_tree_sha256": null,
+        "ignored_file_count": 6,
+        "ignored_tree_sha256": "b402faa5541fd984453ca7d1a52ec7536e1d5389d72c8473161987ff678b403f",
+        "worktree_sha256": "e12c227e1cafe7ff8fde568e230fa9d6d10528945bd8c90d143a97ba6f38c9f8",
+        "ignored_files_included": true
+      },
+      "task_sha256": "b836a897463147840611797b123795efdedb7e67c89a101ad8a4e6f3dae0dd3b",
+      "hidden_tree_sha256": "786093d00d980d895b22d1ac2b147f7e07fd5daa9373d46d9c2c63996b868648",
+      "hidden_fixture_tree": {
+        "sha256": "786093d00d980d895b22d1ac2b147f7e07fd5daa9373d46d9c2c63996b868648",
+        "file_count": 1
+      },
+      "docker_image": "python:3.11-slim",
+      "docker_image_identity": {
+        "reference": "python:3.11-slim",
+        "resolved": true,
+        "image_id": "sha256:b27df5841f3355e9473f9a516d38a6783b6c8dfeacaf2d14a240f443b368ddb6",
+        "repo_digests": [
+          "python@sha256:b27df5841f3355e9473f9a516d38a6783b6c8dfeacaf2d14a240f443b368ddb6"
+        ]
+      },
+      "visible_test_command": "python -m pytest tests",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_parser.py"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests"
+        }
+      ],
+      "hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_parser.py",
+          "required": true,
+          "reuse_visible_result": false
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests",
+          "required": true,
+          "reuse_visible_result": true
+        }
+      ]
+    },
+    "tenacity_pr_628": {
+      "base_commit": "21189c74a98552a3efa96e538b9ef2f25668d094",
+      "source_repository": {
+        "version": "source-repository-v1",
+        "vcs": "git",
+        "head_commit": "21189c74a98552a3efa96e538b9ef2f25668d094",
+        "head_tree": "872af368417e8f98c6f75bf06559be3636653be4",
+        "declared_base_commit": "21189c74a98552a3efa96e538b9ef2f25668d094",
+        "declared_base_commit_resolved": "21189c74a98552a3efa96e538b9ef2f25668d094",
+        "base_commit_validated": true,
+        "dirty": false,
+        "dirty_entry_count": 0,
+        "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tracked_diff_sha256": null,
+        "untracked_file_count": 0,
+        "untracked_tree_sha256": null,
+        "ignored_file_count": 0,
+        "ignored_tree_sha256": null,
+        "worktree_sha256": "566a41567fc18767a398d0fd7aa2e35dfa5bc5fcecd29990ef6a9d68423b8c7e",
+        "ignored_files_included": true
+      },
+      "task_sha256": "cf3d4573be8788f0fd3854da43f1b1e719439fa713fd3094709f40190fe9ca30",
+      "hidden_tree_sha256": "1a5c90b32c65e0c6b6bffbbb678ededfda85833be13062c40b01168db3ddccbb",
+      "hidden_fixture_tree": {
+        "sha256": "1a5c90b32c65e0c6b6bffbbb678ededfda85833be13062c40b01168db3ddccbb",
+        "file_count": 1
+      },
+      "docker_image": "python:3.11-slim",
+      "docker_image_identity": {
+        "reference": "python:3.11-slim",
+        "resolved": true,
+        "image_id": "sha256:b27df5841f3355e9473f9a516d38a6783b6c8dfeacaf2d14a240f443b368ddb6",
+        "repo_digests": [
+          "python@sha256:b27df5841f3355e9473f9a516d38a6783b6c8dfeacaf2d14a240f443b368ddb6"
+        ]
+      },
+      "visible_test_command": "python -m pytest tests/test_tenacity.py",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_tenacity.py::TestWaitConditions::test_wait_exponential_jitter_min ../hidden_tests/tests/test_tenacity.py::TestWaitConditions::test_wait_exponential_jitter_timedelta"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests/test_tenacity.py"
+        }
+      ],
+      "hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_tenacity.py::TestWaitConditions::test_wait_exponential_jitter_min ../hidden_tests/tests/test_tenacity.py::TestWaitConditions::test_wait_exponential_jitter_timedelta",
+          "required": true,
+          "reuse_visible_result": false
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests/test_tenacity.py",
+          "required": true,
+          "reuse_visible_result": true
+        }
+      ]
+    },
+    "freezegun_pr_546": {
+      "base_commit": "17ea422800fc72a6e507755f1cfbf6ec75ba0359",
+      "source_repository": {
+        "version": "source-repository-v1",
+        "vcs": "git",
+        "head_commit": "17ea422800fc72a6e507755f1cfbf6ec75ba0359",
+        "head_tree": "d13cebca40afb1bb9f4867a779fe63f15f0ea94f",
+        "declared_base_commit": "17ea422800fc72a6e507755f1cfbf6ec75ba0359",
+        "declared_base_commit_resolved": "17ea422800fc72a6e507755f1cfbf6ec75ba0359",
+        "base_commit_validated": true,
+        "dirty": false,
+        "dirty_entry_count": 0,
+        "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tracked_diff_sha256": null,
+        "untracked_file_count": 0,
+        "untracked_tree_sha256": null,
+        "ignored_file_count": 0,
+        "ignored_tree_sha256": null,
+        "worktree_sha256": "360ffae3e20a8d249a824e5b0dd8885c53feffed33f98c38e127e90df3c34d45",
+        "ignored_files_included": true
+      },
+      "task_sha256": "0f93390a79a744690c413d62ba6db55ad2fcec1292dfe0f0f0cf51c738542a4f",
+      "hidden_tree_sha256": "7b5005accf7b68ccde387345ae77be5d0b4b32aabd8822a5c45d03732dbb1f84",
+      "hidden_fixture_tree": {
+        "sha256": "7b5005accf7b68ccde387345ae77be5d0b4b32aabd8822a5c45d03732dbb1f84",
+        "file_count": 2
+      },
+      "docker_image": "python:3.11-slim",
+      "docker_image_identity": {
+        "reference": "python:3.11-slim",
+        "resolved": true,
+        "image_id": "sha256:b27df5841f3355e9473f9a516d38a6783b6c8dfeacaf2d14a240f443b368ddb6",
+        "repo_digests": [
+          "python@sha256:b27df5841f3355e9473f9a516d38a6783b6c8dfeacaf2d14a240f443b368ddb6"
+        ]
+      },
+      "visible_test_command": "python -m pytest tests",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_datetimes.py::test_manual_increment ../hidden_tests/tests/test_operations.py::test_auto_and_manual_tick"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests"
+        }
+      ],
+      "hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/tests/test_datetimes.py::test_manual_increment ../hidden_tests/tests/test_operations.py::test_auto_and_manual_tick",
+          "required": true,
+          "reuse_visible_result": false
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest tests",
+          "required": true,
+          "reuse_visible_result": true
+        }
+      ]
+    },
+    "croniter_pr_235": {
+      "base_commit": "9810279c20030954e2f1ed2cf5f1d34b98c6b07f",
+      "source_repository": {
+        "version": "source-repository-v1",
+        "vcs": "git",
+        "head_commit": "9810279c20030954e2f1ed2cf5f1d34b98c6b07f",
+        "head_tree": "132930b7057b1d2b81b5a0289d52478bc4866dc9",
+        "declared_base_commit": "9810279c20030954e2f1ed2cf5f1d34b98c6b07f",
+        "declared_base_commit_resolved": "9810279c20030954e2f1ed2cf5f1d34b98c6b07f",
+        "base_commit_validated": true,
+        "dirty": false,
+        "dirty_entry_count": 0,
+        "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tracked_diff_sha256": null,
+        "untracked_file_count": 0,
+        "untracked_tree_sha256": null,
+        "ignored_file_count": 0,
+        "ignored_tree_sha256": null,
+        "worktree_sha256": "9b94af3c488670d0039ca9839470572a264970f1f2c989219ea417f04713fe91",
+        "ignored_files_included": true
+      },
+      "task_sha256": "efd128fa13994ecf1341a65880722913f1366401dc2ffd6369fc55044a315265",
+      "hidden_tree_sha256": "b17ef43be53a7967b8cde4d14bde158262f82429e006a5a9dd277fa70349fe4f",
+      "hidden_fixture_tree": {
+        "sha256": "b17ef43be53a7967b8cde4d14bde158262f82429e006a5a9dd277fa70349fe4f",
+        "file_count": 1
+      },
+      "docker_image": "python:3.11-slim",
+      "docker_image_identity": {
+        "reference": "python:3.11-slim",
+        "resolved": true,
+        "image_id": "sha256:b27df5841f3355e9473f9a516d38a6783b6c8dfeacaf2d14a240f443b368ddb6",
+        "repo_digests": [
+          "python@sha256:b27df5841f3355e9473f9a516d38a6783b6c8dfeacaf2d14a240f443b368ddb6"
+        ]
+      },
+      "visible_test_command": "python -m pytest src/croniter/tests",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/src/croniter/tests/test_croniter.py::CroniterTest::test_expand_from_start_time_month_divisible"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest src/croniter/tests"
+        }
+      ],
+      "hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "python -m pytest ../hidden_tests/src/croniter/tests/test_croniter.py::CroniterTest::test_expand_from_start_time_month_divisible",
+          "required": true,
+          "reuse_visible_result": false
+        },
+        {
+          "name": "hidden_compat",
+          "command": "python -m pytest src/croniter/tests",
+          "required": true,
+          "reuse_visible_result": true
+        }
+      ]
+    }
+  },
+  "ordered_combinations": [
+    {
+      "task": "h11_pr_181",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "multi-graph",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "h11_pr_181",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "multi-orch-guarded",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "h11_pr_181",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "single",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "humanize_pr_329",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "multi-orch-guarded",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "humanize_pr_329",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "multi-graph",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "humanize_pr_329",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "single",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "pluggy_pr_646",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "multi-orch-guarded",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "pluggy_pr_646",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "multi-graph",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "pluggy_pr_646",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "single",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "w3lib_pr_272",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "multi-graph",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "w3lib_pr_272",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "multi-orch-guarded",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "w3lib_pr_272",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "single",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "parse_pr_165",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "multi-orch-guarded",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "parse_pr_165",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "multi-graph",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "parse_pr_165",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "single",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "parse_pr_227",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "multi-graph",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "parse_pr_227",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "multi-orch-guarded",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "parse_pr_227",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "single",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "cachetools_pr_57d2e48",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "multi-orch-guarded",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "cachetools_pr_57d2e48",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "multi-graph",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "cachetools_pr_57d2e48",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "single",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "tinydb_pr_616",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "single",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "tinydb_pr_616",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "multi-orch-guarded",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "tinydb_pr_616",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "multi-graph",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "python_dotenv_pr_640",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "single",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "python_dotenv_pr_640",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "multi-orch-guarded",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "python_dotenv_pr_640",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "multi-graph",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "tenacity_pr_628",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "multi-orch-guarded",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "tenacity_pr_628",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "multi-graph",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "tenacity_pr_628",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "single",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "freezegun_pr_546",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "single",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "freezegun_pr_546",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "multi-graph",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "freezegun_pr_546",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "multi-orch-guarded",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "croniter_pr_235",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "multi-orch-guarded",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "croniter_pr_235",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "single",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    },
+    {
+      "task": "croniter_pr_235",
+      "model": "deepseek/deepseek-v4-flash-0731:nitro",
+      "agent": "multi-graph",
+      "model_route": {
+        "provider": "openrouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "context_window_tokens": 256000,
+        "max_output_tokens": 16384,
+        "model_context_window_capability_tokens": 1310720,
+        "model_max_output_tokens": 131072,
+        "reasoning_effort": "low",
+        "reasoning_max_tokens": null,
+        "effective_reasoning_effort": "low",
+        "reasoning_configuration_source": "explicit_effort",
+        "supported_reasoning_efforts": [
+          "max",
+          "high",
+          "low"
+        ],
+        "provider_default_reasoning_effort": "high",
+        "reasoning_capability_known": true,
+        "supports_reasoning_max_tokens": null,
+        "model_profile_version": "model-profile-registry-v3",
+        "model_profile_source": "https://openrouter.ai/api/v1/models",
+        "model_profile_fetched_at": "2026-08-31"
+      }
+    }
+  ],
+  "settings": {
+    "tasks": null,
+    "task_set": "final-v1",
+    "task_groups": null,
+    "matrix": "core-small",
+    "models": "deepseek/deepseek-v4-flash-0731:nitro",
+    "agents": "single,multi-graph,multi-orch-guarded",
+    "session": "kernel_v2_ds_v4_flash_0731_nitro_low_core_small_v4",
+    "campaign": "kernel_v2_ds_v4_flash_0731_nitro_low_main_v4",
+    "provider": "openrouter",
+    "action_transport": "text_json",
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "role_model": null,
+    "role_reasoning_effort": null,
+    "developer_escalation_model": null,
+    "developer_escalation_reasoning_effort": null,
+    "developer_escalate_after_no_edit_episodes": null,
+    "developer_escalate_after_failed_tests": null,
+    "max_cost_usd": 0.15,
+    "max_total_cost_usd": 3.0,
+    "context_budget_tokens": null,
+    "single_research_guard": null,
+    "single_research_warning_steps": null,
+    "single_research_hard_limit": null,
+    "single_post_plan_research_warning_steps": null,
+    "single_post_plan_research_hard_limit": null,
+    "single_compatibility_guard": null,
+    "max_subtasks": null,
+    "decomposition_implementation_warning_steps": null,
+    "decomposition_implementation_hard_limit": null,
+    "decomposition_verification_step_reserve": null,
+    "decomposition_max_repair_cycles": null,
+    "collection": "repositories/collection.csv",
+    "max_steps": 50,
+    "max_iterations": null,
+    "enable_review": false,
+    "no_score": false,
+    "no_regression": false,
+    "no_network": false,
+    "no_setup": false,
+    "order": "task-major",
+    "seed": 20260831,
+    "infrastructure_retries": 1,
+    "archive_patches": true,
+    "keep_workspaces": false,
+    "concurrency": 1
+  },
+  "resolved_config": {
+    "model_provider": "openrouter",
+    "provider_default_model": "z-ai/glm-5.2",
+    "temperature": 0.0,
+    "max_tokens": 16384,
+    "reasoning_effort": "low",
+    "reasoning_max_tokens": null,
+    "action_transport": "text_json",
+    "request_timeout_seconds": 300,
+    "max_retries": 0,
+    "max_iterations": 5,
+    "max_steps": 50,
+    "test_timeout_seconds": 600,
+    "shell_timeout_seconds": 300,
+    "compaction_mode": "checkpoint",
+    "context_budget_tokens": 48000,
+    "docker_network_disabled": true,
+    "single_research_guard_enabled": true,
+    "single_compatibility_guard_enabled": true,
+    "single_research_limits": {
+      "warning": 12,
+      "hard": 20,
+      "post_plan_warning": 5,
+      "post_plan_hard": 8
+    },
+    "role_models": {
+      "orchestrator": null,
+      "planner": null,
+      "developer": null,
+      "tester": null,
+      "reviewer": null
+    },
+    "role_reasoning_efforts": {
+      "orchestrator": null,
+      "planner": null,
+      "developer": null,
+      "tester": null,
+      "reviewer": null
+    },
+    "developer_escalation_model": null,
+    "developer_escalation_reasoning_effort": null,
+    "developer_escalate_after_no_edit_episodes": 1,
+    "developer_escalate_after_failed_tests": 1,
+    "max_cost_usd": 0.15,
+    "docker_image": "python:3.11-slim",
+    "decomposition": {
+      "max_subtasks": 8,
+      "implementation_warning_steps": 8,
+      "implementation_hard_limit": 14,
+      "verification_step_reserve": 20,
+      "max_repair_cycles": 2
+    }
+  },
+  "reproducibility_artifacts": {
+    "schema_version": "run-reproducibility-v2",
+    "prompt_templates": {
+      "version": "prompt-manifest-v1",
+      "prompts": {
+        "context_summary.txt": {
+          "sha256": "7640265d43697e416b0753603edeff8b4979174922a8fc4fb0bde9b937876a24",
+          "chars": 815
+        },
+        "decomposed_single_agent.txt": {
+          "sha256": "3d891ab21bce537e070b49f4b391917fbba6abf2c7f8d64550947a7a50741264",
+          "chars": 2263
+        },
+        "multi/developer.txt": {
+          "sha256": "afebdbec29daa0f4011c1a166dc7a0bb22bc300f6ac9db404ba0e542b31cb084",
+          "chars": 2068
+        },
+        "multi/orchestrator.txt": {
+          "sha256": "aaa559e5a31ac8e34f67a5fef16a0df80b34b20a5fedb7c6ac6fb14f2919b6f8",
+          "chars": 2122
+        },
+        "multi/planner.txt": {
+          "sha256": "2113c27823c28335b422cd6a6218282a1c65742f14f7fddec1f22ae9a8735746",
+          "chars": 1475
+        },
+        "multi/reviewer.txt": {
+          "sha256": "a8e3432b51254db8a034b026140c3548a314ba2da1c9282b7a258324dbb87778",
+          "chars": 1411
+        },
+        "multi/tester.txt": {
+          "sha256": "24cc51fd474b927bc590a1613380403375f496c41ffb445f5e7042ab208c3f6c",
+          "chars": 1800
+        },
+        "quality_review.txt": {
+          "sha256": "ee112c963542117432cd0149db0f4be3a6ebe1a4290c449f5eec981e7d2b6269",
+          "chars": 1182
+        },
+        "run_summary.txt": {
+          "sha256": "abf3158acae1af1686e4c626f720a955f3455108bf5ec2d6ae337786858fead1",
+          "chars": 686
+        },
+        "single_agent.txt": {
+          "sha256": "a8dc6fa2d502269da2afe7e7f9eb0b90b01587d7e6fb21af30aafd0af288b3cb",
+          "chars": 5876
+        }
+      },
+      "aggregate_sha256": "091b2330b34b168f99d00d560663bd6fc92df6a2e651dfc07703a4435d5f9aa1"
+    },
+    "tool_schemas": {
+      "version": "tool-schema-manifest-v1",
+      "spaces": [
+        "decomposed_compatibility",
+        "decomposed_finish",
+        "decomposed_force_implement",
+        "decomposed_force_investigate",
+        "decomposed_implement",
+        "decomposed_init",
+        "decomposed_investigate",
+        "decomposed_verify",
+        "default",
+        "developer",
+        "orchestrator",
+        "planner",
+        "reviewer",
+        "tester"
+      ],
+      "space_sha256": {
+        "decomposed_compatibility": "1cdeaa0b4ba2b4fffe64d1a2be9f9545198163d81afb6e6137c00bf5a9fe60f2",
+        "decomposed_finish": "ff3a4bec4bdfc904fda20748e89386fc1646baf753a88beeb378a892d87e0d60",
+        "decomposed_force_implement": "79a2c8bdaffb4eb5b701b40a8019395dd96ee94716560a930ebe6ca22d96e4d0",
+        "decomposed_force_investigate": "df4c571714d5975981f12be7c8940cc217da2cacd5e80cec301fd6f44b5c94f6",
+        "decomposed_implement": "d5f74f193aef355b3272033b4921dca4b593a6dd3ba55251d7ea9a46a18c6376",
+        "decomposed_init": "adb97994f3971cf25756eb778a6a1aead699cf0e79ae1519c8059c5c59524e82",
+        "decomposed_investigate": "4bd18484a8e21ad79af8c1f33c6a5ce58491171547c7752569eb16420a707514",
+        "decomposed_verify": "1cdeaa0b4ba2b4fffe64d1a2be9f9545198163d81afb6e6137c00bf5a9fe60f2",
+        "default": "2fa4cdefe8910059564a70a48eb7e1b2b8593bd65c721a16fddb23d86ea0e2b1",
+        "developer": "52cbb337f955485e18116e999c5e4698a092b8f930fdca231b918d1bae1c051c",
+        "orchestrator": "d82fe01c9cccae123f2bdedfba8da0eb96fa217a65c7c133c673a6f9a0affe77",
+        "planner": "0ab54aa481a629cfb0c2b150ed984f0b11a36f0fb3e4ff5d0d561f94d33054eb",
+        "reviewer": "a2308d0ccb10768344ade2a19af71e5bc7d171212270d5082e706053f501620f",
+        "tester": "421f8003f20fd6c9a97419a2c37da56fa28e6953f406081a8f040ec49e898a93"
+      },
+      "aggregate_sha256": "2a3df3201f63a77207a38e81366728058a6995cc893261115fbda94f1bcd2d17"
+    },
+    "policy_kernel": {
+      "version": "agent-policy-kernel-v2",
+      "configuration_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "configuration": {},
+      "sources": {
+        "files": {
+          "src/agents/actions.py": "bb5ad2e9876fe2b64614a3d89aa0bd7a999a7add10b4ee8144964d965c30b4f4",
+          "src/agents/context.py": "264e2279c25f99e2435cc9a68b1f046589bff269a863778e4a792d2843246060",
+          "src/agents/decomposition.py": "9c0165d949675f1faa843410af6261eb7ce4c5578c9295e10c121e4461717198",
+          "src/agents/executor.py": "24fcb41a6396c8c348cfed36c685ae0c2a51355ad3c1831449400702298713ad",
+          "src/agents/model.py": "bf92e03fb868f385f8897c1134a7c9f6f65b3d871f326616a377bb561489ef70",
+          "src/agents/multi_agent.py": "ffc0fb129b3972ec3cb72c31b5dc3e892a1ec7954438f317ca2ccea09b56c712",
+          "src/agents/prompts.py": "5db81ae653de91be63a6bc6afbcaef294df5291bdda24cda05869ff6ccda369d",
+          "src/agents/roles.py": "949fe059999233d06cde018a1afd3422be18ff4342c5a375fff478ae2577c565",
+          "src/agents/sandbox.py": "549fb2b0037e3d3546c3d4a7c44db466a18e5a5f708ebde557f901647cafc11d",
+          "src/agents/single_agent.py": "0cd868dfeadaf3f0a2af3a13eb42712cde8a3161f21bfd0d6f8d5e5b97f3135a",
+          "src/agents/swe_agent.py": "7662096544eadc32a91d883e9eedfa23121f95f2a3e122b5daff0d9cfa3d7cd8",
+          "src/agents/state/budget.py": "3b2bacbca53f741b83f373792d50df15d8673fc502687aa912a62863d0f3bf69",
+          "src/agents/state/core.py": "520369e9644fdff96c8cd8cda93e4ab1ea6f3581d4e2f780e357448b2f83a10f",
+          "src/agents/state/entry.py": "2a83d052fa6a4bb9a88656677be84eade5197ccaaf95e14b2e36f96cb41a138b",
+          "src/agents/state/rendering.py": "ea842bac3abe6d7ad32ade8b8e1672a9b651a57f29204a126dd6d7867adc954e",
+          "src/agents/state/status.py": "1bb436aa265e21f25813df324cbae35c47c77322fe875f643f1b94fc63ce52ac",
+          "src/agents/state/subtask.py": "0cd7c90fa94ba985e234e98e8f11a14cb645d865aaaa49ab38faa81465ca501a",
+          "src/agents/transport.py": "56ec35e50b75f0b6fd260baf25912d260450a8e1bddf3fa141f05fab1abdea66",
+          "src/agents/workspace.py": "f4e37b66edb9abd6f9d61f4a06cb52a2f86dfd1b2ffcf662fcc6121fe281405d",
+          "src/benchmark/_trusted_pytest.py": "63994c855c379d19c63a043036b7c1ad559aa49de5c1877403f32b39124ec41d",
+          "src/benchmark/evaluator_bin/__init__.py": "6e83917737c7bebbf8f9d524d77ce1f1e06dd9e93153771877b6c1ff3dd95074",
+          "src/benchmark/evaluator_bin/_python_shim.py": "4e5ee6d666c5bedd0bbd8c3775f6d54f0bbf624ac067eb2d0baff3d1fd8c2630",
+          "src/benchmark/evaluator_bin/py.test": "a17e7248e16cdc19b4e5e1f2dd0431acb9088696f6b49e6f3f76b0c2c1d24cf9",
+          "src/benchmark/evaluator_bin/pytest": "a17e7248e16cdc19b4e5e1f2dd0431acb9088696f6b49e6f3f76b0c2c1d24cf9",
+          "src/benchmark/evaluator_bin/python": "b3e1fb125c4ebebfa2db6942deea44a4ea1a754da0493d14904a686981ee51f3",
+          "src/benchmark/evaluator_bin/python3": "b3e1fb125c4ebebfa2db6942deea44a4ea1a754da0493d14904a686981ee51f3",
+          "src/benchmark/collection.py": "8944a14ce6b79238636bd702bf668fc3c62727dc818da58de2ad1d9038310fee",
+          "src/benchmark/evaluation.py": "ea626d8843f678b2759082634777d6c03dff63c9994146c11f9e1a3ebf4e608b",
+          "src/benchmark/review.py": "2e94793e23951a3a4a275db668720b574db3db2e4273475231beda32f7c0df0d",
+          "src/benchmark/runner.py": "64a8146111d928ff7aa3df27e0e69f56fcfc5424521b5586d718e90d3a317080",
+          "src/benchmark/sweep.py": "32fd660164faac665c2cee67d52af2b08592593a6af8ef3953364125d05876a9",
+          "src/benchmark/task_sets.py": "c1c4d9267f9fa345c2b530ac85f1785b087ad334e2fd1630c4e2bb94c2d40652",
+          "src/benchmark/test_launch.py": "05dcd2bf0013767229ec7a4720e2aeca5835181350501746abca779db1508832",
+          "src/benchmark/workspace.py": "40e761d9dddc3a69bc7630ed859606f0fe33f5ce92365251051f9e42008e8350",
+          "src/config.py": "34aac51881a7d2c25c79d821750cf1c7210403903d0ef5805812c8f78b9ff1dd",
+          "src/git_safety.py": "50e71647127bcb946d05640d2a37b483c1bbe411f15c4f15fa42c8240596f9d5",
+          "src/metrics/pricing.py": "8cce93c37591e9ccf15559eca7d3fbe62b74a7a5726c4a803f3aec2efd6c5fff",
+          "src/metrics/compute.py": "3bb78f3ea5d83515d6c4500039ed8c01ca56b448f9047ca6b2bb1ceb392dc246",
+          "src/metrics/records.py": "042c2572e255ee1b8f8150426bf38f70031edeecd3adaceee5e8267bd630c989",
+          "src/run/cli.py": "bf2321a4ccf90bcbb983da9d5adfd31dfe9078edd52a42f2e79ba0992d9d2147",
+          "src/run/models.py": "a3a2d60ab015b500575a8f5f5aa5e44200e61e072efeb13540c631fb094b17d7",
+          "src/run/reproducibility.py": "362a593f8599ae6e434e52107eb2847df57c7b3c725d45c690de2f8520383754",
+          "src/run/results.py": "e88a4f2227bab806566a01b0fb2c48a36e9d77a757edd5d423b4ff40b8a6be9b",
+          "static/pricing.csv": "8c9195ee2b84d3b5ec2188721942964bbaa5e56fdf28b25c4b49f844890f2570"
+        },
+        "aggregate_sha256": "9467ca7670fe42ccd080ea1592221d3224981851a440da990ae1b82f999e53eb"
+      },
+      "aggregate_sha256": "f225110c8af70c2d46e16cfee1f2c89d40bacffd5d8e5153921aa2bc215d41ff"
+    },
+    "runtime_dependencies": {
+      "langchain-core": "1.4.8",
+      "langchain-openai": "1.3.3",
+      "openai": "2.45.0",
+      "packaging": "26.2",
+      "pydantic": "2.13.4",
+      "sweagent": null
+    },
+    "aggregate_sha256": "1299d81a0e374f610f301ccb0d940df83ca999fa8101f66857ebd26e449f3c15"
+  },
+  "harness": {
+    "git_commit": "fd00518589b9ba9ec9c4a4a5de81530355fe38ab",
+    "dirty": false,
+    "dirty_entries": [],
+    "tree_sha256": "9ccfc8d1757d3c3ebfef7f94d0a6f892929c9dd6c9a6d32f85dee8559bf7b695",
+    "file_count": 75
+  },
+  "fingerprint": "f42c638f37eaef34459ce899a60da2c88d50b6574f18abb0992fccadbc35927b"
+}

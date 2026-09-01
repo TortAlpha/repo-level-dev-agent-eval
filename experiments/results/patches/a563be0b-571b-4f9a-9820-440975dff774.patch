@@ -1,0 +1,52 @@
+diff --git a/src/humanize/filesize.py b/src/humanize/filesize.py
+index c495fed3ee9e724755800a0352c975335a9b1465..4b1f7fbb821c6fc43d3faf2bf1542537c1f45fd6 100644
+--- a/src/humanize/filesize.py
++++ b/src/humanize/filesize.py
+@@ -97,6 +97,19 @@ def naturalsize(
+         return f"{int(bytes_)}B" if gnu else _("%d Bytes") % int(bytes_)
+ 
+     exp = int(min(log(abs_bytes, base), len(suffix)))
++    # If the formatted mantissa rounds to the base (e.g., 1000.0 from 999.95),
++    # advance the suffix (exponent) so the value is shown at the next unit.
++    while exp < len(suffix):
++        mantissa = abs(bytes_ / (base**exp))  # positive magnitude for comparison
++        try:
++            formatted = format % mantissa
++            if float(formatted) >= base:
++                exp += 1
++            else:
++                break
++        except (ValueError, TypeError):
++            # custom/non-numeric format strings fall back to original behavior
++            break
+     space = "" if gnu else " "
+     ret: str = format % (bytes_ / (base**exp)) + space + _(suffix[exp - 1])
+     return ret
+diff --git a/tests/test_naturalsize_rounding.py b/tests/test_naturalsize_rounding.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3c221270262b75319530983a0a5d048a7789a8f7
+--- /dev/null
++++ b/tests/test_naturalsize_rounding.py
+@@ -0,0 +1,22 @@
++#!/usr/bin/env python
++
++"""Tests for naturalsize rounding at unit boundaries."""
++
++from __future__ import annotations
++
++import pytest
++
++import humanize
++
++
++@pytest.mark.parametrize(
++    "test_args, expected",
++    [
++        ([1000**2 - 1], "1.0 MB"),
++        ([1024**2 - 1, True], "1.0 MiB"),
++        ([1024**2 - 1, False, True], "1.0M"),
++        ([10**30], "1.0 QB"),  # already at largest suffix, unchanged
++    ],
++)
++def test_naturalsize_rounding_carries_suffix(test_args, expected):
++    assert humanize.naturalsize(*test_args) == expected

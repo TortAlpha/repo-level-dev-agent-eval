@@ -1,0 +1,44 @@
+diff --git a/tests/test_urlsplit_fragment.py b/tests/test_urlsplit_fragment.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4931c07c62da7612362dad5a8e0b7ae166cfdc95
+--- /dev/null
++++ b/tests/test_urlsplit_fragment.py
+@@ -0,0 +1,25 @@
++from w3lib._url import _urlsplit
++
++
++def test_urlsplit_ipv6_query_fragment():
++    result = _urlsplit("//[::1]:8080?query#frag")
++    assert result.netloc == "[::1]:8080"
++    assert result.path == ""
++    assert result.query == "query"
++    assert result.fragment == "frag"
++
++
++def test_urlsplit_ipv6_path_query_fragment():
++    result = _urlsplit("http://[::1]:8080/path?query#frag")
++    assert result.netloc == "[::1]:8080"
++    assert result.path == "/path"
++    assert result.query == "query"
++    assert result.fragment == "frag"
++
++
++def test_urlsplit_normal_url_still_works():
++    result = _urlsplit("http://example.com/path?query#frag")
++    assert result.netloc == "example.com"
++    assert result.path == "/path"
++    assert result.query == "query"
++    assert result.fragment == "frag"
+diff --git a/w3lib/_url.py b/w3lib/_url.py
+index 0fc540d0ce1fa76712a635caa90cef7e0b20eaa5..c81ee69bf935761b48e04bc59979d9339e189dbb 100644
+--- a/w3lib/_url.py
++++ b/w3lib/_url.py
+@@ -658,7 +658,7 @@ def _urlsplit(  # pylint: disable=too-many-locals,too-many-statements
+             open_br_pos = idx
+         elif char == "]" and closing_br_pos == -1:
+             closing_br_pos = idx
+-        if slash_pos != question_pos != hash_pos != open_br_pos != closing_br_pos != -1:
++        if -1 not in (slash_pos, question_pos, hash_pos, open_br_pos, closing_br_pos):
+             break
+ 
+     if url[:2] == "//":

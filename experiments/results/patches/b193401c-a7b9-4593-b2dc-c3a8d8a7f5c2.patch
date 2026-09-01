@@ -1,0 +1,35 @@
+diff --git a/tests/test_strftime.py b/tests/test_strftime.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4fdb9cf786159f3fb058a5dfb28fb7916c7c58b3
+--- /dev/null
++++ b/tests/test_strftime.py
+@@ -0,0 +1,29 @@
++import pytest
++from datetime import date, datetime, timedelta
++import parse
++
++
++def test_basic_date():
++    assert parse.parse("a {:%Y-%m-%d} b", "a 1997-07-16 b")[0] == date(1997, 7, 16)
++
++def test_month_abbrev():
++    assert parse.parse("a {:%Y-%b-%d} b", "a 1997-Feb-16 b")[0] == date(1997, 2, 16)
++
++def test_datetime_with_time():
++    result = parse.parse("{:%Y-%m-%d %H:%M:%S}", "2015-03-14 09:26:53")[0]
++    assert result == datetime(2015, 3, 14, 9, 26, 53)
++
++def test_datetime_with_timezone():
++    result = parse.parse("{:%Y-%m-%d %H:%M %z}", "2015-03-14 09:26 +0530")[0]
++    assert result.tzinfo is not None
++    assert result.utcoffset() == timedelta(hours=5, minutes=30)
++
++def test_mixed_fields():
++    result = parse.parse("{:} {:%Y-%m-%d}", "42 1997-07-16")
++    assert result[0] == 42
++    assert result[1] == date(1997, 7, 16)
++
++def test_multiple_strftime():
++    result = parse.parse("{:%Y-%m-%d} {:%Y-%m-%d}", "1997-07-16 1998-08-17")
++    assert result[0] == date(1997, 7, 16)
++    assert result[1] == date(1998, 8, 17)

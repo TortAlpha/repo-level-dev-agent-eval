@@ -1,0 +1,52 @@
+diff --git a/src/croniter/croniter.py b/src/croniter/croniter.py
+index f73a6a9ab83ffbbb18c4dbb9fd4957c6dc3ba1d6..fde0afcd455d7ba61d997bb1fec390bcc8d574d5 100644
+--- a/src/croniter/croniter.py
++++ b/src/croniter/croniter.py
+@@ -1273,7 +1273,7 @@ class croniter:
+         if field_index == DAY_FIELD:
+             return ((dt.day - 1) % step) + 1
+         if field_index == MONTH_FIELD:
+-            return dt.month % step
++            return ((dt.month - 1) % step) + 1
+         if field_index == DOW_FIELD:
+             return (dt.weekday() + 1) % step
+ 
+diff --git a/src/croniter/tests/test_expand_from_start_time_month.py b/src/croniter/tests/test_expand_from_start_time_month.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..11497b99e56cc4ff8d41d27bdb1e31c43fce3ca8
+--- /dev/null
++++ b/src/croniter/tests/test_expand_from_start_time_month.py
+@@ -0,0 +1,33 @@
++import datetime
++
++import pytest
++
++from croniter.croniter import croniter, CroniterBadCronError
++
++
++@pytest.mark.parametrize("month", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
++@pytest.mark.parametrize("step", [2, 3, 4, 6])
++def test_month_lower_bound_always_in_range(month, step):
++    """Anchored month expansion must never produce an out-of-range lower bound."""
++    expression = f"0 0 1 */{step} *"
++    croniter(
++        expression,
++        datetime.datetime(2024, month, 1),
++        expand_from_start_time=True,
++    )
++
++
++def test_month_anchor_matches_existing_behavior_for_other_fields():
++    """Smoke test: anchored month expansion still returns expected datetimes."""
++    itr = croniter(
++        "0 0 1 */3 *",
++        datetime.datetime(2024, 6, 1),
++        expand_from_start_time=True,
++    )
++    assert itr.get_next(datetime.datetime) == datetime.datetime(2024, 9, 1)
++
++
++def test_non_anchored_parsing_unchanged():
++    """The fix must not alter non-anchored behavior."""
++    itr = croniter("0 0 1 */3 *", datetime.datetime(2024, 6, 1))
++    assert itr.get_next(datetime.datetime) == datetime.datetime(2024, 7, 1)

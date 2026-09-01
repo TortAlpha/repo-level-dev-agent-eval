@@ -1,0 +1,105 @@
+diff --git a/src/humanize/filesize.py b/src/humanize/filesize.py
+index c495fed3ee9e724755800a0352c975335a9b1465..d009d0d0efa3a3790a7e41b08a722f118c41efd3 100644
+--- a/src/humanize/filesize.py
++++ b/src/humanize/filesize.py
+@@ -93,10 +93,13 @@ def naturalsize(
+     if abs_bytes == 1 and not gnu:
+         return _("%d Byte") % int(bytes_)
+ 
+-    if abs_bytes < base:
+-        return f"{int(bytes_)}B" if gnu else _("%d Bytes") % int(bytes_)
+-
+     exp = int(min(log(abs_bytes, base), len(suffix)))
++    # Handle values below the first unit: they normally return bytes, but if
++    # rounding pushes the mantissa up to the next unit, advance the suffix.
+     space = "" if gnu else " "
+-    ret: str = format % (bytes_ / (base**exp)) + space + _(suffix[exp - 1])
+-    return ret
++    # If rounding pushes the mantissa up to the next unit, advance the suffix.
++    if abs(float(format % (bytes_ / (base**exp)))) >= base and exp < len(suffix):
++        exp += 1
++    if exp == 0:
++        return f"{int(bytes_)}B" if gnu else _("%d Bytes") % int(bytes_)
++    return format % (bytes_ / (base**exp)) + space + _(suffix[exp - 1])
+diff --git a/tests/test_filesize_rounding.py b/tests/test_filesize_rounding.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3800f7c946f405b3166c4b467e5c7a741c7e1309
+--- /dev/null
++++ b/tests/test_filesize_rounding.py
+@@ -0,0 +1,36 @@
++#!/usr/bin/env python
++
++"""Tests for naturalsize rounding at unit boundaries."""
++
++from __future__ import annotations
++
++import pytest
++
++import humanize
++
++
++@pytest.mark.parametrize(
++    "test_args, expected",
++    [
++        # Values just below a decimal unit boundary round up to the next unit.
++        ([999999], "1.0 MB"),
++        ([999999999], "1.0 GB"),
++        ([999999, True], "976.6 KiB"),
++        # Values just below a binary unit boundary round up to the next unit.
++        ([1024**2 - 1, True], "1.0 MiB"),
++        ([1024**3 - 1, True], "1.0 GiB"),
++        # GNU format round up use.
++        ([999999, False, True], "1.0M"),
++        ([1024**2 - 1, False, True], "1.0M"),
++        # Custom format round up use.
++        ([999.95, False, False, "%.1f"], "1.0 kB"),
++        # Values exactly at boundary keep existing behavior.
++        ([1000**2], "1.0 MB"),
++        ([1024**2, True], "1.0 MiB"),
++        # Values not crossing a rounded boundary keep existing behavior.
++        ([999400], "999.4 kB"),
++        ([1024**2 - 100, True], "1023.9 KiB"),
++    ],
++)
++def test_naturalsize_rounding(test_args: list[int] | list[int | bool], expected: str) -> None:
++    assert humanize.naturalsize(*test_args) == expected
+diff --git a/tests/test_naturalsize_rounding.py b/tests/test_naturalsize_rounding.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..f0af4d510e7fd3e527d2b80a473030d68ffcba6f
+--- /dev/null
++++ b/tests/test_naturalsize_rounding.py
+@@ -0,0 +1,34 @@
++#!/usr/bin/env python
++
++"""Tests for naturalsize rounding at unit boundaries."""
++
++from __future__ import annotations
++
++import pytest
++
++import humanize
++
++
++@pytest.mark.parametrize(
++    "test_args, expected",
++    [
++        # Values just below a decimal unit boundary round up to the next unit.
++        ([999999], "1.0 MB"),
++        ([999999999], "1.0 GB"),
++        # Values just below a binary unit boundary round up to the next unit.
++        ([1024**2 - 1, True], "1.0 MiB"),
++        ([1024**3 - 1, True], "1.0 GiB"),
++        # GNU format round up use (binary base 1024).
++        ([1024**2 - 1, False, True], "1.0M"),
++        # Values exactly at boundary keep existing behavior.
++        ([1000**2], "1.0 MB"),
++        ([1024**2, True], "1.0 MiB"),
++        # Values not crossing a rounded boundary keep existing behavior.
++        ([999400], "999.4 kB"),
++        ([1024**2 - 100, True], "1023.9 KiB"),
++        # Custom format round up use at decimal boundary.
++        ([1000**2 - 1, False, False, "%.1f"], "1.0 MB"),
++    ],
++)
++def test_naturalsize_rounding(test_args: list[int] | list[int | bool], expected: str) -> None:
++    assert humanize.naturalsize(*test_args) == expected

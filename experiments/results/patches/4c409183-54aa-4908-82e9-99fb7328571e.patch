@@ -1,0 +1,49 @@
+diff --git a/src/cachetools/_cachedmethod.py b/src/cachetools/_cachedmethod.py
+index cdf63d4f84671cc033bb7adcfd8180565ba042c8..9f0ff1785a471e29c8ee26c13f6a21bd8c7c65ac 100644
+--- a/src/cachetools/_cachedmethod.py
++++ b/src/cachetools/_cachedmethod.py
+@@ -77,6 +77,8 @@ class _DescriptorBase:
+ 
+     def __get__(self, obj, objtype=None):
+         wrapper = self.Wrapper(obj)
++        if obj is None:
++            return wrapper
+         if self.__attrname is not None:
+             # replace descriptor instance with wrapper in instance dict
+             try:
+diff --git a/tests/test_cachedmethod_autospec.py b/tests/test_cachedmethod_autospec.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..597829ca9cb7690601fc3a1e7f669d74cf928d98
+--- /dev/null
++++ b/tests/test_cachedmethod_autospec.py
+@@ -0,0 +1,30 @@
++import unittest.mock
++import warnings
++
++from cachetools import LRUCache, cachedmethod
++
++
++class SomeClass:
++    def __init__(self):
++        self.cache = LRUCache(maxsize=1)
++
++    @cachedmethod(lambda self: self.cache)
++    def get(self, key):
++        return key
++
++
++def test_create_autospec_no_warnings():
++    with warnings.catch_warnings():
++        warnings.simplefilter("error")
++        autospec = unittest.mock.create_autospec(SomeClass, instance=True)
++    # The autospec should be a mock, proving descriptor introspection succeeded.
++    assert isinstance(autospec, unittest.mock.NonCallableMock)
++
++
++def test_cachedmethod_instance_behavior_unchanged():
++    obj = SomeClass()
++    assert obj.get(1) == 1
++    # Second call must hit the cache, not recompute.
++    assert obj.get(1) == 1
++    # The cache key is a tuple containing the single argument.
++    assert list(obj.cache) == [(1,)]

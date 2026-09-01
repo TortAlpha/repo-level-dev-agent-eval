@@ -1,0 +1,46 @@
+diff --git a/src/dotenv/parser.py b/src/dotenv/parser.py
+index eb100b478cc1383eeaad53c6fbf39b9cf7c6b2be..58d3f49f130e226ae001723793035492834b9a5f 100644
+--- a/src/dotenv/parser.py
++++ b/src/dotenv/parser.py
+@@ -69,6 +69,8 @@ class Error(Exception):
+ class Reader:
+     def __init__(self, stream: IO[str]) -> None:
+         self.string = stream.read()
++        if self.string.startswith("\ufeff"):
++            self.string = self.string[1:]
+         self.position = Position.start()
+         self.mark = Position.start()
+ 
+diff --git a/tests/test_bom.py b/tests/test_bom.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..2ea683e14796d725f4e3ec56f8c6cd01b9e08fa9
+--- /dev/null
++++ b/tests/test_bom.py
+@@ -0,0 +1,27 @@
++import io
++
++from dotenv.parser import parse_stream
++
++
++def test_strip_leading_bom():
++    stream = io.StringIO("\ufeffFIRST=value1\nSECOND=value2\n")
++    bindings = list(parse_stream(stream))
++    assert bindings[0].key == "FIRST"
++    assert bindings[0].value == "value1"
++    assert bindings[0].original.string == "FIRST=value1\n"
++    assert bindings[1].key == "SECOND"
++    assert bindings[1].value == "value2"
++
++
++def test_no_bom_unchanged():
++    stream = io.StringIO("FIRST=value1\n")
++    bindings = list(parse_stream(stream))
++    assert bindings[0].key == "FIRST"
++    assert bindings[0].original.string == "FIRST=value1\n"
++
++
++def test_bom_only_at_start_stripped():
++    stream = io.StringIO("\ufeffFIRST=value1\n\ufeffSECOND=value2\n")
++    bindings = list(parse_stream(stream))
++    assert bindings[0].key == "FIRST"
++    assert bindings[1].key == "\ufeffSECOND"

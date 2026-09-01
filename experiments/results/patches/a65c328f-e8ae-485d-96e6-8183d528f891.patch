@@ -1,0 +1,65 @@
+diff --git a/src/cachetools/_cachedmethod.py b/src/cachetools/_cachedmethod.py
+index cdf63d4f84671cc033bb7adcfd8180565ba042c8..fad4eb4fcf5aa50082bd9fda21016caba3dc6192 100644
+--- a/src/cachetools/_cachedmethod.py
++++ b/src/cachetools/_cachedmethod.py
+@@ -44,6 +44,10 @@ class _WrapperBase:
+ 
+     @property
+     def cache(self):
++        if self._obj is None:
++            # Introspection on the class (e.g. during autospec):
++            # no real instance, so return a dummy cache object.
++            return {}
+         return self.__cache(self._obj)
+ 
+     @property
+@@ -76,6 +80,11 @@ class _DescriptorBase:
+             )
+ 
+     def __get__(self, obj, objtype=None):
++        if obj is None:
++            # Introspection on the class (e.g. during unittest.mock autospec):
++            # no instance is available, so return a wrapper bound to None
++            # without touching obj.__dict__.
++            return self.Wrapper(None)
+         wrapper = self.Wrapper(obj)
+         if self.__attrname is not None:
+             # replace descriptor instance with wrapper in instance dict
+diff --git a/tests/test_autospec_cachedmethod.py b/tests/test_autospec_cachedmethod.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..eee404461599cc4d1a07b86d31477eddeef3b037
+--- /dev/null
++++ b/tests/test_autospec_cachedmethod.py
+@@ -0,0 +1,32 @@
++import warnings
++import unittest.mock
++
++import pytest
++from cachetools import Cache, cachedmethod
++
++
++class C:
++    def __init__(self):
++        self.cache = Cache(maxsize=10)
++        self.calls = 0
++
++    @cachedmethod(lambda self: self.cache)
++    def get(self, key):
++        self.calls += 1
++        return self.calls
++
++
++def test_autospec_no_warnings():
++    with warnings.catch_warnings(record=True) as caught:
++        warnings.simplefilter("always")
++        unittest.mock.create_autospec(C, instance=True)
++    assert caught == [], [str(w.message) for w in caught]
++
++
++def test_normal_cachedmethod_still_works():
++    c = C()
++    assert c.get(1) == 1
++    assert c.get(1) == 1
++    assert c.calls == 1
++    assert c.get(2) == 2
++    assert c.calls == 2

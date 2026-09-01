@@ -1,0 +1,36 @@
+diff --git a/tests/test_strftime_parse.py b/tests/test_strftime_parse.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..e592b08537fdfb120c52c4ddbf9a4fa8b8e0e1cb
+--- /dev/null
++++ b/tests/test_strftime_parse.py
+@@ -0,0 +1,30 @@
++import parse
++from datetime import date, datetime, time, timezone
++
++
++def test_basic_date():
++    result = parse.parse("a {:%Y-%m-%d} b", "a 1997-07-16 b")[0]
++    assert result == date(1997, 7, 16)
++
++
++def test_abbreviated_month():
++    result = parse.parse("a {:%Y-%b-%d} b", "a 1997-Feb-16 b")[0]
++    assert result == date(1997, 2, 16)
++
++
++def test_datetime():
++    result = parse.parse("{:%Y-%m-%d %H:%M:%S}", "1997-07-16 12:30:45")[0]
++    assert result == datetime(1997, 7, 16, 12, 30, 45)
++
++
++def test_timezone():
++    result = parse.parse("{:%Y-%m-%d %H:%M %z}", "1997-07-16 12:30 +0200")[0]
++    assert result.tzinfo is not None
++    assert result.utcoffset().total_seconds() == 7200
++
++
++def test_multiple_strftime_and_mixed():
++    result = parse.parse("{:%Y-%m-%d} {:%H:%M} {}", "1997-07-16 12:30 text")
++    assert result[0] == date(1997, 7, 16)
++    assert result[1] == time(12, 30)
++    assert result[2] == "text"
