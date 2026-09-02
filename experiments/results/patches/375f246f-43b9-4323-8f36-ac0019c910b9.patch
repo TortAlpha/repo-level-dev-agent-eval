@@ -1,0 +1,68 @@
+diff --git a/src/croniter/croniter.py b/src/croniter/croniter.py
+index f73a6a9ab83ffbbb18c4dbb9fd4957c6dc3ba1d6..fde0afcd455d7ba61d997bb1fec390bcc8d574d5 100644
+--- a/src/croniter/croniter.py
++++ b/src/croniter/croniter.py
+@@ -1273,7 +1273,7 @@ class croniter:
+         if field_index == DAY_FIELD:
+             return ((dt.day - 1) % step) + 1
+         if field_index == MONTH_FIELD:
+-            return dt.month % step
++            return ((dt.month - 1) % step) + 1
+         if field_index == DOW_FIELD:
+             return (dt.weekday() + 1) % step
+ 
+diff --git a/src/croniter/tests/test_expand_from_start_time_month_regression.py b/src/croniter/tests/test_expand_from_start_time_month_regression.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..5e6b32a74064b578793727069da41f88eae65692
+--- /dev/null
++++ b/src/croniter/tests/test_expand_from_start_time_month_regression.py
+@@ -0,0 +1,49 @@
++from datetime import datetime
++
++from croniter import croniter
++
++
++def test_month_exact_multiple_step3_june():
++    # June (6 % 3 == 0) previously caused CroniterBadCronError.
++    c = croniter("0 0 1 */3 *", datetime(2024, 6, 1), expand_from_start_time=True)
++    assert c.get_next(datetime) == datetime(2024, 9, 1)
++    assert c.get_next(datetime) == datetime(2024, 12, 1)
++    assert c.get_next(datetime) == datetime(2025, 3, 1)
++
++
++def test_month_exact_multiple_step3_march():
++    c = croniter("0 0 1 */3 *", datetime(2024, 3, 1), expand_from_start_time=True)
++    assert c.get_next(datetime) == datetime(2024, 6, 1)
++
++
++def test_month_exact_multiple_step3_september():
++    c = croniter("0 0 1 */3 *", datetime(2024, 9, 1), expand_from_start_time=True)
++    assert c.get_next(datetime) == datetime(2024, 12, 1)
++
++
++def test_month_exact_multiple_step3_december():
++    c = croniter("0 0 1 */3 *", datetime(2024, 12, 1), expand_from_start_time=True)
++    assert c.get_next(datetime) == datetime(2025, 3, 1)
++
++
++def test_month_exact_multiple_prev_step3_june():
++    c = croniter("0 0 1 */3 *", datetime(2024, 6, 1), expand_from_start_time=True)
++    assert c.get_prev(datetime) == datetime(2024, 3, 1)
++
++
++def test_month_step2_december():
++    # December (12 % 2 == 0) previously caused CroniterBadCronError for step 2.
++    c = croniter("0 0 1 */2 *", datetime(2024, 12, 1), expand_from_start_time=True)
++    assert c.get_next(datetime) == datetime(2025, 2, 1)
++
++
++def test_month_step4_december():
++    # December (12 % 4 == 0) previously caused CroniterBadCronError for step 4.
++    c = croniter("0 0 1 */4 *", datetime(2024, 12, 1), expand_from_start_time=True)
++    assert c.get_next(datetime) == datetime(2025, 4, 1)
++
++
++def test_month_step6_june():
++    # June (6 % 6 == 0) previously caused CroniterBadCronError for step 6.
++    c = croniter("0 0 1 */6 *", datetime(2024, 6, 1), expand_from_start_time=True)
++    assert c.get_next(datetime) == datetime(2024, 12, 1)

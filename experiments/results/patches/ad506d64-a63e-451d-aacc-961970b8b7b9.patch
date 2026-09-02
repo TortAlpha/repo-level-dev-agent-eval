@@ -1,0 +1,206 @@
+diff --git a/parse.py b/parse.py
+index 8f73fb5aef7751fec7cfe78e530ab42679e86687..06726d68de0ba971a44df9fbca8302a9aedc577c 100644
+--- a/parse.py
++++ b/parse.py
+@@ -5,7 +5,7 @@ __version__ = "1.19.1"
+ # yes, I now have two problems
+ import re
+ import sys
+-from datetime import datetime, time, tzinfo, timedelta
++from datetime import datetime, time, tzinfo, timedelta, date
+ from decimal import Decimal
+ from functools import partial
+ import logging
+@@ -171,6 +171,82 @@ TIME_PAT = r"(\d{1,2}:\d{1,2}(:\d{1,2}(\.\d+)?)?)"
+ AM_PAT = r"(\s+[AP]M)"
+ TZ_PAT = r"(\s+[-+]\d\d?:?\d\d)"
+ 
++# strftime/strptime directive -> regex fragment
++STRF_DIRECTIVES = {
++    'Y': r'\d{4}',
++    'y': r'\d{2}',
++    'm': r'\d{1,2}',
++    'd': r'\d{1,2}',
++    'b': r'[A-Za-z]+',
++    'B': r'[A-Za-z]+',
++    'a': r'[A-Za-z]+',
++    'A': r'[A-Za-z]+',
++    'H': r'\d{1,2}',
++    'I': r'\d{1,2}',
++    'M': r'\d{1,2}',
++    'S': r'\d{1,2}',
++    'f': r'\d{1,6}',
++    'p': r'[A-Za-z]+',
++    'z': r'[-+]?\d{2}:?\d{2}',
++    'Z': r'[A-Za-z/_]+',
++    'j': r'\d{1,3}',
++    'w': r'\d',
++    'U': r'\d{1,2}',
++    'W': r'\d{1,2}',
++    'c': r'.+?',
++    'x': r'.+?',
++    'X': r'.+?',
++}
++
++STRF_DATE_DIRECTIVES = set('ymdabBAjwUWcx')
++STRF_TIME_DIRECTIVES = set('HIMSfpXzZ')
++
++
++def strftime_to_regex(fmt):
++    """Convert a strftime/strptime format string to a non-capturing regex."""
++    parts = []
++    i = 0
++    n = len(fmt)
++    while i < n:
++        c = fmt[i]
++        if c == '%':
++            if i + 1 < n:
++                d = fmt[i + 1]
++                if d == '%':
++                    parts.append(re.escape('%'))
++                    i += 2
++                    continue
++                if d in STRF_DIRECTIVES:
++                    parts.append(STRF_DIRECTIVES[d])
++                    i += 2
++                    continue
++                raise ValueError('unsupported strftime directive %%%s' % d)
++            else:
++                raise ValueError('unsupported strftime directive %')
++        else:
++            parts.append(re.escape(c))
++            i += 1
++    return ''.join(parts)
++
++
++def strftime_convert(fmt):
++    """Return a converter callable that parses `string` using strptime(fmt)."""
++    used = set(fmt[i + 1] for i in range(len(fmt) - 1))
++    if fmt and fmt[-1] == '%':
++        used.add('')
++    has_date = bool(used & STRF_DATE_DIRECTIVES)
++    has_time = bool(used & STRF_TIME_DIRECTIVES)
++
++    def convert(string, match):
++        result = datetime.strptime(string, fmt)
++        if has_date and not has_time:
++            return result.date()
++        if has_time and not has_date:
++            return result.time()
++        return result
++
++    return convert
++
+ 
+ def date_convert(
+     string,
+@@ -576,7 +652,7 @@ class Parser(object):
+         format = ""
+ 
+         if ":" in field:
+-            name, format = field.split(":")
++            name, format = field.split(":", 1)
+         else:
+             name = field
+ 
+@@ -611,6 +687,31 @@ class Parser(object):
+             self._group_index += 1
+             return wrap % r".+?"
+ 
++        # detect strftime/strptime-style format specifications
++        if format.startswith('%') and re.search(r'%[A-Za-z]', format):
++            s = strftime_to_regex(format)
++            self._type_conversions[group] = strftime_convert(format)
++            format = {
++                'fill': None,
++                'align': None,
++                'width': 0,
++                'precision': None,
++                'type': 'strftime',
++            }
++            type = 'strftime'
++            is_numeric = False
++            # skip the extract_format / type-conversion chain below
++            align = format["align"]
++            fill = format["fill"]
++            if wrap:
++                s = wrap % s
++                self._group_index += 1
++            if not fill:
++                fill = " "
++            if fill in r".\+?*[](){}^$":
++                fill = "\\" + fill
++            return s
++
+         # decode the format specification
+         format = extract_format(format, self._extra_types)
+ 
+diff --git a/tests/test_strftime.py b/tests/test_strftime.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..06718d62acd621ae33b923f1f10e9288b2c12f6a
+--- /dev/null
++++ b/tests/test_strftime.py
+@@ -0,0 +1,63 @@
++# -*- encoding: utf8 -*-
++"""Tests for strftime/strptime-style datetime format support in parse."""
++
++import unittest
++from datetime import date, datetime, time, timedelta
++
++import parse
++
++
++class TestStrftimeFormats(unittest.TestCase):
++    def test_date_ymd(self):
++        res = parse.parse("a {:%Y-%m-%d} b", "a 1997-07-16 b")
++        self.assertIsNotNone(res)
++        self.assertEqual(res[0], date(1997, 7, 16))
++
++    def test_date_yb(self):
++        res = parse.parse("a {:%Y-%b-%d} b", "a 1997-Feb-16 b")
++        self.assertIsNotNone(res)
++        self.assertEqual(res[0], date(1997, 2, 16))
++
++    def test_time_hms(self):
++        res = parse.parse("a {:%H:%M:%S} b", "a 12:30:45 b")
++        self.assertIsNotNone(res)
++        self.assertEqual(res[0], time(12, 30, 45))
++
++    def test_datetime_with_tz(self):
++        res = parse.parse(
++            "a {:%Y-%m-%dT%H:%M:%S%z} b", "a 1997-07-16T12:30:45+0500 b"
++        )
++        self.assertIsNotNone(res)
++        value = res[0]
++        self.assertIsInstance(value, datetime)
++        self.assertEqual(value.utcoffset(), timedelta(hours=5))
++        self.assertEqual(
++            value.replace(tzinfo=None), datetime(1997, 7, 16, 12, 30, 45)
++        )
++
++    def test_mix_date_time(self):
++        res = parse.parse(
++            "{:%Y-%m-%d} {:%H:%M:%S}", "1997-07-16 12:30:45"
++        )
++        self.assertIsNotNone(res)
++        self.assertEqual(
++            tuple(res.fixed), (date(1997, 7, 16), time(12, 30, 45))
++        )
++
++    def test_percentage_regression(self):
++        res = parse.parse("a {:%} b", "a 50% b")
++        self.assertIsNotNone(res)
++        self.assertEqual(res[0], 0.5)
++
++    def test_mix_with_other_types(self):
++        res = parse.parse(
++            "{:%Y-%m-%d} {:d} {:%H:%M:%S}", "1997-07-16 42 12:30:45"
++        )
++        self.assertIsNotNone(res)
++        self.assertEqual(
++            tuple(res.fixed), (date(1997, 7, 16), 42, time(12, 30, 45))
++        )
++
++
++if __name__ == "__main__":
++    unittest.main()

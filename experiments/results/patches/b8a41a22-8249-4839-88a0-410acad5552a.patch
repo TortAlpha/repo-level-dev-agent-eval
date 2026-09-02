@@ -1,0 +1,72 @@
+diff --git a/h11/_headers.py b/h11/_headers.py
+index b97d020b634a9f47f5ae6aa3b30e2bd13a6c48c4..2c9009c275a6bf8b6f57ab412cf9b7241c1d36a9 100644
+--- a/h11/_headers.py
++++ b/h11/_headers.py
+@@ -68,6 +68,10 @@ except ImportError:
+ # Maybe a dict-of-lists would be better?
+ 
+ _content_length_re = re.compile(rb"[0-9]+")
++# A Content-Length value longer than this is pathological and would be
++# absurdly slow (or, on Python 3.11+, raise ValueError) to convert with
++# int(). 16 digits comfortably exceeds any real-world body size (1e16 bytes).
++_MAX_CONTENT_LENGTH_DIGITS = 16
+ _field_name_re = re.compile(field_name.encode("ascii"))
+ _field_value_re = re.compile(field_value.encode("ascii"))
+ 
+@@ -173,6 +177,8 @@ def normalize_and_validate(
+                 raise LocalProtocolError("conflicting Content-Length headers")
+             value = lengths.pop()
+             validate(_content_length_re, value, "bad Content-Length")
++            if len(value) > _MAX_CONTENT_LENGTH_DIGITS:
++                raise LocalProtocolError("bad Content-Length")
+             if seen_content_length is None:
+                 seen_content_length = value
+                 new_headers.append((raw_name, name, value))
+diff --git a/h11/tests/test_content_length_pathological.py b/h11/tests/test_content_length_pathological.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..6701652837bfb97bd8b4f5f59502cbfe8c91dfd8
+--- /dev/null
++++ b/h11/tests/test_content_length_pathological.py
+@@ -0,0 +1,42 @@
++import pytest
++
++from .._headers import normalize_and_validate
++from .._util import LocalProtocolError
++
++
++def test_pathological_content_length_rejected() -> None:
++    # An absurdly long Content-Length digit string must be rejected promptly
++    # as a protocol error rather than reaching int() conversion.
++    with pytest.raises(LocalProtocolError):
++        normalize_and_validate([("Content-Length", b"1" * 10_000)])
++
++    # Just over the limit is also rejected.
++    with pytest.raises(LocalProtocolError):
++        normalize_and_validate([("Content-Length", b"9" * 17)])
++
++
++def test_normal_content_length_still_works() -> None:
++    # Normal valid values continue to pass.
++    assert normalize_and_validate([("Content-Length", "0")]) == [
++        (b"content-length", b"0")
++    ]
++    assert normalize_and_validate([("Content-Length", "1")]) == [
++        (b"content-length", b"1")
++    ]
++    assert normalize_and_validate([("Content-Length", "10000")]) == [
++        (b"content-length", b"10000")
++    ]
++    # The maximum allowed digit count (16) still works.
++    assert normalize_and_validate([("Content-Length", b"9" * 16)]) == [
++        (b"content-length", b"9" * 16)
++    ]
++    # Comma-separated identical values still work after stripping.
++    assert normalize_and_validate([("Content-Length", "0 , 0")]) == [
++        (b"content-length", b"0")
++    ]
++
++
++def test_pathological_content_length_via_str() -> None:
++    # Same protection when the value is provided as str.
++    with pytest.raises(LocalProtocolError):
++        normalize_and_validate([("Content-Length", "1" * 10_000)])

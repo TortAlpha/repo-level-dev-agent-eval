@@ -67,6 +67,9 @@ also where the prompt changes landed and where the new
 `developer_escalate_after_no_edit_episodes` defaults apply — those settings did
 not exist in the old harness at all.
 
+Two of these four turn out to be artifacts of the fixed 50-step cap rather than
+lost capability; see *Step-Cap Probe* below.
+
 ## Results by Task
 
 Outcomes on the current harness. The `was` column flags where the old harness
@@ -123,6 +126,53 @@ task specifically.
 | `effective_cost_usd` (actual billing) | 5.58074255 |
 | `cost_usd` (static estimate) | 4.05894044 |
 | Most expensive single run | $0.5527 (`humanize_pr_329 / multi-orch-guarded`, 2151 s) |
+
+## Step-Cap Probe — Half the Regression Is a Cap Artifact
+
+The five failures that exhausted the 50-step cap were re-run with the cap raised
+to 100, everything else in the glm protocol unchanged (session
+`kernel_v2_glm_5_2_core_small_steps100`, $1.1989).
+
+| Task | Architecture | at 50 steps | at 100 steps |
+| --- | --- | --- | --- |
+| `croniter_pr_235` | multi-graph | fails, 50/50, $0.0501 | **resolves, 30 steps**, $0.0431 |
+| `h11_pr_181` | multi-graph | fails, 50/50, $0.2622 | **resolves, 35 steps**, $0.0591 |
+| `croniter_pr_235` | multi-orch-guarded | fails, 50/50, $0.2095 | fails, 100/100, $0.2205 |
+| `parse_pr_165` | multi-graph | fails, 50/50, $0.2347 | fails, 100/100, $0.2588 |
+| `parse_pr_165` | multi-orch-guarded | fails, 50/50, $0.3252 | fails, 100/100, $0.6174 |
+
+**Both recoveries finished well below the original 50-step cap** — 30 and 35
+steps. So this is not "the task needed more room". The step budget is announced
+to the agent in its role prompt (`src/agents/roles.py:104`: *"Your role budget
+is N steps; report before it runs out"*), so a larger cap is an input that
+changes behaviour, not a neutral ceiling. Two readings fit the data equally
+well at n = 1: ordinary run-to-run variance, or a larger announced budget
+producing a better strategy. This run cannot separate them.
+
+Against the four harness regressions:
+
+| Regression | at 100 steps |
+| --- | --- |
+| `h11_pr_181 / multi-graph` | recovered, 35 steps |
+| `croniter_pr_235 / multi-graph` | recovered, 30 steps |
+| `croniter_pr_235 / multi-orch-guarded` | still fails at 100/100 |
+| `parse_pr_227 / single` | not probed — it handed off at 23 steps, never cap-bound |
+
+So **two of the four regressions are step-cap artifacts**, not capability loss.
+The harness change makes agents consume more steps, and under a fixed 50-step
+cap that alone accounts for half the observed damage. The remaining half is
+`croniter_pr_235 / multi-orch-guarded`, which fails even with double the budget,
+and `parse_pr_227 / single`, which never reached the cap at all.
+
+Counting the probe, glm-5.2 under a 100-step cap would reach **31/36** — level
+with DeepSeek V4 Flash. That figure mixes two step caps and must not be merged
+into the 50-step block.
+
+The two probes are also not symmetric. DeepSeek's own 100-step probe recovered
+**none** of its two cap-bound failures, but both of those were on
+`parse_pr_165`, the one task that no tested configuration resolves. Its other
+three failures were voluntary handoffs that never approached the cap and were
+not probed.
 
 ## Three-Way Comparison
 
