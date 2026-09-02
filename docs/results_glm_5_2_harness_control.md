@@ -67,6 +67,63 @@ also where the prompt changes landed and where the new
 `developer_escalate_after_no_edit_episodes` defaults apply — those settings did
 not exist in the old harness at all.
 
+## Results by Task
+
+Outcomes on the current harness. The `was` column flags where the old harness
+differed.
+
+| Task | single | multi-graph | multi-orch-guarded | Resolved | Actual cost | Tokens |
+| --- | :---: | :---: | :---: | ---: | ---: | ---: |
+| `h11_pr_181` | ✓ | ✗ *(was ✓)* | ✓ | 2/3 | $0.4130 | 637,501 |
+| `humanize_pr_329` | ✓ | ✓ | ✓ | 3/3 | $0.8168 | 697,590 |
+| `pluggy_pr_646` | ✓ | ✓ | ✓ | 3/3 | $0.4410 | 833,079 |
+| `w3lib_pr_272` | ✓ | ✓ | ✓ | 3/3 | $0.4524 | 464,867 |
+| `parse_pr_165` | ✗ | ✗ | ✗ | 0/3 | $0.7984 | 926,695 |
+| `parse_pr_227` | ✗ *(was ✓)* | ✓ | ✓ | 2/3 | $0.4045 | 598,288 |
+| `cachetools_pr_57d2e48` | ✓ | ✓ | ✓ | 3/3 | $0.4555 | 619,451 |
+| `tinydb_pr_616` | ✓ | ✓ | ✓ | 3/3 | $0.3563 | 771,290 |
+| `python_dotenv_pr_640` | ✓ | ✓ | ✓ | 3/3 | $0.3149 | 527,857 |
+| `tenacity_pr_628` | ✓ | ✓ | ✓ | 3/3 | $0.3271 | 647,607 |
+| `freezegun_pr_546` | ✓ | ✓ | ✓ | 3/3 | $0.5059 | 675,929 |
+| `croniter_pr_235` | ✓ | ✗ *(was ✓)* | ✗ *(was ✓)* | 1/3 | $0.2950 | 499,913 |
+
+Eight of twelve tasks are still resolved by all three architectures, against ten
+of twelve for DeepSeek V4 Flash.
+
+## The Seven Failures
+
+| Task | Architecture | Steps used | Terminal status |
+| --- | --- | ---: | --- |
+| `croniter_pr_235` | multi-graph | 50 / 50 | `failed` |
+| `croniter_pr_235` | multi-orch-guarded | 50 / 50 | `failed` |
+| `h11_pr_181` | multi-graph | 50 / 50 | `failed` |
+| `parse_pr_165` | multi-graph | 50 / 50 | `failed` |
+| `parse_pr_165` | multi-orch-guarded | 50 / 50 | `failed` |
+| `parse_pr_165` | single | 25 / 50 | `handoff` |
+| `parse_pr_227` | single | 23 / 50 | `handoff` |
+
+**Five of seven failures exhausted the step cap.** That is the opposite profile
+from DeepSeek V4 Flash, where three of five failures were voluntary handoffs
+well below the cap. glm-5.2 on this harness fails by running out of budget, not
+by giving up — which is consistent with mean steps rising from 31.1 to 38.1 and
+with cap hits rising from 6/36 to 14/36. A higher cap might recover some of
+these; the `parse_pr_165` probe on DeepSeek suggests it would not recover that
+task specifically.
+
+## Token and Cost Accounting
+
+| Metric | Value |
+| --- | ---: |
+| `input_tokens` | 6,754,693 |
+| of which cached | 3,832,087 |
+| `output_tokens` | 1,145,374 |
+| of which reasoning | 836,722 |
+| `cache_write_input_tokens` | 0 |
+| `total_tokens` | 7,900,067 |
+| `effective_cost_usd` (actual billing) | 5.58074255 |
+| `cost_usd` (static estimate) | 4.05894044 |
+| Most expensive single run | $0.5527 (`humanize_pr_329 / multi-orch-guarded`, 2151 s) |
+
 ## Three-Way Comparison
 
 Only the middle and right columns are a valid comparison; the left column is on
