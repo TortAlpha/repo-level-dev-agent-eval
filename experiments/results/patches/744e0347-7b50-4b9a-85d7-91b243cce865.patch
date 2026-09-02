@@ -1,0 +1,96 @@
+diff --git a/parse.py b/parse.py
+index 8f73fb5aef7751fec7cfe78e530ab42679e86687..5d3bf0f6cbb5f6980912ffbca1becfc39ea76ec9 100644
+--- a/parse.py
++++ b/parse.py
+@@ -279,6 +279,91 @@ class RepeatedNameError(ValueError):
+     pass
+ 
+ 
++_STRFTIME_DIRECTIVES = set('YymdBbAajHIMSpfzZ%')
++
++_STRFTIME_REGEX_MAP = {
++    'Y': r'\d{4}',
++    'y': r'\d{2}',
++    'm': r'(?:0[1-9]|1[0-2])',
++    'd': r'(?:0[1-9]|[12]\d|3[01])',
++    'H': r'(?:[01]\d|2[0-3])',
++    'I': r'(?:0[1-9]|1[0-2])',
++    'M': r'[0-5]\d',
++    'S': r'(?:[0-5]\d|60)',
++    'f': r'\d{1,6}',
++    'p': r'(?:AM|PM)',
++    'z': r'[-+]\d{2}:?\d{2}',
++    'Z': r'\S+',
++    'B': r'(?:January|February|March|April|May|June|July|August|September|October|November|December)',
++    'b': r'(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)',
++    'A': r'(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)',
++    'a': r'(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)',
++    'j': r'(?:0[0-9]\d|[12]\d\d|3[0-5]\d|36[0-6])',
++    '%': r'%',
++}
++
++
++def _strftime_to_regex(fmt):
++    """Convert a strftime/strptime format string into a regex string with no
++    capturing groups. Return None if any unsupported directive is encountered.
++    """
++    parts = []
++    i = 0
++    n = len(fmt)
++    while i < n:
++        c = fmt[i]
++        if c == '%':
++            i += 1
++            if i >= n:
++                return None
++            d = fmt[i]
++            if d in _STRFTIME_REGEX_MAP:
++                parts.append(_STRFTIME_REGEX_MAP[d])
++            else:
++                return None
++        else:
++            parts.append(re.escape(c))
++        i += 1
++    return ''.join(parts)
++
++
++_STRFTIME_DATE_DIRECTIVES = set('YymdBbAaj')
++_STRFTIME_TIME_DIRECTIVES = set('HIMSpf')
++_STRFTIME_TZ_DIRECTIVES = set('zZ')
++
++
++def _strftime_convert(text, fmt):
++    """Parse text using datetime.strptime and return the appropriate object."""
++    dt = datetime.strptime(text, fmt)
++    has_date = False
++    has_time = False
++    has_tz = False
++    i = 0
++    n = len(fmt)
++    while i < n:
++        if fmt[i] == '%' and i + 1 < n:
++            d = fmt[i + 1]
++            if d == '%':
++                i += 2
++                continue
++            if d in _STRFTIME_DATE_DIRECTIVES:
++                has_date = True
++            elif d in _STRFTIME_TIME_DIRECTIVES:
++                has_time = True
++            elif d in _STRFTIME_TZ_DIRECTIVES:
++                has_tz = True
++            i += 2
++        else:
++            i += 1
++    if has_date and (has_time or has_tz):
++        return dt
++    elif has_date:
++        return dt.date()
++    elif has_time or has_tz:
++        return dt.time()
++    return dt
++
++
+ # note: {} are handled separately
+ # note: I don't use r'' here because Sublime Text 2 syntax highlight has a fit
+ REGEX_SAFETY = re.compile(r"([?\\\\.[\]()*+\^$!\|])")

@@ -1,0 +1,50 @@
+diff --git a/src/humanize/filesize.py b/src/humanize/filesize.py
+index c495fed3ee9e724755800a0352c975335a9b1465..6baa023b692033aea339e247a0b8d32b8f6baf51 100644
+--- a/src/humanize/filesize.py
++++ b/src/humanize/filesize.py
+@@ -98,5 +98,13 @@ def naturalsize(
+ 
+     exp = int(min(log(abs_bytes, base), len(suffix)))
+     space = "" if gnu else " "
+-    ret: str = format % (bytes_ / (base**exp)) + space + _(suffix[exp - 1])
++    mantissa = bytes_ / (base**exp)
++    formatted = format % mantissa
++    # If rounding pushes the displayed mantissa up to the next unit boundary,
++    # advance the suffix so the value is shown with the correct unit.
++    if len(suffix) > exp and abs(float(formatted)) >= base:
++        exp += 1
++        mantissa = bytes_ / (base**exp)
++        formatted = format % mantissa
++    ret: str = formatted + space + _(suffix[exp - 1])
+     return ret
+diff --git a/tests/test_filesize_boundary.py b/tests/test_filesize_boundary.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..bf5c1b99ff6b66ff3745742aa7f23dba2bb4d4f7
+--- /dev/null
++++ b/tests/test_filesize_boundary.py
+@@ -0,0 +1,25 @@
++"""Regression tests for naturalsize rounding at unit boundaries."""
++
++from __future__ import annotations
++
++import humanize
++
++
++def test_decimal_boundary_carryover() -> None:
++    # 999.95 kB rounds to 1000.0 kB, which should carry over to 1.0 MB.
++    assert humanize.naturalsize(999950) == "1.0 MB"
++
++
++def test_binary_boundary_carryover() -> None:
++    # 1023.95 KiB rounds to 1024.0 KiB, which should carry over to 1.0 MiB.
++    assert humanize.naturalsize(1023.95 * 1024, True) == "1.0 MiB"
++
++
++def test_gnu_boundary_carryover() -> None:
++    # 1023.95K rounds to 1024.0K, which should carry over to 1.0M.
++    assert humanize.naturalsize(1023.95 * 1024, False, True) == "1.0M"
++
++
++def test_largest_suffix_no_carryover() -> None:
++    # At the largest suffix, values should not advance beyond it.
++    assert humanize.naturalsize(1000**10 * 999.95).endswith("QB")

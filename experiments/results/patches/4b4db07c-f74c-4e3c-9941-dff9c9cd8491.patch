@@ -1,0 +1,124 @@
+diff --git a/src/pluggy/_hooks.py b/src/pluggy/_hooks.py
+index 7fde78c932dfa29cb6b06ead29f94adeae4875d1..307326609e27056bd58d6a4d7ac0af5a65a88bfd 100644
+--- a/src/pluggy/_hooks.py
++++ b/src/pluggy/_hooks.py
+@@ -440,11 +440,14 @@ class HookCaller:
+         return self._call_history is not None
+ 
+     def _remove_plugin(self, plugin: _Plugin) -> None:
+-        for i, method in enumerate(self._hookimpls):
+-            if method.plugin == plugin:
+-                del self._hookimpls[i]
+-                return
+-        raise ValueError(f"plugin {plugin!r} not found")
++        hookimpls = self._hookimpls
++        removed = False
++        for i in range(len(hookimpls) - 1, -1, -1):
++            if hookimpls[i].plugin == plugin:
++                del hookimpls[i]
++                removed = True
++        if not removed:
++            raise ValueError(f"plugin {plugin!r} not found")
+ 
+     def get_hookimpls(self) -> list[HookImpl]:
+         """Get all registered hook implementations for this hook."""
+diff --git a/src/pluggy/_manager.py b/src/pluggy/_manager.py
+index 1b994f255d1d3a1a8f427a0aab6385d9996549b7..9e51a4f589f43beb2fad86c0c8bf0148df7606ea 100644
+--- a/src/pluggy/_manager.py
++++ b/src/pluggy/_manager.py
+@@ -445,6 +445,7 @@ class PluginManager:
+             for hookimpl in hookcaller.get_hookimpls():
+                 if hookimpl.plugin is plugin:
+                     hookcallers.append(hookcaller)
++                    break
+         return hookcallers
+ 
+     def add_hookcall_monitoring(
+diff --git a/testing/test_plugin_removal_multiple_impls.py b/testing/test_plugin_removal_multiple_impls.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..c8ce72f0e3b341600086534fb94a6975d3ded033
+--- /dev/null
++++ b/testing/test_plugin_removal_multiple_impls.py
+@@ -0,0 +1,82 @@
++"""Regression tests for plugin removal with multiple hook implementations
++on the same hook, including specname-based implementations."""
++
++from pluggy import HookimplMarker
++from pluggy import HookspecMarker
++from pluggy import PluginManager
++
++hookspec = HookspecMarker("example")
++hookimpl = HookimplMarker("example")
++
++
++def test_unregister_removes_all_impls_on_same_hook() -> None:
++    pm = PluginManager("example")
++
++    class Spec:
++        @hookspec
++        def myhook(self) -> None:
++            pass
++
++    class Plugin:
++        @hookimpl
++        def myhook(self) -> None:
++            pass
++
++        @hookimpl(specname="myhook")
++        def another_myhook(self) -> None:
++            pass
++
++    pm.add_hookspecs(Spec)
++    plugin = Plugin()
++    pm.register(plugin)
++
++    hookcaller = pm.hook.myhook
++    impls = hookcaller.get_hookimpls()
++    assert len(impls) == 2
++
++    # get_hookcallers should return each hookcaller only once even though
++    # the plugin has multiple implementations on the same hook.
++    hookcallers = pm.get_hookcallers(plugin)
++    assert len(hookcallers) == 1
++    assert hookcallers[0] is hookcaller
++
++    pm.unregister(plugin)
++    assert len(hookcaller.get_hookimpls()) == 0
++    assert pm.get_hookcallers(plugin) is None
++
++
++def test_unregister_plugin_with_multiple_plain_impls() -> None:
++    pm = PluginManager("example")
++
++    class Spec:
++        @hookspec
++        def myhook(self) -> None:
++            pass
++
++    # Two distinct plugins, each registering one implementation on the same hook,
++    # then unregister one and confirm only that plugin's impl is removed.
++    class Plugin1:
++        @hookimpl
++        def myhook(self) -> None:
++            pass
++
++    class Plugin2:
++        @hookimpl
++        def myhook(self) -> None:
++            pass
++
++    pm.add_hookspecs(Spec)
++    p1 = Plugin1()
++    p2 = Plugin2()
++    pm.register(p1)
++    pm.register(p2)
++
++    hookcaller = pm.hook.myhook
++    assert len(hookcaller.get_hookimpls()) == 2
++
++    pm.unregister(p1)
++    remaining = hookcaller.get_hookimpls()
++    assert len(remaining) == 1
++    assert remaining[0].plugin is p2
++    assert pm.get_hookcallers(p1) is None
++    assert len(pm.get_hookcallers(p2)) == 1

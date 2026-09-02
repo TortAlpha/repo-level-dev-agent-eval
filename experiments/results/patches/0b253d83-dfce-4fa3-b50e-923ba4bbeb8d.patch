@@ -1,0 +1,68 @@
+diff --git a/src/humanize/filesize.py b/src/humanize/filesize.py
+index c495fed3ee9e724755800a0352c975335a9b1465..378151638dcc1dba4c527f30ca981ad0cd8fc809 100644
+--- a/src/humanize/filesize.py
++++ b/src/humanize/filesize.py
+@@ -98,5 +98,13 @@ def naturalsize(
+ 
+     exp = int(min(log(abs_bytes, base), len(suffix)))
+     space = "" if gnu else " "
+-    ret: str = format % (bytes_ / (base**exp)) + space + _(suffix[exp - 1])
+-    return ret
++    mantissa = bytes_ / (base**exp)
++
++    # Advance the suffix when the formatted mantissa rounds up to the next
++    # unit (e.g. 999.95 kB -> 1000.0 kB should become 1.0 MB). Values already
++    # at the largest supported suffix keep their existing behavior.
++    if exp < len(suffix) and abs(float(format % mantissa)) >= base:
++        exp += 1
++        mantissa = bytes_ / (base**exp)
++
++    return format % mantissa + space + _(suffix[exp - 1])
+diff --git a/tests/test_filesize_boundary.py b/tests/test_filesize_boundary.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..8e415966f0d0e6eaadf88d7faeb6a55e1d0243ff
+--- /dev/null
++++ b/tests/test_filesize_boundary.py
+@@ -0,0 +1,42 @@
++#!/usr/bin/env python
++"""Boundary regression tests for naturalsize suffix carry-over."""
++
++from __future__ import annotations
++
++import pytest
++
++import humanize
++
++
++@pytest.mark.parametrize(
++    "test_args, expected",
++    [
++        # Decimal boundaries: values just below 10**6 / 10**9 that round up.
++        ([999950], "1.0 MB"),
++        ([999999999], "1.0 GB"),
++        # Binary boundaries: values just below 1024**2 / 1024**3.
++        ([1024 * 1024 - 1, True], "1.0 MiB"),
++        ([1024**3 - 1, True], "1.0 GiB"),
++        # GNU boundary: just below 1024**2 with gnu=True.
++        ([1024 * 1024 - 1, False, True], "1.0M"),
++        # %.0f boundary carry with gnu.
++        ([1024 * 1024 - 1, False, True, "%.0f"], "1M"),
++        # Negative boundary should carry too.
++        ([-999950], "-1.0 MB"),
++        # Values that do not cross a boundary keep existing behavior.
++        ([999949], "999.9 kB"),
++        ([1023 * 1024, True], "1023.0 KiB"),
++    ],
++)
++def test_naturalsize_boundary(
++    test_args: list[int] | list[int | bool | str], expected: str
++) -> None:
++    assert humanize.naturalsize(*test_args) == expected
++
++
++def test_largest_suffix_no_carry() -> None:
++    # At the largest decimal suffix, even a huge mantissa must not advance.
++    assert humanize.naturalsize(10**34 * 3) == "30000.0 QB"
++    # Binary and gnu use base 1024; mantissa stays large but no further suffix.
++    assert humanize.naturalsize(10**34 * 3, True) == "23665.8 QiB"
++    assert humanize.naturalsize(10**34 * 3, False, True) == "23665.8Q"

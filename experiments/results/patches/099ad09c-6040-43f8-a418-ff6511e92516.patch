@@ -1,0 +1,39 @@
+diff --git a/h11/_headers.py b/h11/_headers.py
+index b97d020b634a9f47f5ae6aa3b30e2bd13a6c48c4..adb9fc599d40d39d7cbd3e4759ff1c0f6ebdd242 100644
+--- a/h11/_headers.py
++++ b/h11/_headers.py
+@@ -173,6 +173,10 @@ def normalize_and_validate(
+                 raise LocalProtocolError("conflicting Content-Length headers")
+             value = lengths.pop()
+             validate(_content_length_re, value, "bad Content-Length")
++            if len(value) > 10:
++                raise LocalProtocolError(
++                    "Content-Length value too large"
++                )
+             if seen_content_length is None:
+                 seen_content_length = value
+                 new_headers.append((raw_name, name, value))
+diff --git a/h11/tests/test_content_length_limit.py b/h11/tests/test_content_length_limit.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..2355035388c7e9f912f125133721e755332764d3
+--- /dev/null
++++ b/h11/tests/test_content_length_limit.py
+@@ -0,0 +1,18 @@
++import pytest
++
++from .._headers import normalize_and_validate
++from .._util import LocalProtocolError
++
++
++def test_normal_content_length_still_works() -> None:
++    assert normalize_and_validate([("Content-Length", "0")]) == [
++        (b"content-length", b"0")
++    ]
++    assert normalize_and_validate([("Content-Length", "1234567890")]) == [
++        (b"content-length", b"1234567890")
++    ]
++
++
++def test_pathological_content_length_rejected() -> None:
++    with pytest.raises(LocalProtocolError):
++        normalize_and_validate([("Content-Length", "1" * 1000)])

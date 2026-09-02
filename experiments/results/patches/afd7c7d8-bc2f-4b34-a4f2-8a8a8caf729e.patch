@@ -1,0 +1,110 @@
+diff --git a/tests/test_urlsplit_ipv6_fragment.py b/tests/test_urlsplit_ipv6_fragment.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..7905a6a60c1f223e17e0e8147bfe586414e635a0
+--- /dev/null
++++ b/tests/test_urlsplit_ipv6_fragment.py
+@@ -0,0 +1,85 @@
++"""Regression tests for _urlsplit fragment detection with IPv6 netlocs."""
++
++from w3lib._url import _urlsplit
++from w3lib.url import safe_url_string, canonicalize_url
++
++
++def test_urlsplit_ipv6_query_fragment():
++    url = "http://[::1]?q=1#frag"
++    result = _urlsplit(url)
++    assert result.scheme == "http"
++    assert result.netloc == "[::1]"
++    assert result.path == ""
++    assert result.query == "q=1"
++    assert result.fragment == "frag"
++
++
++def test_urlsplit_ipv6_path_query_fragment():
++    url = "http://[::1]/path?q=1#frag"
++    result = _urlsplit(url)
++    assert result.scheme == "http"
++    assert result.netloc == "[::1]"
++    assert result.path == "/path"
++    assert result.query == "q=1"
++    assert result.fragment == "frag"
++
++
++def test_safe_url_string_ipv6_query_fragment():
++    url = "http://[::1]?q=1#frag"
++    assert safe_url_string(url) == "http://[::1]?q=1#frag"
++
++
++def test_safe_url_string_ipv6_path_query_fragment():
++    url = "http://[::1]/path?q=1#frag"
++    assert safe_url_string(url) == "http://[::1]/path?q=1#frag"
++
++
++def test_canonicalize_url_ipv6_query_fragment():
++    # canonicalize_url removes fragments by default
++    url = "http://[::1]?q=1#frag"
++    assert canonicalize_url(url) == "http://[::1]/?q=1"
++
++
++def test_canonicalize_url_ipv6_path_query_fragment():
++    url = "http://[::1]/path?q=1#frag"
++    assert canonicalize_url(url) == "http://[::1]/path?q=1"
++
++
++def test_canonicalize_url_ipv6_keep_fragment():
++    url = "http://[::1]?q=1#frag"
++    assert canonicalize_url(url, keep_fragments=True) == "http://[::1]/?q=1#frag"
++
++
++def test_canonicalize_url_ipv6_path_keep_fragment():
++    url = "http://[::1]/path?q=1#frag"
++    assert canonicalize_url(url, keep_fragments=True) == "http://[::1]/path?q=1#frag"
++
++
++def test_urlsplit_normal_url_unchanged():
++    url = "http://example.com/path?q=1#frag"
++    result = _urlsplit(url)
++    assert result.scheme == "http"
++    assert result.netloc == "example.com"
++    assert result.path == "/path"
++    assert result.query == "q=1"
++    assert result.fragment == "frag"
++
++
++def test_urlsplit_ipv6_no_fragment():
++    url = "http://[::1]?q=1"
++    result = _urlsplit(url)
++    assert result.scheme == "http"
++    assert result.netloc == "[::1]"
++    assert result.path == ""
++    assert result.query == "q=1"
++    assert result.fragment == ""
++
++
++def test_urlsplit_ipv6_no_query():
++    url = "http://[::1]/path#frag"
++    result = _urlsplit(url)
++    assert result.scheme == "http"
++    assert result.netloc == "[::1]"
++    assert result.path == "/path"
++    assert result.query == ""
++    assert result.fragment == "frag"
+diff --git a/w3lib/_url.py b/w3lib/_url.py
+index 0fc540d0ce1fa76712a635caa90cef7e0b20eaa5..f34ef2f4d517cae05c350a9ae9f52de265d206f0 100644
+--- a/w3lib/_url.py
++++ b/w3lib/_url.py
+@@ -658,7 +658,13 @@ def _urlsplit(  # pylint: disable=too-many-locals,too-many-statements
+             open_br_pos = idx
+         elif char == "]" and closing_br_pos == -1:
+             closing_br_pos = idx
+-        if slash_pos != question_pos != hash_pos != open_br_pos != closing_br_pos != -1:
++        if (
++            slash_pos != -1
++            and question_pos != -1
++            and hash_pos != -1
++            and open_br_pos != -1
++            and closing_br_pos != -1
++        ):
+             break
+ 
+     if url[:2] == "//":

@@ -1,0 +1,137 @@
+diff --git a/freezegun/api.py b/freezegun/api.py
+index 0f11e0c113f328fb4ce71329cf8e6b35ab58a3fe..5820e7e9311c0b17af384bda912910178726019f 100644
+--- a/freezegun/api.py
++++ b/freezegun/api.py
+@@ -509,10 +509,10 @@ class TickingDateTimeFactory:
+     def __call__(self) -> datetime.datetime:
+         return self.time_to_freeze + (real_datetime.now() - self.start)
+ 
+-    def tick(self, delta: Union[datetime.timedelta, int]=datetime.timedelta(seconds=1)) -> datetime.datetime:
++    def tick(self, delta: Union[datetime.timedelta, int, float]=datetime.timedelta(seconds=1)) -> datetime.datetime:
+         if isinstance(delta, numbers.Real):
+             # noinspection PyTypeChecker
+-            self.move_to(self.time_to_freeze + datetime.timedelta(seconds=delta))
++            self.move_to(self.time_to_freeze + datetime.timedelta(seconds=float(delta)))
+         else:
+             self.move_to(self.time_to_freeze + delta)  # type: ignore
+         return self.time_to_freeze
+@@ -531,10 +531,10 @@ class FrozenDateTimeFactory:
+     def __call__(self) -> datetime.datetime:
+         return self.time_to_freeze
+ 
+-    def tick(self, delta: Union[datetime.timedelta, int]=datetime.timedelta(seconds=1)) -> datetime.datetime:
++    def tick(self, delta: Union[datetime.timedelta, int, float]=datetime.timedelta(seconds=1)) -> datetime.datetime:
+         if isinstance(delta, numbers.Real):
+             # noinspection PyTypeChecker
+-            self.time_to_freeze += datetime.timedelta(seconds=delta)
++            self.time_to_freeze += datetime.timedelta(seconds=float(delta))
+         else:
+             self.time_to_freeze += delta  # type: ignore
+         return self.time_to_freeze
+@@ -557,9 +557,11 @@ class StepTickTimeFactory:
+         self.tick()
+         return return_time
+ 
+-    def tick(self, delta: Union[datetime.timedelta, int, None]=None) -> datetime.datetime:
+-        if not delta:
++    def tick(self, delta: Union[datetime.timedelta, int, float, None]=None) -> datetime.datetime:
++        if delta is None:
+             delta = datetime.timedelta(seconds=self.step_width)
++        elif isinstance(delta, numbers.Real):
++            delta = datetime.timedelta(seconds=float(delta))
+         self.time_to_freeze += delta  # type: ignore
+         return self.time_to_freeze
+ 
+diff --git a/tests/test_tick_numeric_delta.py b/tests/test_tick_numeric_delta.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..c3ac50f565715601e2c6a68af22a9b42433f3608
+--- /dev/null
++++ b/tests/test_tick_numeric_delta.py
+@@ -0,0 +1,87 @@
++import datetime
++import fractions
++
++import pytest
++
++from freezegun import freeze_time
++
++
++def test_frozen_factory_tick_int_delta() -> None:
++    with freeze_time("2020-01-01 00:00:00") as ft:
++        ft.tick(30)
++        assert ft() == datetime.datetime(2020, 1, 1, 0, 0, 30)
++
++
++def test_frozen_factory_tick_float_delta() -> None:
++    with freeze_time("2020-01-01 00:00:00") as ft:
++        ft.tick(12.5)
++        assert ft() == datetime.datetime(2020, 1, 1, 0, 0, 12, 500000)
++
++
++def test_frozen_factory_tick_fraction_delta() -> None:
++    with freeze_time("2020-01-01 00:00:00") as ft:
++        ft.tick(fractions.Fraction(1, 2))
++        assert ft() == datetime.datetime(2020, 1, 1, 0, 0, 0, 500000)
++
++
++def test_frozen_factory_tick_timedelta_unchanged() -> None:
++    with freeze_time("2020-01-01 00:00:00") as ft:
++        ft.tick(datetime.timedelta(minutes=2))
++        assert ft() == datetime.datetime(2020, 1, 1, 0, 2)
++
++
++def test_step_tick_factory_tick_int_delta() -> None:
++    with freeze_time("2020-01-01 00:00:00", auto_tick_seconds=15) as ft:
++        ft.tick(30)
++        assert ft() == datetime.datetime(2020, 1, 1, 0, 0, 30)
++
++
++def test_step_tick_factory_tick_float_delta() -> None:
++    with freeze_time("2020-01-01 00:00:00", auto_tick_seconds=15) as ft:
++        ft.tick(12.5)
++        assert ft() == datetime.datetime(2020, 1, 1, 0, 0, 12, 500000)
++
++
++def test_step_tick_factory_tick_fraction_delta() -> None:
++    with freeze_time("2020-01-01 00:00:00", auto_tick_seconds=15) as ft:
++        ft.tick(fractions.Fraction(1, 2))
++        assert ft() == datetime.datetime(2020, 1, 1, 0, 0, 0, 500000)
++
++
++def test_step_tick_factory_auto_tick_unchanged() -> None:
++    with freeze_time("2020-01-01 00:00:00", auto_tick_seconds=15) as ft:
++        first = datetime.datetime.now()
++        second = datetime.datetime.now()
++        assert first + datetime.timedelta(seconds=15) == second
++
++
++def test_step_tick_factory_tick_timedelta_unchanged() -> None:
++    with freeze_time("2020-01-01 00:00:00", auto_tick_seconds=15) as ft:
++        ft.tick(datetime.timedelta(minutes=2))
++        assert ft() == datetime.datetime(2020, 1, 1, 0, 2)
++
++
++@pytest.mark.skipif(
++    "not hasattr(datetime, 'UTC')",
++    reason="tick=True requires CPython monotonic support",
++)
++def test_ticking_factory_tick_int_delta() -> None:
++    with freeze_time("2020-01-01 00:00:00", tick=True) as ft:
++        before = ft()
++        ft.tick(30)
++        after = ft()
++        delta = after - before
++        assert datetime.timedelta(seconds=29) < delta < datetime.timedelta(seconds=31)
++
++
++@pytest.mark.skipif(
++    "not hasattr(datetime, 'UTC')",
++    reason="tick=True requires CPython monotonic support",
++)
++def test_ticking_factory_tick_fraction_delta() -> None:
++    with freeze_time("2020-01-01 00:00:00", tick=True) as ft:
++        before = ft()
++        ft.tick(fractions.Fraction(1, 2))
++        after = ft()
++        delta = after - before
++        assert datetime.timedelta(seconds=0.4) < delta < datetime.timedelta(seconds=0.6)

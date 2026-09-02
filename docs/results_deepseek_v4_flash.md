@@ -19,8 +19,9 @@ agent's internal `status`.
 | Multi-orch-guarded | **11/12** | 91.7% | $0.4760 | $0.0433 |
 | Single | 9/12 | 75.0% | $0.3685 | $0.0409 |
 
-Overall 31/36 (86.1%), effective cost $1.26867261, raw provider cost
-$3.19668888, 7,412,402 tokens.
+Overall 31/36 (86.1%), actual billed cost $1.26867261 over 7,412,402 tokens.
+The static price-table estimate for the same runs is $3.19668888 — see
+*Token and Cost Accounting* for why the two differ.
 
 Both multi-agent architectures resolved two more tasks than the single loop at
 this reasoning effort, and the entire difference sits on two combinations. This
@@ -101,13 +102,22 @@ cap, so they are genuine give-ups rather than truncation.
 | of which reasoning | 815,340 |
 | `cache_write_input_tokens` | 0 |
 | `total_tokens` | 7,412,402 |
-| `effective_cost_usd` | 1.26867261 |
-| `cost_usd` (raw provider) | 3.19668888 |
+| `effective_cost_usd` (actual billing) | 1.26867261 |
+| `cost_usd` (static price-table estimate) | 3.19668888 |
 
-**The two cost fields differ by 2.5×** because of cached input. The campaign
-budget guard sums `effective_cost_usd`, so a `--max-total-cost-usd 3.00` limit
-did not trigger even though the raw provider cost passed $3.00. Treat the two
-numbers as answering different questions.
+**The two cost fields are not "actual" and "discounted" — they are "actual" and
+"estimated".** `effective_cost_usd` is the provider's own reported billing
+whenever every call reported it, which holds for all 36 runs here
+(`cost_source = provider_actual`, `provider_cost_complete = true`), and it
+equals `provider_reported_cost_usd` exactly. `cost_usd` is the static estimate
+computed from token counts against `static/pricing.csv`.
+
+The estimate overshoots by 2.5× because the `:nitro` row in `pricing.csv`
+($0.44 / $1.32 per 1M) is far above what was actually billed; the base
+`deepseek-v4-flash-0731` row is $0.065 / $0.18. The campaign budget guard sums
+`effective_cost_usd`, so it was measuring real money and the $3.00 limit was
+never actually approached. The price table, not the guard, is what needs
+attention.
 
 ## Infrastructure Failures
 
@@ -201,6 +211,26 @@ binding where it previously was not.
 
 Voluntary handoffs went from 0/36 to 4/36. The `handoff` status existed in the
 older harness as well, so this is a behavioural difference, not a new mechanism.
+
+### Measured: the harness accounts for most of the gap
+
+A control run re-ran `z-ai/glm-5.2` under its original protocol on the current
+harness — see [results_glm_5_2_harness_control.md](results_glm_5_2_harness_control.md).
+The same model on the new harness drops from 33/36 to **29/36** and costs
+**2.6× more** ($2.1113 → $5.5807), with four regressions and zero improvements.
+
+Against that correct baseline the ranking reverses:
+
+| | glm-5.2, old harness | glm-5.2, new harness | DeepSeek V4 Flash |
+| --- | ---: | ---: | ---: |
+| Resolved | 33/36 | 29/36 | **31/36** |
+| Actual billed cost | $2.1113 | $5.5807 | **$1.2687** |
+
+DeepSeek V4 Flash resolves two more combinations than glm-5.2 on the same
+harness at 4.4× less money. Comparing it against the README instead makes it
+look worse than glm, which is an artifact of the harness difference, not a
+property of the model. Reasoning effort still differs — glm-5.2 has no `low` —
+so part of the cost gap is effort rather than model.
 
 ## Limitations
 

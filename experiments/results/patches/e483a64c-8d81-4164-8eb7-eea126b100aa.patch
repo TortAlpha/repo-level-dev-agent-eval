@@ -1,0 +1,165 @@
+diff --git a/src/cachetools/_cachedmethod.py b/src/cachetools/_cachedmethod.py
+index cdf63d4f84671cc033bb7adcfd8180565ba042c8..f2b8f2082a986b01dfffbc62266c21f7a9e1f989 100644
+--- a/src/cachetools/_cachedmethod.py
++++ b/src/cachetools/_cachedmethod.py
+@@ -44,7 +44,7 @@ class _WrapperBase:
+ 
+     @property
+     def cache(self):
+-        return self.__cache(self._obj)
++        return None if self._obj is None else self.__cache(self._obj)
+ 
+     @property
+     def cache_key(self):
+@@ -52,11 +52,11 @@ class _WrapperBase:
+ 
+     @property
+     def cache_lock(self):
+-        return None if self.__lock is None else self.__lock(self._obj)
++        return None if self._obj is None or self.__lock is None else self.__lock(self._obj)
+ 
+     @property
+     def cache_condition(self):
+-        return None if self.__cond is None else self.__cond(self._obj)
++        return None if self._obj is None or self.__cond is None else self.__cond(self._obj)
+ 
+ 
+ class _DescriptorBase:
+@@ -77,7 +77,7 @@ class _DescriptorBase:
+ 
+     def __get__(self, obj, objtype=None):
+         wrapper = self.Wrapper(obj)
+-        if self.__attrname is not None:
++        if self.__attrname is not None and obj is not None:
+             # replace descriptor instance with wrapper in instance dict
+             try:
+                 # In case of a race condition where another thread already replaced
+@@ -103,6 +103,8 @@ class _DescriptorBase:
+                     _warn_instance_dict(msg, 3)
+                 else:
+                     raise TypeError(msg) from None
++        elif self.__attrname is not None and obj is None:
++            pass  # class-level access (e.g. mock introspection): return wrapper
+         elif self.__deprecated:
+             pass  # deprecated @classmethod, warning already raised elsewhere
+         else:
+diff --git a/tests/test_mock.py b/tests/test_mock.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..b8aebb9bc9e8e7f67b1da7a0852b922a4599d66c
+--- /dev/null
++++ b/tests/test_mock.py
+@@ -0,0 +1,114 @@
++import threading
++import unittest
++import unittest.mock
++import warnings
++
++from cachetools import cachedmethod, keys
++
++
++class MockedClass:
++    def __init__(self):
++        self._cache = {}
++        self._lock = threading.Lock()
++        self._cond = threading.Condition()
++        self.count = 0
++
++    def _bump(self):
++        self.count += 1
++        return self.count
++
++    @cachedmethod(lambda self: self._cache)
++    def get(self):
++        return self._bump()
++
++    @cachedmethod(lambda self: self._cache, key=keys.methodkey)
++    def get_typed(self):
++        return self._bump()
++
++    @cachedmethod(lambda self: self._cache, info=True)
++    def get_info(self):
++        return self._bump()
++
++    @cachedmethod(lambda self: self._cache, lock=lambda self: self._lock)
++    def get_lock(self):
++        return self._bump()
++
++    @cachedmethod(lambda self: self._cache, lock=lambda self: self._lock, info=True)
++    def get_lock_info(self):
++        return self._bump()
++
++    @cachedmethod(lambda self: self._cache, condition=lambda self: self._cond)
++    def get_cond(self):
++        return self._bump()
++
++    @cachedmethod(lambda self: self._cache, condition=lambda self: self._cond, info=True)
++    def get_cond_info(self):
++        return self._bump()
++
++    @cachedmethod(
++        lambda self: self._cache,
++        lock=lambda self: self._lock,
++        condition=lambda self: self._cond,
++    )
++    def get_lock_cond(self):
++        return self._bump()
++
++    @cachedmethod(
++        lambda self: self._cache,
++        lock=lambda self: self._lock,
++        condition=lambda self: self._cond,
++        info=True,
++    )
++    def get_lock_cond_info(self):
++        return self._bump()
++
++
++class AutospecTest(unittest.TestCase):
++    def test_create_autospec_instance_no_warnings(self):
++        with warnings.catch_warnings():
++            warnings.simplefilter("error")
++            spec = unittest.mock.create_autospec(MockedClass, instance=True)
++            spec.get()
++            spec.get_info()
++            spec.get_lock()
++            spec.get_lock_info()
++            spec.get_cond()
++            spec.get_cond_info()
++            spec.get_lock_cond()
++            spec.get_lock_cond_info()
++
++    def test_create_autospec_class_no_warnings(self):
++        with warnings.catch_warnings():
++            warnings.simplefilter("error")
++            unittest.mock.create_autospec(MockedClass)
++
++    def test_real_instance_caching_unchanged(self):
++        obj = MockedClass()
++        self.assertEqual(obj.get(), 1)
++        self.assertEqual(obj.get(), 1)
++        self.assertEqual(obj.count, 1)
++        obj.get.cache_clear()
++        self.assertEqual(obj.get(), 2)
++        self.assertEqual(obj.count, 2)
++
++    def test_real_instance_info_caching_unchanged(self):
++        obj = MockedClass()
++        self.assertEqual(obj.get_info(), 1)
++        self.assertEqual(obj.get_info(), 1)
++        info = obj.get_info.cache_info()
++        self.assertEqual(info.hits, 1)
++        self.assertEqual(info.misses, 1)
++        obj.get_info.cache_clear()
++        self.assertEqual(obj.get_info(), 3)
++
++    def test_real_instance_lock_cond_info_caching_unchanged(self):
++        obj = MockedClass()
++        self.assertEqual(obj.get_lock_cond_info(), 1)
++        self.assertEqual(obj.get_lock_cond_info(), 1)
++        info = obj.get_lock_cond_info.cache_info()
++        self.assertEqual(info.hits, 1)
++        self.assertEqual(info.misses, 1)
++
++
++if __name__ == "__main__":
++    unittest.main()

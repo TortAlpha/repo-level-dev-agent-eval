@@ -1,0 +1,70 @@
+diff --git a/tests/test_urlsplit_ipv6_fragment.py b/tests/test_urlsplit_ipv6_fragment.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..1eeefcb60d5ea337b71bea7f8cb3f3de976d74b0
+--- /dev/null
++++ b/tests/test_urlsplit_ipv6_fragment.py
+@@ -0,0 +1,45 @@
++from __future__ import annotations
++
++import pytest
++
++from w3lib._url import _urlsplit
++from w3lib.url import canonicalize_url, parse_url, safe_url_string
++
++
++class TestUrlsplitIpv6Fragment:
++    @pytest.mark.parametrize(
++        "url",
++        [
++            "http://[::1]?q#f",
++            "http://[2001:db8::1]?q#frag",
++            "http://[fe80::1%eth0]/path?q#frag",
++        ],
++    )
++    def test_urlsplit_ipv6_query_fragment(self, url):
++        result = _urlsplit(url)
++        assert result.fragment == url.rsplit("#", 1)[1]
++        assert result.query
++        assert result.fragment
++
++    def test_urlsplit_ipv6_query_fragment_exact(self):
++        result = _urlsplit("http://[::1]?q#f")
++        assert result.scheme == "http"
++        assert result.netloc == "[::1]"
++        assert result.path == ""
++        assert result.query == "q"
++        assert result.fragment == "f"
++
++    def test_canonicalize_url_keeps_fragment_separate(self):
++        # canonicalize_url strips fragments by default; the key check is that
++        # the fragment is not folded into the query.
++        assert canonicalize_url("http://[::1]?q#f") == "http://[::1]/?q="
++
++    def test_safe_url_string_keeps_fragment(self):
++        assert safe_url_string("http://[::1]?q#f") == "http://[::1]?q#f"
++
++    def test_parse_url_keeps_fragment(self):
++        result = parse_url("http://[::1]?q#f")
++        assert result.scheme == "http"
++        assert result.netloc == "[::1]"
++        assert result.query == "q"
++        assert result.fragment == "f"
+diff --git a/w3lib/_url.py b/w3lib/_url.py
+index 0fc540d0ce1fa76712a635caa90cef7e0b20eaa5..f34ef2f4d517cae05c350a9ae9f52de265d206f0 100644
+--- a/w3lib/_url.py
++++ b/w3lib/_url.py
+@@ -658,7 +658,13 @@ def _urlsplit(  # pylint: disable=too-many-locals,too-many-statements
+             open_br_pos = idx
+         elif char == "]" and closing_br_pos == -1:
+             closing_br_pos = idx
+-        if slash_pos != question_pos != hash_pos != open_br_pos != closing_br_pos != -1:
++        if (
++            slash_pos != -1
++            and question_pos != -1
++            and hash_pos != -1
++            and open_br_pos != -1
++            and closing_br_pos != -1
++        ):
+             break
+ 
+     if url[:2] == "//":

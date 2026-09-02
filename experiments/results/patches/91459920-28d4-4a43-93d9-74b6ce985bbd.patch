@@ -1,0 +1,240 @@
+diff --git a/tests/test_missing_doc_ids.py b/tests/test_missing_doc_ids.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..1a05946d8287d17812f3b3e7f1661708db1e7ea3
+--- /dev/null
++++ b/tests/test_missing_doc_ids.py
+@@ -0,0 +1,157 @@
++from tinydb import TinyDB
++from tinydb.queries import Query
++
++
++def test_update_mixed_present_missing_doc_ids(tmp_path):
++    db = TinyDB(str(tmp_path / 'db.json'))
++    db.insert({'a': 1})
++    db.insert({'a': 2})
++
++    # Missing ID after a present ID: no raise, only [1] returned
++    affected = db.update({'a': 99}, doc_ids=[1, 99])
++    assert affected == [1]
++    assert db.all() == [{'a': 99}, {'a': 2}]
++
++    # Missing ID before a present ID: only [2] returned
++    affected = db.update({'a': 100}, doc_ids=[99, 2])
++    assert affected == [2]
++    assert db.all() == [{'a': 99}, {'a': 100}]
++
++
++def test_update_all_missing_doc_ids(tmp_path):
++    db = TinyDB(str(tmp_path / 'db.json'))
++    db.insert({'a': 1})
++    db.insert({'a': 2})
++
++    affected = db.update({'a': 99}, doc_ids=[99, 100, 101])
++    assert affected == []
++    assert db.all() == [{'a': 1}, {'a': 2}]
++
++
++def test_update_empty_doc_ids(tmp_path):
++    db = TinyDB(str(tmp_path / 'db.json'))
++    db.insert({'a': 1})
++
++    affected = db.update({'a': 99}, doc_ids=[])
++    assert affected == []
++    assert db.all() == [{'a': 1}]
++
++
++def test_update_doc_ids_generator(tmp_path):
++    db = TinyDB(str(tmp_path / 'db.json'))
++    db.insert({'a': 1})
++    db.insert({'a': 2})
++
++    affected = db.update({'a': 99}, doc_ids=iter([1, 2, 99]))
++    assert affected == [1, 2]
++    assert db.all() == [{'a': 99}, {'a': 99}]
++
++
++def test_update_mixed_present_missing_callable_fields(tmp_path):
++    db = TinyDB(str(tmp_path / 'db.json'))
++    db.insert({'a': 1})
++    db.insert({'a': 2})
++
++    affected = db.update(lambda d: d.__setitem__('a', d['a'] + 1),
++                         doc_ids=[1, 99, 2])
++    assert affected == [1, 2]
++    assert db.all() == [{'a': 2}, {'a': 3}]
++
++
++def test_remove_mixed_present_missing_doc_ids(tmp_path):
++    db = TinyDB(str(tmp_path / 'db.json'))
++    db.insert({'a': 1})
++    db.insert({'a': 2})
++
++    affected = db.remove(doc_ids=[1, 99])
++    assert affected == [1]
++    assert db.all() == [{'a': 2}]
++
++    affected = db.remove(doc_ids=[99, 2])
++    assert affected == [2]
++    assert db.all() == []
++
++
++def test_remove_all_missing_doc_ids(tmp_path):
++    db = TinyDB(str(tmp_path / 'db.json'))
++    db.insert({'a': 1})
++
++    affected = db.remove(doc_ids=[99, 100])
++    assert affected == []
++    assert db.all() == [{'a': 1}]
++
++
++def test_remove_empty_doc_ids(tmp_path):
++    db = TinyDB(str(tmp_path / 'db.json'))
++    db.insert({'a': 1})
++
++    affected = db.remove(doc_ids=[])
++    assert affected == []
++    assert db.all() == [{'a': 1}]
++
++
++def test_remove_doc_ids_generator(tmp_path):
++    db = TinyDB(str(tmp_path / 'db.json'))
++    db.insert({'a': 1})
++    db.insert({'a': 2})
++
++    affected = db.remove(doc_ids=iter([1, 2, 99]))
++    assert affected == [1, 2]
++    assert db.all() == []
++
++
++def test_update_cond_unchanged(tmp_path):
++    db = TinyDB(str(tmp_path / 'db.json'))
++    db.insert({'a': 1})
++    db.insert({'a': 2})
++    db.insert({'a': 3})
++
++    Item = Query()
++    affected = db.update({'x': 0}, Item.a >= 2)
++    assert affected == [2, 3]
++    assert db.all() == [{'a': 1}, {'a': 2, 'x': 0}, {'a': 3, 'x': 0}]
++
++
++def test_update_all_unchanged(tmp_path):
++    db = TinyDB(str(tmp_path / 'db.json'))
++    db.insert({'a': 1})
++    db.insert({'a': 2})
++
++    affected = db.update({'x': 0})
++    assert affected == [1, 2]
++    assert db.all() == [{'a': 1, 'x': 0}, {'a': 2, 'x': 0}]
++
++
++def test_remove_cond_unchanged(tmp_path):
++    db = TinyDB(str(tmp_path / 'db.json'))
++    db.insert({'a': 1})
++    db.insert({'a': 2})
++    db.insert({'a': 3})
++
++    Item = Query()
++    affected = db.remove(Item.a >= 2)
++    assert affected == [2, 3]
++    assert db.all() == [{'a': 1}]
++
++
++def test_remove_no_args_raises(tmp_path):
++    db = TinyDB(str(tmp_path / 'db.json'))
++    db.insert({'a': 1})
++    try:
++        db.remove()
++        assert False, 'expected RuntimeError'
++    except RuntimeError:
++        pass
++
++
++def test_update_no_half_mutation_on_missing(tmp_path):
++    db = TinyDB(str(tmp_path / 'db.json'))
++    db.insert({'a': 1})
++    db.insert({'a': 2})
++
++    # The key behavior: a missing ID must not leave earlier docs half-updated
++    # after a raise. Now no raise happens; ensure the present doc is fully
++    # updated and the next present doc untouched unless requested.
++    affected = db.update({'a': 99}, doc_ids=[1, 99, 2])
++    assert affected == [1, 2]
++    assert db.all() == [{'a': 99}, {'a': 99}]
+diff --git a/tinydb/table.py b/tinydb/table.py
+index 5641d22df4c7568064ab8fe08a85489a000f17a9..6ebaaa468d5f026266e95a5d2695d9426c1950d6 100644
+--- a/tinydb/table.py
++++ b/tinydb/table.py
+@@ -421,6 +421,10 @@ class Table:
+         :param cond: which documents to update
+         :param doc_ids: a list of document IDs
+         :returns: a list containing the updated document's ID
++
++        If ``doc_ids`` is provided, any IDs that do not exist in the table are
++        skipped instead of raising an error. The returned list contains only
++        the IDs of documents that were actually updated.
+         """
+ 
+         # Define the function that will perform the update
+@@ -438,17 +442,21 @@ class Table:
+             # Perform the update operation for documents specified by a list
+             # of document IDs
+ 
+-            updated_ids = list(doc_ids)
++            requested_ids = list(doc_ids)
++            affected_ids: List[int] = []
+ 
+             def updater(table: dict):
+                 # Call the processing callback with all document IDs
+-                for doc_id in updated_ids:
+-                    perform_update(table, doc_id)
++                for doc_id in requested_ids:
++                    # Skip IDs that are not present in the table
++                    if doc_id in table:
++                        perform_update(table, doc_id)
++                        affected_ids.append(doc_id)
+ 
+             # Perform the update operation (see _update_table for details)
+             self._update_table(updater)
+ 
+-            return updated_ids
++            return affected_ids
+ 
+         elif cond is not None:
+             # Perform the update operation for documents specified by a query
+@@ -605,6 +613,10 @@ class Table:
+         :param cond: the condition to check against
+         :param doc_ids: a list of document IDs
+         :returns: a list containing the removed documents' ID
++
++        If ``doc_ids`` is provided, any IDs that do not exist in the table are
++        skipped instead of raising an error. The returned list contains only
++        the IDs of documents that were actually removed.
+         """
+         if doc_ids is not None:
+             # This function returns the list of IDs for the documents that have
+@@ -614,16 +626,20 @@ class Table:
+             # We convert the document ID iterator into a list, so we can both
+             # use the document IDs to remove the specified documents and
+             # to return the list of affected document IDs
+-            removed_ids = list(doc_ids)
++            requested_ids = list(doc_ids)
++            affected_ids: List[int] = []
+ 
+             def updater(table: dict):
+-                for doc_id in removed_ids:
+-                    table.pop(doc_id)
++                for doc_id in requested_ids:
++                    # Skip IDs that are not present in the table
++                    if doc_id in table:
++                        del table[doc_id]
++                        affected_ids.append(doc_id)
+ 
+             # Perform the remove operation
+             self._update_table(updater)
+ 
+-            return removed_ids
++            return affected_ids
+ 
+         if cond is not None:
+             removed_ids = []

@@ -1,0 +1,54 @@
+diff --git a/h11/_headers.py b/h11/_headers.py
+index b97d020b634a9f47f5ae6aa3b30e2bd13a6c48c4..54120f46da120bbc948e47afb71de639b8615823 100644
+--- a/h11/_headers.py
++++ b/h11/_headers.py
+@@ -71,6 +71,12 @@ _content_length_re = re.compile(rb"[0-9]+")
+ _field_name_re = re.compile(field_name.encode("ascii"))
+ _field_value_re = re.compile(field_value.encode("ascii"))
+ 
++# Reject pathological Content-Length values early. A digit string longer than
++# this is unreasonably large and could be slow/hazardous to convert to int, and
++# any value larger than this maximum is rejected as a protocol violation.
++_MAX_CONTENT_LENGTH_DIGITS = 19
++_MAX_CONTENT_LENGTH = 2 ** 63 - 1
++
+ 
+ class Headers(Sequence[Tuple[bytes, bytes]]):
+     """
+diff --git a/h11/tests/test_content_length_limit.py b/h11/tests/test_content_length_limit.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..d7a42666569232ec407bdbb11193d4569ee88a2f
+--- /dev/null
++++ b/h11/tests/test_content_length_limit.py
+@@ -0,0 +1,31 @@
++import pytest
++
++from .._headers import normalize_and_validate
++from .._util import LocalProtocolError
++
++
++def test_normal_content_length_still_works() -> None:
++    assert normalize_and_validate([("Content-Length", "0")]) == [
++        (b"content-length", b"0")
++    ]
++    assert normalize_and_validate([("Content-Length", "42")]) == [
++        (b"content-length", b"42")
++    ]
++    # A large but reasonable value should still be accepted.
++    assert normalize_and_validate(
++        [("Content-Length", "9223372036854775807")]
++    ) == [(b"content-length", b"9223372036854775807")]
++
++
++def test_pathologically_long_content_length_rejected() -> None:
++    # A crafted very long digit string must be rejected promptly as a
++    # protocol error, not parsed as a huge integer.
++    with pytest.raises(LocalProtocolError):
++        normalize_and_validate([("Content-Length", "9" * 100)])
++
++
++def test_too_large_content_length_rejected() -> None:
++    # A value that is syntactically valid but unreasonably large must be
++    # rejected as a protocol error.
++    with pytest.raises(LocalProtocolError):
++        normalize_and_validate([("Content-Length", "9223372036854775808")])

@@ -1,0 +1,61 @@
+diff --git a/parse.py b/parse.py
+index 8f73fb5aef7751fec7cfe78e530ab42679e86687..92f09017804da50b584a0a6341ce04113ca5c1a8 100644
+--- a/parse.py
++++ b/parse.py
+@@ -326,7 +326,7 @@ def extract_format(format, extra_types):
+ 
+     # the rest is the type, if present
+     type = format
+-    if type and type not in ALLOWED_TYPES and type not in extra_types:
++    if type and type not in ALLOWED_TYPES and type not in extra_types and not type.startswith("%"):
+         raise ValueError("format spec %r not recognised" % type)
+ 
+     return locals()
+@@ -576,7 +576,7 @@ class Parser(object):
+         format = ""
+ 
+         if ":" in field:
+-            name, format = field.split(":")
++            name, format = field.split(":", 1)
+         else:
+             name = field
+ 
+diff --git a/tests/test_strftime.py b/tests/test_strftime.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..d91bb9b99953e2f783c1f9140f38b29907ef0aa6
+--- /dev/null
++++ b/tests/test_strftime.py
+@@ -0,0 +1,33 @@
++# -*- encoding: utf8 -*-
++"""Tests for strftime-style datetime format specifications."""
++
++import unittest
++from datetime import date, datetime, time, timedelta
++
++import parse
++
++
++class TestStrftime(unittest.TestCase):
++    def test_date_basic(self):
++        self.assertEqual(parse.parse("a {:%Y-%m-%d} b", "a 1997-07-16 b")[0], date(1997, 7, 16))
++
++    def test_date_month_name(self):
++        self.assertEqual(parse.parse("a {:%Y-%b-%d} b", "a 1997-Feb-16 b")[0], date(1997, 2, 16))
++
++    def test_datetime_with_time(self):
++        self.assertEqual(parse.parse("{:%Y-%m-%d %H:%M:%S}", "1997-07-16 12:30:45")[0], datetime(1997, 7, 16, 12, 30, 45))
++
++    def test_datetime_timezone(self):
++        result = parse.parse("{:%Y-%m-%d %H:%M:%S %z}", "1997-07-16 12:30:45 +0530")[0]
++        self.assertEqual(result.utcoffset(), timedelta(hours=5, minutes=30))
++
++    def test_mixed_with_other_fields(self):
++        fields = parse.parse("{:d} {:%Y-%m-%d}", "42 1997-07-16")
++        self.assertEqual(fields, (42, date(1997, 7, 16)))
++
++    def test_time_only(self):
++        self.assertEqual(parse.parse("{:%H:%M}", "12:30")[0], time(12, 30))
++
++
++if __name__ == "__main__":
++    unittest.main()

@@ -1,0 +1,65 @@
+diff --git a/src/humanize/filesize.py b/src/humanize/filesize.py
+index c495fed3ee9e724755800a0352c975335a9b1465..86609cbcd420107d8454bc39e0f4e7377e9dfae7 100644
+--- a/src/humanize/filesize.py
++++ b/src/humanize/filesize.py
+@@ -98,5 +98,9 @@ def naturalsize(
+ 
+     exp = int(min(log(abs_bytes, base), len(suffix)))
+     space = "" if gnu else " "
+-    ret: str = format % (bytes_ / (base**exp)) + space + _(suffix[exp - 1])
++    mantissa = bytes_ / (base**exp)
++    if abs(float(format % mantissa)) >= base and exp < len(suffix):
++        exp += 1
++        mantissa = bytes_ / (base**exp)
++    ret: str = format % mantissa + space + _(suffix[exp - 1])
+     return ret
+diff --git a/tests/test_filesize_boundary.py b/tests/test_filesize_boundary.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..db8c569e88d9a10a5b8fc992efd2f7707bb6d3d4
+--- /dev/null
++++ b/tests/test_filesize_boundary.py
+@@ -0,0 +1,44 @@
++#!/usr/bin/env python
++
++"""Tests for naturalsize rounding carry-over at unit boundaries."""
++
++from __future__ import annotations
++
++import humanize
++
++
++def test_decimal_boundary_carry_over() -> None:
++    """999950 bytes rounds to 1000.0 kB, should carry to 1.0 MB."""
++    assert humanize.naturalsize(999950) == "1.0 MB"
++
++
++def test_decimal_boundary_no_carry() -> None:
++    """999949 bytes rounds to 999.9 kB, should not carry."""
++    assert humanize.naturalsize(999949) == "999.9 kB"
++
++
++def test_decimal_negative_boundary_carry_over() -> None:
++    """-999950 bytes should carry to -1.0 MB."""
++    assert humanize.naturalsize(-999950) == "-1.0 MB"
++
++
++def test_binary_boundary_carry_over() -> None:
++    """1024**2 - 1 bytes rounds to 1024.0 KiB, should carry to 1.0 MiB."""
++    assert humanize.naturalsize(1024**2 - 1, binary=True) == "1.0 MiB"
++
++
++def test_gnu_boundary_carry_over() -> None:
++    """1024**2 - 1 bytes with gnu=True should carry to 1.0M."""
++    assert humanize.naturalsize(1024**2 - 1, gnu=True) == "1.0M"
++
++
++def test_largest_suffix_no_advance() -> None:
++    """Value at the largest suffix that rounds up should stay at that suffix."""
++    # 10**33 gives mantissa 1000.0 at QB level, which would trigger carry-over
++    # but should NOT advance past the largest suffix.
++    assert humanize.naturalsize(10**33) == "1000.0 QB"
++
++
++def test_existing_largest_suffix_still_passes() -> None:
++    """10**34 * 3 should still be 30000.0 QB."""
++    assert humanize.naturalsize(10**34 * 3) == "30000.0 QB"

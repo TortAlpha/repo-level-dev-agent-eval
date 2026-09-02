@@ -1,0 +1,78 @@
+diff --git a/src/cachetools/_cachedmethod.py b/src/cachetools/_cachedmethod.py
+index cdf63d4f84671cc033bb7adcfd8180565ba042c8..9f0ff1785a471e29c8ee26c13f6a21bd8c7c65ac 100644
+--- a/src/cachetools/_cachedmethod.py
++++ b/src/cachetools/_cachedmethod.py
+@@ -77,6 +77,8 @@ class _DescriptorBase:
+ 
+     def __get__(self, obj, objtype=None):
+         wrapper = self.Wrapper(obj)
++        if obj is None:
++            return wrapper
+         if self.__attrname is not None:
+             # replace descriptor instance with wrapper in instance dict
+             try:
+diff --git a/tests/test_cachedmethod_autospec.py b/tests/test_cachedmethod_autospec.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..ee7503abf5a762561dfeb7237a6e6aed347816de
+--- /dev/null
++++ b/tests/test_cachedmethod_autospec.py
+@@ -0,0 +1,59 @@
++import unittest.mock
++import warnings
++
++from cachetools import cachedmethod, keys
++
++
++class _AutospecCached:
++    def __init__(self, cache=None, count=0):
++        self.cache = cache if cache is not None else {}
++        self.count = count
++
++    @cachedmethod(lambda self: self.cache)
++    def get(self, value):
++        return value
++
++    @cachedmethod(lambda self: self.cache, key=keys.typedmethodkey)
++    def get_typed(self, value):
++        return value
++
++    @cachedmethod(lambda self: self.cache, info=True)
++    def get_info(self, value):
++        return value
++
++    @cachedmethod(lambda self: self.cache, lock=lambda self: None)
++    def get_lock(self, value):
++        return value
++
++    @cachedmethod(lambda self: self.cache, lock=lambda self: None, info=True)
++    def get_lock_info(self, value):
++        return value
++
++    @cachedmethod(lambda self: self.cache, condition=lambda self: None)
++    def get_cond(self, value):
++        return value
++
++    @cachedmethod(lambda self: self.cache, condition=lambda self: None, info=True)
++    def get_cond_info(self, value):
++        return value
++
++
++def test_create_autospec_no_warnings():
++    with warnings.catch_warnings(record=True) as recorded:
++        warnings.simplefilter("always")
++        spec = unittest.mock.create_autospec(
++            _AutospecCached, instance=True
++        )
++    msgs = [str(w.message) for w in recorded]
++    assert not msgs, f"unexpected warnings: {msgs}"
++    # Sanity check: the spec should be usable enough to call the methods
++    # without raising; mock returns a Mock for the call result by default.
++    assert spec.get(1) is not None or spec.get.call_count == 0
++
++
++def test_create_autospec_class_no_warnings():
++    with warnings.catch_warnings(record=True) as recorded:
++        warnings.simplefilter("always")
++        spec = unittest.mock.create_autospec(_AutospecCached)
++    msgs = [str(w.message) for w in recorded]
++    assert not msgs, f"unexpected warnings: {msgs}"

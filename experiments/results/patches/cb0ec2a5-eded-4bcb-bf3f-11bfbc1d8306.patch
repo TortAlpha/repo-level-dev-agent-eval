@@ -1,0 +1,150 @@
+diff --git a/src/pluggy/_hooks.py b/src/pluggy/_hooks.py
+index 7fde78c932dfa29cb6b06ead29f94adeae4875d1..19bcc02b6214b42b295b1fc3b71d84acf5b8e83d 100644
+--- a/src/pluggy/_hooks.py
++++ b/src/pluggy/_hooks.py
+@@ -440,11 +440,12 @@ class HookCaller:
+         return self._call_history is not None
+ 
+     def _remove_plugin(self, plugin: _Plugin) -> None:
+-        for i, method in enumerate(self._hookimpls):
+-            if method.plugin == plugin:
+-                del self._hookimpls[i]
+-                return
+-        raise ValueError(f"plugin {plugin!r} not found")
++        orig_count = len(self._hookimpls)
++        self._hookimpls[:] = [
++            h for h in self._hookimpls if h.plugin != plugin
++        ]
++        if len(self._hookimpls) == orig_count:
++            raise ValueError(f"plugin {plugin!r} not found")
+ 
+     def get_hookimpls(self) -> list[HookImpl]:
+         """Get all registered hook implementations for this hook."""
+diff --git a/src/pluggy/_manager.py b/src/pluggy/_manager.py
+index 1b994f255d1d3a1a8f427a0aab6385d9996549b7..9e51a4f589f43beb2fad86c0c8bf0148df7606ea 100644
+--- a/src/pluggy/_manager.py
++++ b/src/pluggy/_manager.py
+@@ -445,6 +445,7 @@ class PluginManager:
+             for hookimpl in hookcaller.get_hookimpls():
+                 if hookimpl.plugin is plugin:
+                     hookcallers.append(hookcaller)
++                    break
+         return hookcallers
+ 
+     def add_hookcall_monitoring(
+diff --git a/testing/test_multi_impl_regression.py b/testing/test_multi_impl_regression.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..2482417a5a7c6653afb25ffdc9e0ed33b06e49b1
+--- /dev/null
++++ b/testing/test_multi_impl_regression.py
+@@ -0,0 +1,110 @@
++"""Regression tests for plugin removal with multiple hook implementations.
++
++These tests cover the scenario where a single plugin registers multiple
++implementations on the same hook (including via ``specname``), ensuring:
++- ``get_hookcallers`` returns each ``HookCaller`` at most once.
++- ``unregister`` removes ALL hook implementations belonging to the plugin.
++- ``unregister`` still raises ``ValueError`` when the plugin has zero matching
++  impls on a given hook caller.
++"""
++
++from __future__ import annotations
++
++import pytest
++
++from pluggy import HookimplMarker
++from pluggy import HookspecMarker
++from pluggy import PluginManager
++from pluggy._hooks import HookCaller
++
++hookspec = HookspecMarker("example")
++hookimpl = HookimplMarker("example")
++
++
++def test_get_hookcallers_no_duplicates_multi_impl(pm: PluginManager) -> None:
++    """A plugin with two impls on the same hook (one via specname) should
++    get exactly one HookCaller entry from get_hookcallers."""
++
++    class Hooks:
++        @hookspec
++        def some_hook(self): ...
++
++    pm.add_hookspecs(Hooks)
++
++    class Plugin:
++        @hookimpl
++        def some_hook(self): ...
++
++        @hookimpl(specname="some_hook")
++        def aliased_hook(self): ...
++
++    plugin = Plugin()
++    pm.register(plugin)
++
++    hookcallers = pm.get_hookcallers(plugin)
++    assert hookcallers is not None
++    assert len(hookcallers) == 1
++    assert isinstance(hookcallers[0], HookCaller)
++    # Even though there are two hookimpls from this plugin, the caller appears once.
++    impls = pm.hook.some_hook.get_hookimpls()
++    assert sum(1 for i in impls if i.plugin is plugin) == 2
++
++
++def test_unregister_removes_all_multi_impls(pm: PluginManager) -> None:
++    """Unregistering a plugin with multiple impls on the same hook should
++    remove ALL of them, leaving no stale entries."""
++
++    class Hooks:
++        @hookspec
++        def some_hook(self): ...
++
++    pm.add_hookspecs(Hooks)
++
++    class Plugin:
++        @hookimpl
++        def some_hook(self): ...
++
++        @hookimpl(specname="some_hook")
++        def aliased_hook(self): ...
++
++    plugin = Plugin()
++    pm.register(plugin)
++
++    # Confirm two impls present before unregister.
++    impls_before = pm.hook.some_hook.get_hookimpls()
++    assert sum(1 for i in impls_before if i.plugin is plugin) == 2
++
++    # Unregister should not raise and should remove all impls.
++    result = pm.unregister(plugin)
++    assert result is plugin
++
++    impls_after = pm.hook.some_hook.get_hookimpls()
++    assert all(i.plugin is not plugin for i in impls_after)
++    assert len(impls_after) == 0
++
++
++def test_unregister_no_matching_impls_raises_valueerror(pm: PluginManager) -> None:
++    """Edge case: if _remove_plugin is called with a plugin that has no
++    matching impls, it should still raise ValueError."""
++
++    class Hooks:
++        @hookspec
++        def some_hook(self): ...
++
++    pm.add_hookspecs(Hooks)
++
++    class Plugin:
++        @hookimpl
++        def some_hook(self): ...
++
++    plugin = Plugin()
++    pm.register(plugin)
++
++    # Directly call _remove_plugin on the hook caller with a different plugin
++    # that has no impls on this hook.
++    class Other:
++        pass
++
++    other = Other()
++    with pytest.raises(ValueError):
++        pm.hook.some_hook._remove_plugin(other)

@@ -1,0 +1,70 @@
+diff --git a/parse/__init__.py b/parse/__init__.py
+index 8922db37a5434a887ce2dec44c54b87b852f9d17..e32e873a3b2c48ae9b0b3988165017b2a69c7402 100644
+--- a/parse/__init__.py
++++ b/parse/__init__.py
+@@ -727,10 +727,16 @@ class Parser(object):
+             self._group_index += 1
+             conv[group] = percentage
+         elif type == "f":
+-            s = r"\d*\.\d+"
++            if format.get("precision") and int(format["precision"]) == 0:
++                s = r"\d+"
++            else:
++                s = r"\d*\.\d+"
+             conv[group] = convert_first(float)
+         elif type == "F":
+-            s = r"\d*\.\d+"
++            if format.get("precision") and int(format["precision"]) == 0:
++                s = r"\d+"
++            else:
++                s = r"\d*\.\d+"
+             conv[group] = convert_first(Decimal)
+         elif type == "e":
+             s = r"\d*\.\d+[eE][-+]?\d+|nan|NAN|[-+]?inf|[-+]?INF"
+diff --git a/tests/test_precision0_float.py b/tests/test_precision0_float.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..1dd6ae14bbc620a42368893e585e47d8b88434a0
+--- /dev/null
++++ b/tests/test_precision0_float.py
+@@ -0,0 +1,41 @@
++import pytest
++
++from parse import parse
++
++
++def test_precision0_float_no_decimal():
++    # precision 0 float with no decimal point must match and return float
++    r = parse("a {:.0f} b", "a 12 b")
++    assert r is not None
++    assert r[0] == 12.0
++    assert isinstance(r[0], float)
++
++
++def test_precision0_float_decimal_rejected():
++    # decimal form must NOT match precision 0 float
++    assert parse("a {:.0f} b", "a 12.0 b") is None
++
++
++def test_precision0_float_with_width_and_zero():
++    # width and zero-pad with precision 0
++    r = parse("foo_{:02.0f}t", "foo_20t")
++    assert r is not None
++    assert r[0] == 20.0
++    assert isinstance(r[0], float)
++
++
++def test_precision0_float_negative():
++    r = parse("{:.0f}", "-3")
++    assert r is not None
++    assert r[0] == -3.0
++    assert isinstance(r[0], float)
++
++
++def test_existing_float_behaviors_unchanged():
++    r = parse("{:f}", "12.5")
++    assert r is not None
++    assert r[0] == 12.5
++
++    r = parse("{:.2f}", "12.50")
++    assert r is not None
++    assert r[0] == 12.5

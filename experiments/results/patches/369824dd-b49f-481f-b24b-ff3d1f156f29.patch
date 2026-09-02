@@ -1,0 +1,76 @@
+diff --git a/src/dotenv/parser.py b/src/dotenv/parser.py
+index eb100b478cc1383eeaad53c6fbf39b9cf7c6b2be..74bd18dae912eb15b25d2214087213e4cc30940d 100644
+--- a/src/dotenv/parser.py
++++ b/src/dotenv/parser.py
+@@ -69,6 +69,8 @@ class Error(Exception):
+ class Reader:
+     def __init__(self, stream: IO[str]) -> None:
+         self.string = stream.read()
++        if self.string.startswith("\ufeff"):
++            self.string = self.string[len("\ufeff") :]
+         self.position = Position.start()
+         self.mark = Position.start()
+ 
+diff --git a/tests/test_bom.py b/tests/test_bom.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..135fc8c37ef69c5ace2e07fdbd3cd8c1e63a2423
+--- /dev/null
++++ b/tests/test_bom.py
+@@ -0,0 +1,57 @@
++import io
++
++from dotenv.parser import Binding, Original, parse_stream
++
++
++def test_parse_stream_strips_leading_utf8_bom():
++    content = "\ufeffFIRST=value1\nSECOND=value2\n"
++    result = list(parse_stream(io.StringIO(content)))
++
++    assert result == [
++        Binding(
++            key="FIRST",
++            value="value1",
++            original=Original(string="FIRST=value1\n", line=1),
++            error=False,
++        ),
++        Binding(
++            key="SECOND",
++            value="value2",
++            original=Original(string="SECOND=value2\n", line=2),
++            error=False,
++        ),
++    ]
++
++
++def test_parse_stream_without_bom_unchanged():
++    content = "FIRST=value1\nSECOND=value2\n"
++    result = list(parse_stream(io.StringIO(content)))
++
++    assert result == [
++        Binding(
++            key="FIRST",
++            value="value1",
++            original=Original(string="FIRST=value1\n", line=1),
++            error=False,
++        ),
++        Binding(
++            key="SECOND",
++            value="value2",
++            original=Original(string="SECOND=value2\n", line=2),
++            error=False,
++        ),
++    ]
++
++
++def test_parse_stream_bom_only_in_value_preserved():
++    content = "FIRST=\ufeffvalue1\n"
++    result = list(parse_stream(io.StringIO(content)))
++
++    assert result == [
++        Binding(
++            key="FIRST",
++            value="\ufeffvalue1",
++            original=Original(string="FIRST=\ufeffvalue1\n", line=1),
++            error=False,
++        ),
++    ]

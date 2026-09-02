@@ -1,0 +1,139 @@
+diff --git a/tenacity/wait.py b/tenacity/wait.py
+index b28b788658e881f442b159e27e664e201f26a8ac..aa0e586054645feabdd72734598aaf6409e5ba40 100644
+--- a/tenacity/wait.py
++++ b/tenacity/wait.py
+@@ -252,14 +252,16 @@ class wait_exponential_jitter(wait_base):
+     def __init__(
+         self,
+         initial: float = 1,
+-        max: float = _utils.MAX_WAIT,
++        max: _utils.time_unit_type = _utils.MAX_WAIT,
+         exp_base: float = 2,
+-        jitter: float = 1,
++        min: _utils.time_unit_type = 0,
++        jitter: _utils.time_unit_type = 1,
+     ) -> None:
+         self.initial = initial
+-        self.max = max
++        self.min = _utils.to_seconds(min)
++        self.max = _utils.to_seconds(max)
+         self.exp_base = exp_base
+-        self.jitter = jitter
++        self.jitter = _utils.to_seconds(jitter)
+ 
+     def __call__(self, retry_state: "RetryCallState") -> float:
+         jitter = random.uniform(0, self.jitter)
+@@ -268,4 +270,4 @@ class wait_exponential_jitter(wait_base):
+             result = self.initial * exp + jitter
+         except OverflowError:
+             result = self.max
+-        return max(0, min(result, self.max))
++        return max(self.min, min(result, self.max))
+diff --git a/tests/test_wait_exponential_jitter_min.py b/tests/test_wait_exponential_jitter_min.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..1af31e4b93d392b0b4f51347bad59bff75934e47
+--- /dev/null
++++ b/tests/test_wait_exponential_jitter_min.py
+@@ -0,0 +1,102 @@
++# Regression tests for wait_exponential_jitter enhancements:
++#   - `min` lower bound (default 0)
++#   - `datetime.timedelta` accepted for `min`, `max`, and `jitter`
++#
++# The existing tests/test_tenacity.py is treated as read-only; these behavior
++# checks are added in a new file under the test directory.
++import datetime
++import typing
++import unittest
++
++import tenacity
++from tenacity import RetryCallState
++
++
++def make_retry_state(
++    previous_attempt_number: typing.Any,
++    delay_since_first_attempt: typing.Any,
++) -> RetryCallState:
++    """Construct a RetryCallState for the given attempt number & delay."""
++    retry_state = RetryCallState(None, None, (), {})  # type: ignore[arg-type]
++    retry_state.attempt_number = previous_attempt_number
++    retry_state.set_result(None)
++    retry_state.start_time = 0
++    retry_state.outcome_timestamp = delay_since_first_attempt
++    return retry_state
++
++
++class TestWaitExponentialJitterMin(unittest.TestCase):
++    def _assert_inclusive_range(self, value: float, low: float, high: float) -> None:
++        self.assertGreaterEqual(value, low)
++        self.assertLessEqual(value, high)
++
++    def test_min_lower_bound_numeric(self) -> None:
++        # initial=10, max=60, min=5 -> at attempt 1 the exponential+jitter is
++        # 10 + uniform(0, 1) = [10, 11]; the min=5 floor does not bind here.
++        fn = tenacity.wait_exponential_jitter(initial=10, max=60, min=5)
++        for _ in range(1000):
++            self._assert_inclusive_range(fn(make_retry_state(1, 0)), 10, 11)
++            self._assert_inclusive_range(fn(make_retry_state(2, 0)), 20, 21)
++            self._assert_inclusive_range(fn(make_retry_state(3, 0)), 40, 41)
++
++        # When the exponential exceeds max, the result is capped to max.
++        self.assertEqual(fn(make_retry_state(7, 0)), 60)
++        self.assertEqual(fn(make_retry_state(8, 0)), 60)
++        self.assertEqual(fn(make_retry_state(9, 0)), 60)
++
++        # When min is larger than the exponential+jitter (but still <= max),
++        # the min lower bound dominates and the wait equals min.
++        fn_dom = tenacity.wait_exponential_jitter(initial=1, max=200, min=100)
++        for _ in range(1000):
++            self.assertEqual(fn_dom(make_retry_state(1, 0)), 100)
++            self.assertEqual(fn_dom(make_retry_state(2, 0)), 100)
++            self.assertEqual(fn_dom(make_retry_state(3, 0)), 100)
++
++    def test_min_max_jitter_timedelta(self) -> None:
++        td = datetime.timedelta
++        fn = tenacity.wait_exponential_jitter(
++            initial=10,
++            max=td(seconds=60),
++            min=td(seconds=5),
++            jitter=td(seconds=1),
++        )
++        # Same ranges as the numeric version: 10 + uniform(0, 1) = [10, 11].
++        for _ in range(1000):
++            self._assert_inclusive_range(fn(make_retry_state(1, 0)), 10, 11)
++            self._assert_inclusive_range(fn(make_retry_state(2, 0)), 20, 21)
++            self._assert_inclusive_range(fn(make_retry_state(3, 0)), 40, 41)
++        # Exponential exceeds max -> capped to 60.
++        self.assertEqual(fn(make_retry_state(7, 0)), 60)
++        self.assertEqual(fn(make_retry_state(9, 0)), 60)
++
++        # timedelta min dominates (min <= max).
++        fn_dom = tenacity.wait_exponential_jitter(
++            initial=1,
++            max=td(seconds=200),
++            min=td(seconds=100),
++            jitter=td(seconds=1),
++        )
++        for _ in range(1000):
++            self.assertEqual(fn_dom(make_retry_state(1, 0)), 100)
++            self.assertEqual(fn_dom(make_retry_state(2, 0)), 100)
++
++    def test_backward_compatible_numeric_defaults(self) -> None:
++        # Existing numeric call sites must keep working exactly as before.
++        fn = tenacity.wait_exponential_jitter(max=60)
++        for _ in range(1000):
++            self._assert_inclusive_range(fn(make_retry_state(1, 0)), 1, 2)
++            self._assert_inclusive_range(fn(make_retry_state(2, 0)), 2, 3)
++            self._assert_inclusive_range(fn(make_retry_state(3, 0)), 4, 5)
++            self.assertEqual(fn(make_retry_state(7, 0)), 60)
++            self.assertEqual(fn(make_retry_state(9, 0)), 60)
++
++        fn = tenacity.wait_exponential_jitter(10, 5)
++        for _ in range(1000):
++            self.assertEqual(fn(make_retry_state(1, 0)), 5)
++
++        # Default arguments exist and are callable.
++        tenacity.wait_exponential_jitter()(make_retry_state(0, 0))
++
++
++if __name__ == "__main__":
++    unittest.main()

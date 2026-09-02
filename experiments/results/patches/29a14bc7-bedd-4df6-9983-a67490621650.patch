@@ -1,0 +1,69 @@
+diff --git a/src/dotenv/parser.py b/src/dotenv/parser.py
+index eb100b478cc1383eeaad53c6fbf39b9cf7c6b2be..58d3f49f130e226ae001723793035492834b9a5f 100644
+--- a/src/dotenv/parser.py
++++ b/src/dotenv/parser.py
+@@ -69,6 +69,8 @@ class Error(Exception):
+ class Reader:
+     def __init__(self, stream: IO[str]) -> None:
+         self.string = stream.read()
++        if self.string.startswith("\ufeff"):
++            self.string = self.string[1:]
+         self.position = Position.start()
+         self.mark = Position.start()
+ 
+diff --git a/tests/test_bom.py b/tests/test_bom.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..56a9acb00a95fc837b3453365c35ee6adf51c6b9
+--- /dev/null
++++ b/tests/test_bom.py
+@@ -0,0 +1,50 @@
++import io
++
++import dotenv
++from dotenv.parser import Binding, Original, parse_stream
++
++
++def test_parse_stream_strips_leading_utf8_bom():
++    result = list(parse_stream(io.StringIO("\ufeffFIRST=value1\nSECOND=value2")))
++
++    assert result == [
++        Binding(
++            key="FIRST",
++            value="value1",
++            original=Original(string="FIRST=value1\n", line=1),
++            error=False,
++        ),
++        Binding(
++            key="SECOND",
++            value="value2",
++            original=Original(string="SECOND=value2", line=2),
++            error=False,
++        ),
++    ]
++
++
++def test_dotenv_values_strips_leading_utf8_bom_from_stream():
++    result = dotenv.dotenv_values(
++        stream=io.StringIO("\ufeffFIRST=value1\nSECOND=value2")
++    )
++
++    assert result == {"FIRST": "value1", "SECOND": "value2"}
++
++
++def test_parse_stream_unchanged_without_bom():
++    result = list(parse_stream(io.StringIO("FIRST=value1\nSECOND=value2")))
++
++    assert result == [
++        Binding(
++            key="FIRST",
++            value="value1",
++            original=Original(string="FIRST=value1\n", line=1),
++            error=False,
++        ),
++        Binding(
++            key="SECOND",
++            value="value2",
++            original=Original(string="SECOND=value2", line=2),
++            error=False,
++        ),
++    ]

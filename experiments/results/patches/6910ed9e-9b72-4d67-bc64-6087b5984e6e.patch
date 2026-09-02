@@ -1,0 +1,80 @@
+diff --git a/src/dotenv/parser.py b/src/dotenv/parser.py
+index eb100b478cc1383eeaad53c6fbf39b9cf7c6b2be..ebbc1df71f98c8b04fb24b7d668c9bb3586cf56b 100644
+--- a/src/dotenv/parser.py
++++ b/src/dotenv/parser.py
+@@ -69,6 +69,8 @@ class Error(Exception):
+ class Reader:
+     def __init__(self, stream: IO[str]) -> None:
+         self.string = stream.read()
++        if self.string.startswith("﻿"):
++            self.string = self.string[1:]
+         self.position = Position.start()
+         self.mark = Position.start()
+ 
+diff --git a/tests/test_bom.py b/tests/test_bom.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..cb887848bfe931194ee3a84492fcb00287dd8bb6
+--- /dev/null
++++ b/tests/test_bom.py
+@@ -0,0 +1,61 @@
++import io
++
++from dotenv.parser import Binding, Original, parse_stream
++
++
++def parse(content):
++    return list(parse_stream(io.StringIO(content)))
++
++
++def test_bom_stripped_from_first_key():
++    bindings = parse("\ufeffFIRST=value1")
++    assert bindings == [
++        Binding(
++            key="FIRST",
++            value="value1",
++            original=Original(string="FIRST=value1", line=1),
++            error=False,
++        ),
++    ]
++
++
++def test_no_bom_unchanged():
++    bindings = parse("FIRST=value1")
++    assert bindings == [
++        Binding(
++            key="FIRST",
++            value="value1",
++            original=Original(string="FIRST=value1", line=1),
++            error=False,
++        ),
++    ]
++
++
++def test_bom_with_multiple_lines():
++    bindings = parse("\ufeffFIRST=value1\nSECOND=value2")
++    assert len(bindings) == 2
++    assert bindings[0].key == "FIRST"
++    assert bindings[0].value == "value1"
++    assert "\ufeff" not in bindings[0].original.string
++    assert bindings[1].key == "SECOND"
++    assert bindings[1].value == "value2"
++
++
++def test_only_leading_bom_stripped():
++    # A BOM elsewhere must be preserved as content.
++    bindings = parse("FIRST=\ufeffvalue1")
++    assert len(bindings) == 1
++    assert bindings[0].key == "FIRST"
++    assert bindings[0].value == "\ufeffvalue1"
++    assert bindings[0].original.string == "FIRST=\ufeffvalue1"
++
++
++def test_empty_bom_only():
++    assert parse("\ufeff") == []
++
++
++def test_bom_first_key_accessible():
++    """The first binding's key must be 'FIRST', not '\ufeffFIRST'."""
++    bindings = parse("\ufeffFIRST=value1")
++    assert bindings[0].key == "FIRST"
++    assert bindings[0].key != "\ufeffFIRST"

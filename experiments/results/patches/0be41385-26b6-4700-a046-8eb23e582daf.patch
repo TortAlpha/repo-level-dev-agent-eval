@@ -1,0 +1,51 @@
+diff --git a/parse.py b/parse.py
+index 8f73fb5aef7751fec7cfe78e530ab42679e86687..d6de76b5621c9d5a74f8226002545eacf9ff19df 100644
+--- a/parse.py
++++ b/parse.py
+@@ -5,7 +5,7 @@ __version__ = "1.19.1"
+ # yes, I now have two problems
+ import re
+ import sys
+-from datetime import datetime, time, tzinfo, timedelta
++from datetime import date, datetime, time, tzinfo, timedelta
+ from decimal import Decimal
+ from functools import partial
+ import logging
+@@ -576,7 +576,7 @@ class Parser(object):
+         format = ""
+ 
+         if ":" in field:
+-            name, format = field.split(":")
++            name, format = field.split(":", 1)
+         else:
+             name = field
+ 
+diff --git a/tests/test_strftime.py b/tests/test_strftime.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..123fe56146ac4075cb052c1852f67b308da6264c
+--- /dev/null
++++ b/tests/test_strftime.py
+@@ -0,0 +1,23 @@
++import datetime
++
++import parse
++
++
++def test_strftime_date():
++    assert parse.parse("a {:%Y-%m-%d} b", "a 1997-07-16 b")[0] == datetime.date(1997, 7, 16)
++
++
++def test_strftime_month_name():
++    assert parse.parse("a {:%Y-%b-%d} b", "a 1997-Feb-16 b")[0] == datetime.date(1997, 2, 16)
++
++
++def test_strftime_datetime_timezone():
++    result = parse.parse("{:%Y-%m-%d %H:%M:%S %z}", "1997-07-16 14:30:00 +0200")[0]
++    assert isinstance(result, datetime.datetime)
++    assert result == datetime.datetime(1997, 7, 16, 14, 30, 0, tzinfo=datetime.timezone(datetime.timedelta(hours=2)))
++
++
++def test_mixed_with_other_field():
++    result = parse.parse("{num:d}-{:%Y-%m-%d}", "5-1997-07-16")
++    assert result[0] == 5
++    assert result[1] == datetime.date(1997, 7, 16)

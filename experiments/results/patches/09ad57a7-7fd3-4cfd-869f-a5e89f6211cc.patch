@@ -1,0 +1,56 @@
+diff --git a/h11/_headers.py b/h11/_headers.py
+index b97d020b634a9f47f5ae6aa3b30e2bd13a6c48c4..9cc959d946bcd170921f251e3460ae492a6b2ca3 100644
+--- a/h11/_headers.py
++++ b/h11/_headers.py
+@@ -71,6 +71,13 @@ _content_length_re = re.compile(rb"[0-9]+")
+ _field_name_re = re.compile(field_name.encode("ascii"))
+ _field_value_re = re.compile(field_value.encode("ascii"))
+ 
++# A reasonable upper bound on the number of digits in a Content-Length
++# value. 16 digits covers values up to ~10^16 bytes, far beyond any real
++# HTTP body, while rejecting pathological multi-kilobyte digit strings
++# that could make int() conversion slow or raise a raw ValueError on some
++# Python versions.
++MAX_BODY_COUNT = 16
++
+ 
+ class Headers(Sequence[Tuple[bytes, bytes]]):
+     """
+@@ -173,6 +180,8 @@ def normalize_and_validate(
+                 raise LocalProtocolError("conflicting Content-Length headers")
+             value = lengths.pop()
+             validate(_content_length_re, value, "bad Content-Length")
++            if len(value) > MAX_BODY_COUNT:
++                raise LocalProtocolError("Content-Length too long")
+             if seen_content_length is None:
+                 seen_content_length = value
+                 new_headers.append((raw_name, name, value))
+diff --git a/h11/tests/test_content_length_limit.py b/h11/tests/test_content_length_limit.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..201239c7afbd07776bfb2952f5376c4caae75e77
+--- /dev/null
++++ b/h11/tests/test_content_length_limit.py
+@@ -0,0 +1,23 @@
++import pytest
++
++from .._headers import normalize_and_validate
++from .._util import LocalProtocolError
++
++
++def test_content_length_pathological_rejected() -> None:
++    # A pathological Content-Length with 100 digits should be rejected.
++    with pytest.raises(LocalProtocolError):
++        normalize_and_validate([(b"content-length", b"1" * 100)])
++
++
++def test_content_length_16_digits_accepted() -> None:
++    # A 16-digit value is at the boundary and should be accepted.
++    assert normalize_and_validate([(b"content-length", b"1234567890123456")]) == [
++        (b"content-length", b"1234567890123456")
++    ]
++
++
++def test_content_length_17_digits_rejected() -> None:
++    # A 17-digit value exceeds the limit and should be rejected.
++    with pytest.raises(LocalProtocolError):
++        normalize_and_validate([(b"content-length", b"12345678901234567")])

@@ -1,0 +1,52 @@
+diff --git a/src/cachetools/_cachedmethod.py b/src/cachetools/_cachedmethod.py
+index cdf63d4f84671cc033bb7adcfd8180565ba042c8..244e3b47a6c328bc17fdd5fd25d8902d1608fe03 100644
+--- a/src/cachetools/_cachedmethod.py
++++ b/src/cachetools/_cachedmethod.py
+@@ -76,6 +76,8 @@ class _DescriptorBase:
+             )
+ 
+     def __get__(self, obj, objtype=None):
++        if obj is None:
++            return self
+         wrapper = self.Wrapper(obj)
+         if self.__attrname is not None:
+             # replace descriptor instance with wrapper in instance dict
+diff --git a/tests/test_cachedmethod_autospec.py b/tests/test_cachedmethod_autospec.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..fa69a30c45425208ff92b7c776b1ca2642b96070
+--- /dev/null
++++ b/tests/test_cachedmethod_autospec.py
+@@ -0,0 +1,33 @@
++import unittest
++import warnings
++
++try:
++    from unittest import mock
++except ImportError:  # pragma: no cover
++    import mock
++
++from cachetools import cachedmethod
++
++
++class SomeClass:
++    def __init__(self, cache):
++        self.cache = cache
++
++    @cachedmethod(lambda self: self.cache)
++    def get(self, value):
++        return value
++
++
++class AutospecTest(unittest.TestCase):
++    def test_create_autospec_no_warnings(self):
++        with warnings.catch_warnings(record=True) as recorded:
++            warnings.simplefilter("always")
++            mock.create_autospec(SomeClass, instance=True)
++        self.assertEqual(
++            [w for w in recorded if issubclass(w.category, DeprecationWarning)],
++            [],
++        )
++
++
++if __name__ == "__main__":
++    unittest.main()

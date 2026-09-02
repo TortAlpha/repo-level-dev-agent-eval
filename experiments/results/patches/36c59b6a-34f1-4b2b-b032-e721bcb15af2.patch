@@ -1,0 +1,84 @@
+diff --git a/tests/test_urlsplit_ipv6_regression.py b/tests/test_urlsplit_ipv6_regression.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..481751d75f2e833c3f9682573a0a29bf5a469488
+--- /dev/null
++++ b/tests/test_urlsplit_ipv6_regression.py
+@@ -0,0 +1,64 @@
++from __future__ import annotations
++
++from urllib.parse import urlsplit as urllib_urlsplit
++
++import pytest
++
++from w3lib._url import _urlsplit
++from w3lib.url import canonicalize_url
++
++
++class TestUrlsplitIPv6Fragment:
++    """Regression tests for _urlsplit early-exit with IPv6 netloc + query + fragment."""
++
++    @pytest.mark.parametrize(
++        "url",
++        [
++            "http://[::1]?q#f",
++            "http://[::1]/path?q#f",
++            "http://[::1]#f?q",
++        ],
++    )
++    def test_urlsplit_matches_urllib(self, url: str) -> None:
++        ours = _urlsplit(url)
++        theirs = urllib_urlsplit(url)
++        assert ours.scheme == theirs.scheme
++        assert ours.netloc == theirs.netloc
++        assert ours.path == theirs.path
++        assert ours.query == theirs.query
++        assert ours.fragment == theirs.fragment
++
++    def test_fragment_not_folded_into_query_no_path(self) -> None:
++        # http://[::1]?q#f  -> query="q", fragment="f"
++        result = _urlsplit("http://[::1]?q#f")
++        assert result.scheme == "http"
++        assert result.netloc == "[::1]"
++        assert result.path == ""
++        assert result.query == "q"
++        assert result.fragment == "f"
++        assert result.query != "q#f"
++
++    def test_fragment_not_folded_into_query_with_path(self) -> None:
++        # http://[::1]/path?q#f  -> query="q", fragment="f"
++        result = _urlsplit("http://[::1]/path?q#f")
++        assert result.scheme == "http"
++        assert result.netloc == "[::1]"
++        assert result.path == "/path"
++        assert result.query == "q"
++        assert result.fragment == "f"
++
++    def test_fragment_before_query(self) -> None:
++        # http://[::1]#f?q  -> fragment="f?q", query=""
++        result = _urlsplit("http://[::1]#f?q")
++        assert result.scheme == "http"
++        assert result.netloc == "[::1]"
++        assert result.path == ""
++        assert result.query == ""
++        assert result.fragment == "f?q"
++
++    def test_canonicalize_url_removes_fragment(self) -> None:
++        canonical = canonicalize_url("http://[::1]?q#f")
++        assert "#f" not in canonical
++        assert canonical == "http://[::1]/?q="
++        # The fragment must not have been folded into the query.
++        assert "q#f" not in canonical
+diff --git a/w3lib/_url.py b/w3lib/_url.py
+index 0fc540d0ce1fa76712a635caa90cef7e0b20eaa5..37b5b77262091a4f6b7504548f2d080ca5a8c977 100644
+--- a/w3lib/_url.py
++++ b/w3lib/_url.py
+@@ -658,7 +658,8 @@ def _urlsplit(  # pylint: disable=too-many-locals,too-many-statements
+             open_br_pos = idx
+         elif char == "]" and closing_br_pos == -1:
+             closing_br_pos = idx
+-        if slash_pos != question_pos != hash_pos != open_br_pos != closing_br_pos != -1:
++        if (slash_pos != -1 and question_pos != -1 and hash_pos != -1
++                and open_br_pos != -1 and closing_br_pos != -1):
+             break
+ 
+     if url[:2] == "//":

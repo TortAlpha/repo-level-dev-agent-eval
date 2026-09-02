@@ -1,0 +1,93 @@
+diff --git a/parse.py b/parse.py
+index 8f73fb5aef7751fec7cfe78e530ab42679e86687..59a1d60bd90c168c734a46472bf6b961ee4ba13d 100644
+--- a/parse.py
++++ b/parse.py
+@@ -611,6 +611,19 @@ class Parser(object):
+             self._group_index += 1
+             return wrap % r".+?"
+ 
++        # strftime/strptime-style datetime format specification, e.g. {:%Y-%m-%d}
++        if format.startswith("%"):
++            s = _strftime_regex(format)
++            self._type_conversions[group] = partial(
++                _strftime_convert,
++                format_spec=format,
++                kind=_strftime_kind(format),
++            )
++            if wrap:
++                s = wrap % s
++                self._group_index += 1
++            return s
++
+         # decode the format specification
+         format = extract_format(format, self._extra_types)
+ 
+diff --git a/tests/test_strftime.py b/tests/test_strftime.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..0a3af43b1ee43cdc736c83f6a966f5a2be795f6e
+--- /dev/null
++++ b/tests/test_strftime.py
+@@ -0,0 +1,63 @@
++# -*- encoding: utf-8 -*-
++"""Tests for strftime/strptime-style datetime format specifications in parse."""
++
++import unittest
++from datetime import date, datetime, time, timezone
++
++import parse
++
++
++class TestStrftimeFormats(unittest.TestCase):
++    def test_date_only(self):
++        r = parse.parse("a {:%Y-%m-%d} b", "a 1997-07-16 b")
++        self.assertIsNotNone(r)
++        self.assertEqual(r[0], date(1997, 7, 16))
++
++    def test_date_with_month_name(self):
++        r = parse.parse("a {:%Y-%b-%d} b", "a 1997-Feb-16 b")
++        self.assertIsNotNone(r)
++        self.assertEqual(r[0], date(1997, 2, 16))
++
++    def test_time_only(self):
++        r = parse.parse("a {:%H:%M} b", "a 10:30 b")
++        self.assertIsNotNone(r)
++        self.assertEqual(r[0], time(10, 30))
++
++    def test_datetime_no_tz(self):
++        r = parse.parse("a {:%Y-%m-%d %H:%M:%S} b", "a 1997-07-16 19:20:30 b")
++        self.assertIsNotNone(r)
++        self.assertEqual(r[0], datetime(1997, 7, 16, 19, 20, 30))
++
++    def test_datetime_with_tz(self):
++        r = parse.parse("a {:%Y-%m-%d %H:%M:%z} b", "a 1997-07-16 19:20:30+0100 b")
++        self.assertIsNotNone(r)
++        self.assertEqual(r[0], datetime(1997, 7, 16, 19, 20, 30, tzinfo=timezone(
++            __import__("datetime").timedelta(hours=1))))
++        self.assertIsNotNone(r[0].tzinfo)
++
++    def test_multiple_strftime_fields(self):
++        r = parse.parse("{:%Y-%m-%d} and {:%H:%M}", "1997-07-16 and 10:30")
++        self.assertIsNotNone(r)
++        self.assertEqual(r[0], date(1997, 7, 16))
++        self.assertEqual(r[1], time(10, 30))
++
++    def test_strftime_mixed_with_other_types(self):
++        r = parse.parse("{name:w} {:%Y-%m-%d} {num:d}", "hello 1997-07-16 42")
++        self.assertIsNotNone(r)
++        self.assertEqual(r["name"], "hello")
++        self.assertEqual(r[0], date(1997, 7, 16))
++        self.assertEqual(r["num"], 42)
++
++    def test_named_strftime_field(self):
++        r = parse.parse("a {when:%Y-%m-%d} b", "a 1997-07-16 b")
++        self.assertIsNotNone(r)
++        self.assertEqual(r["when"], date(1997, 7, 16))
++
++    def test_tz_z_offset(self):
++        r = parse.parse("a {:%Y-%m-%d %H:%M:%z} b", "a 1997-07-16 19:20:30Z b")
++        self.assertIsNotNone(r)
++        self.assertEqual(r[0].tzinfo, timezone.utc)
++
++
++if __name__ == "__main__":
++    unittest.main()
