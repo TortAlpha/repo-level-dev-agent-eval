@@ -1,0 +1,115 @@
+diff --git a/parse.py b/parse.py
+index 8f73fb5aef7751fec7cfe78e530ab42679e86687..e7947e9c1749664b9b06c20d589dc0d580251a83 100644
+--- a/parse.py
++++ b/parse.py
+@@ -5,7 +5,7 @@ __version__ = "1.19.1"
+ # yes, I now have two problems
+ import re
+ import sys
+-from datetime import datetime, time, tzinfo, timedelta
++from datetime import date, datetime, time, tzinfo, timedelta
+ from decimal import Decimal
+ from functools import partial
+ import logging
+@@ -271,6 +271,50 @@ def date_convert(
+     return d
+ 
+ 
++_STRPTIME_PATTERNS = {
++    "a": r"[A-Za-z]+", "A": r"[A-Za-z]+", "b": r"[A-Za-z]+", "B": r"[A-Za-z]+",
++    "C": r"\d{1,2}", "d": r"\d{1,2}", "e": r"\s?\d{1,2}", "f": r"\d{1,6}",
++    "G": r"\d{4}", "g": r"\d{2}", "H": r"\d{1,2}", "I": r"\d{1,2}",
++    "j": r"\d{1,3}", "m": r"\d{1,2}", "M": r"\d{1,2}", "p": r"[AaPp][Mm]",
++    "S": r"\d{1,2}", "u": r"[1-7]", "U": r"\d{1,2}", "V": r"\d{1,2}",
++    "w": r"[0-6]", "W": r"\d{1,2}", "y": r"\d{2}", "Y": r"\d{4}",
++    "z": r"(?:Z|[-+]\d\d:?\d\d(?:\:?\d\d(?:\.\d{1,6})?)?)", "Z": r"[A-Za-z_+/.-]+",
++    "D": r"\d{1,2}/\d{1,2}/\d{2}", "F": r"\d{4}-\d{1,2}-\d{1,2}",
++    "h": r"[A-Za-z]+", "n": r"\n", "r": r"\d{1,2}:\d{1,2}:\d{1,2}\s*[AaPp][Mm]",
++    "R": r"\d{1,2}:\d{1,2}", "t": r"\t", "T": r"\d{1,2}:\d{1,2}:\d{1,2}",
++    "X": r".+?", "x": r".+?", "c": r".+?", "%": r"%",
++}
++_STRPTIME_DATE_DIRECTIVES = frozenset("aAbBCdeFGgjmUVuwWyYxD")
++_STRPTIME_TIME_DIRECTIVES = frozenset("HIprRSTXzZc")
++
++
++def strptime_pattern(format):
++    """Build a non-capturing regular expression for a strptime format."""
++    pattern = []
++    i = 0
++    while i < len(format):
++        if format[i] == "%" and i + 1 < len(format):
++            directive = format[i + 1]
++            pattern.append(_STRPTIME_PATTERNS.get(directive, r".+?"))
++            i += 2
++        else:
++            pattern.append(re.escape(format[i]))
++            i += 1
++    return "".join(pattern)
++
++
++def strptime_convert(format, string, match):
++    value = datetime.strptime(string, format)
++    directives = {format[i + 1] for i in range(len(format) - 1) if format[i] == "%"}
++    has_date = bool(directives & _STRPTIME_DATE_DIRECTIVES)
++    has_time = bool(directives & _STRPTIME_TIME_DIRECTIVES)
++    if has_date and not has_time:
++        return value.date()
++    if has_time and not has_date:
++        return value.timetz() if value.tzinfo else value.time()
++    return value
++
++
+ class TooManyFields(ValueError):
+     pass
+ 
+@@ -576,7 +620,7 @@ class Parser(object):
+         format = ""
+ 
+         if ":" in field:
+-            name, format = field.split(":")
++            name, format = field.split(":", 1)
+         else:
+             name = field
+ 
+@@ -611,6 +655,14 @@ class Parser(object):
+             self._group_index += 1
+             return wrap % r".+?"
+ 
++        # strptime-style datetime formats are format specifications whose
++        # first directive begins with '%'. They must be handled before the
++        # ordinary format-spec parser, where '%' is a numeric type.
++        if format.startswith("%") and format != "%":
++            self._type_conversions[group] = partial(strptime_convert, format)
++            self._group_index += 1
++            return wrap % strptime_pattern(format)
++
+         # decode the format specification
+         format = extract_format(format, self._extra_types)
+ 
+diff --git a/tests/test_strptime_formats.py b/tests/test_strptime_formats.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..93f5da370ce8598dc3121ff28d1a49d4eed4c8dd
+--- /dev/null
++++ b/tests/test_strptime_formats.py
+@@ -0,0 +1,21 @@
++from datetime import date, datetime, time, timedelta, timezone
++
++import parse
++
++
++def test_strptime_fields_convert_dates_times_timezones_and_mix_with_types():
++    result = parse.parse(
++        "dates {:%Y-%b-%d} / {when:%Y-%m-%dT%H:%M:%S%z} / {count:d} / {:%H:%M:%S}",
++        "dates 1997-Feb-16 / 2020-01-02T03:04:05+0530 / 7 / 09:08:07",
++    )
++
++    assert result[0] == date(1997, 2, 16)
++    assert result.named["when"] == datetime(
++        2020, 1, 2, 3, 4, 5, tzinfo=timezone(timedelta(hours=5, minutes=30))
++    )
++    assert result[1] == 7
++    assert result[2] == time(9, 8, 7)
++
++
++def test_strptime_date_format_requires_matching_input():
++    assert parse.parse("a {:%Y-%m-%d} b", "a 1997/07/16 b") is None

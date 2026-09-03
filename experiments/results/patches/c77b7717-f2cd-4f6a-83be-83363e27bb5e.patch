@@ -1,0 +1,102 @@
+diff --git a/parse.py b/parse.py
+index 8f73fb5aef7751fec7cfe78e530ab42679e86687..cf5413b7babbd501a9ab097d5563c34c82425007 100644
+--- a/parse.py
++++ b/parse.py
+@@ -271,6 +271,40 @@ def date_convert(
+     return d
+ 
+ 
++class strftime_convert:
++    """Convert a strftime-formatted field using ``datetime.strptime``."""
++
++    DATE_DIRECTIVES = set("aAbBcdDjGgmUuVWwyYx")
++    TIME_DIRECTIVES = set("cHIklMpPrRSTXf")
++    TIMEZONE_DIRECTIVES = set("zZ")
++
++    def __init__(self, format):
++        self.format = format
++        directives = []
++        i = 0
++        while i < len(format):
++            if format[i] == "%" and i + 1 < len(format):
++                i += 1
++                while i < len(format) and format[i] in "-_0^#EO":
++                    i += 1
++                if i < len(format):
++                    directives.append(format[i])
++            i += 1
++        self.has_date = bool(set(directives) & self.DATE_DIRECTIVES)
++        self.has_time = bool(set(directives) & self.TIME_DIRECTIVES)
++        self.has_timezone = bool(set(directives) & self.TIMEZONE_DIRECTIVES)
++
++    def __call__(self, string, match):
++        value = datetime.strptime(string, self.format)
++        if self.has_timezone or (self.has_date and self.has_time):
++            return value
++        if self.has_date:
++            return value.date()
++        if self.has_time:
++            return value.time()
++        return value
++
++
+ class TooManyFields(ValueError):
+     pass
+ 
+@@ -576,7 +610,7 @@ class Parser(object):
+         format = ""
+ 
+         if ":" in field:
+-            name, format = field.split(":")
++            name, format = field.split(":", 1)
+         else:
+             name = field
+ 
+@@ -611,6 +645,12 @@ class Parser(object):
+             self._group_index += 1
+             return wrap % r".+?"
+ 
++        # strftime/strptime directives are a complete alternate format syntax.
++        if format.startswith("%") and format != "%":
++            self._group_index += 1
++            self._type_conversions[group] = strftime_convert(format)
++            return wrap % r".+?"
++
+         # decode the format specification
+         format = extract_format(format, self._extra_types)
+ 
+diff --git a/tests/test_strftime_formats.py b/tests/test_strftime_formats.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..0d11cebb209a241a021a03d0216b2e79bbdc690e
+--- /dev/null
++++ b/tests/test_strftime_formats.py
+@@ -0,0 +1,29 @@
++from datetime import date, datetime, time, timedelta, timezone
++
++import parse
++
++
++def test_strftime_date_fields_return_dates():
++    assert parse.parse("a {:%Y-%m-%d} b", "a 1997-07-16 b")[0] == date(1997, 7, 16)
++    assert parse.parse("a {:%Y-%b-%d} b", "a 1997-Feb-16 b")[0] == date(1997, 2, 16)
++
++
++def test_strftime_time_and_datetime_fields_return_correct_types():
++    assert parse.parse("at {:%H:%M:%S}", "at 14:05:09")[0] == time(14, 5, 9)
++    assert parse.parse("at {:%Y-%m-%d %H:%M}", "at 1997-07-16 14:05")[0] == datetime(
++        1997, 7, 16, 14, 5
++    )
++
++
++def test_strftime_timezone_datetime_preserves_tzinfo():
++    result = parse.parse("at {:%Y-%m-%dT%H:%M:%S%z}", "at 1997-07-16T14:05:09+0230")
++    assert result[0] == datetime(1997, 7, 16, 14, 5, 9, tzinfo=timezone(timedelta(hours=2, minutes=30)))
++
++
++def test_multiple_strftime_fields_mix_with_existing_field_types():
++    result = parse.parse(
++        "from {start:%Y-%m-%d} at {clock:%H:%M} count {count:d} until {:%Y-%b-%d}",
++        "from 1997-07-16 at 14:05 count 12 until 1997-Aug-17",
++    )
++    assert result.named == {"start": date(1997, 7, 16), "clock": time(14, 5), "count": 12}
++    assert result.fixed == (date(1997, 8, 17),)

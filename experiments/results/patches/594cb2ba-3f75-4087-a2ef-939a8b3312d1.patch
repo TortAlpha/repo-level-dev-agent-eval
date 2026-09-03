@@ -1,0 +1,118 @@
+diff --git a/parse.py b/parse.py
+index 8f73fb5aef7751fec7cfe78e530ab42679e86687..a84f2cb5187c220f3f08382f6a8a75f4a0798608 100644
+--- a/parse.py
++++ b/parse.py
+@@ -5,7 +5,7 @@ __version__ = "1.19.1"
+ # yes, I now have two problems
+ import re
+ import sys
+-from datetime import datetime, time, tzinfo, timedelta
++from datetime import date, datetime, time, tzinfo, timedelta
+ from decimal import Decimal
+ from functools import partial
+ import logging
+@@ -112,6 +112,49 @@ def percentage(string, match):
+     return float(string[:-1]) / 100.0
+ 
+ 
++class strftime_convert:
++    """Convert text using a strptime format specification."""
++
++    DATE_DIRECTIVES = set("aAwdbBmyYjUVWGucx")
++    TIME_DIRECTIVES = set("HIpMSfXc")
++    TIMEZONE_DIRECTIVES = set("zZ")
++    DIRECTIVES = DATE_DIRECTIVES | TIME_DIRECTIVES | TIMEZONE_DIRECTIVES
++
++    def __init__(self, format):
++        self.format = format
++        directives = self._directives(format)
++        self.has_date = bool(directives & self.DATE_DIRECTIVES)
++        self.has_time = bool(directives & self.TIME_DIRECTIVES)
++        self.has_timezone = bool(directives & self.TIMEZONE_DIRECTIVES)
++
++    @staticmethod
++    def _directives(format):
++        directives = set()
++        index = 0
++        while index < len(format):
++            if format[index] != "%":
++                index += 1
++                continue
++            index += 1
++            if index < len(format) and format[index] == "%":
++                index += 1
++                continue
++            if index < len(format) and format[index] in "EO":
++                index += 1
++            if index < len(format):
++                directives.add(format[index])
++                index += 1
++        return directives
++
++    def __call__(self, string, match):
++        value = datetime.strptime(string, self.format)
++        if self.has_date and not self.has_time and not self.has_timezone:
++            return value.date()
++        if not self.has_date:
++            return value.timetz() if self.has_timezone else value.time()
++        return value
++
++
+ class FixedTzOffset(tzinfo):
+     """Fixed offset in minutes east from UTC."""
+ 
+@@ -576,7 +619,7 @@ class Parser(object):
+         format = ""
+ 
+         if ":" in field:
+-            name, format = field.split(":")
++            name, format = field.split(":", 1)
+         else:
+             name = field
+ 
+@@ -611,6 +654,15 @@ class Parser(object):
+             self._group_index += 1
+             return wrap % r".+?"
+ 
++        # strptime-style datetime formats are field types rather than normal
++        # format specifications, so handle them before legacy format decoding.
++        # Limit this to recognized directives to preserve existing `%` formats.
++        directives = strftime_convert._directives(format)
++        if directives & strftime_convert.DIRECTIVES:
++            self._group_index += 1
++            self._type_conversions[group] = strftime_convert(format)
++            return wrap % r".+?"
++
+         # decode the format specification
+         format = extract_format(format, self._extra_types)
+ 
+diff --git a/tests/test_strftime.py b/tests/test_strftime.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..29f7bbf32c1f169b81d6d1f353fb6471bfe666e6
+--- /dev/null
++++ b/tests/test_strftime.py
+@@ -0,0 +1,24 @@
++from datetime import date, datetime, time, timedelta, timezone
++
++from parse import parse
++
++
++def test_strftime_date_formats_return_dates():
++    assert parse("a {:%Y-%m-%d} b", "a 1997-07-16 b")[0] == date(1997, 7, 16)
++    assert parse("a {:%Y-%b-%d} b", "a 1997-Feb-16 b")[0] == date(1997, 2, 16)
++
++
++def test_strftime_time_and_timezone_formats():
++    assert parse("at {:%H:%M}", "at 14:30")[0] == time(14, 30)
++    assert parse("at {:%Y-%m-%d %H:%M:%S%z}", "at 1997-07-16 14:30:45+0230")[0] == datetime(
++        1997, 7, 16, 14, 30, 45, tzinfo=timezone(timedelta(hours=2, minutes=30))
++    )
++
++
++def test_multiple_strftime_fields_mix_with_existing_types():
++    result = parse(
++        "{start:%Y-%m-%d} at {clock:%H:%M}, count {count:d}",
++        "1997-07-16 at 14:30, count 3",
++    )
++
++    assert result.named == {"start": date(1997, 7, 16), "clock": time(14, 30), "count": 3}
