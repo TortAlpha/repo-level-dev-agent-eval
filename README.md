@@ -17,6 +17,11 @@ current runtime is the separately fingerprinted
 [pseudo-SWE-agent kernel v2](docs/agent_kernel_v2.md); new kernel-v2 runs must
 use new sessions and must not be pooled silently with `final_v1`.
 
+That separation is not a formality. Re-running the same model under the same
+protocol on the current harness resolves **29/36** core-small combinations
+against `final_v1`'s 33/36, at 2.6× the cost — see
+[Kernel v2 Re-measurement](#kernel-v2-re-measurement).
+
 ## Result at a Glance
 
 The main benchmark contains **102 scored runs over 39 unique tasks**:
@@ -214,6 +219,45 @@ comparison: one task failed environment setup because editable installation
 could not derive package metadata without a Git checkout, and the second has
 only an unpaired single result. These attempts are excluded from the primary
 tables.
+
+## Kernel v2 Re-measurement
+
+The block table above was produced by harness `6c0af80` (12 July 2026). The
+current harness is `fd00518`: 13 commits later, 37 files and +9474/−785 lines
+across fingerprinted paths. Re-running the same model under its original
+protocol on the current harness measures what that change costs. Core-small
+only; core-medium and SWE-bench Pro have not been re-run.
+
+| Core-small, 12 tasks × 3 architectures | Resolved | Actual billed cost |
+| --- | ---: | ---: |
+| `z-ai/glm-5.2`, harness `6c0af80` (the block table above) | **33/36** | $2.1113 |
+| `z-ai/glm-5.2`, harness `fd00518` | **29/36** | $5.5807 |
+| `deepseek/deepseek-v4-flash-0731:nitro` at `low`, `fd00518` | **31/36** | $1.2687 |
+
+Same model, same protocol: four fewer tasks and 2.6× the cost. Mean steps per
+run rise from 31.1 to 38.1, and runs reaching the 50-step cap from 6/36 to
+14/36. Raising the cap to 100 recovers two of the four regressions — and both
+then finish in 30 and 35 steps, *below* the original cap. So half the apparent
+damage is an interaction between higher step consumption and a fixed cap rather
+than lost capability. The design document describes the change as hardening
+"without changing the research object"; on this block it is not neutral.
+
+Two consequences follow:
+
+- `final_v1` numbers describe harness `6c0af80` and cannot be compared with any
+  current-harness run. Re-run a block before comparing against it.
+- Read against `final_v1`, DeepSeek V4 Flash looks *worse* than glm-5.2 (31
+  against 33). Against the correct baseline it resolves two more combinations
+  at a quarter of the cost.
+
+`openai/gpt-5.6-terra` at reasoning `high` was probed on two tasks rather than
+the full block. It resolves `parse_pr_165` on all three architectures — the one
+core-small task that glm-5.2 fails 0/12 and DeepSeek V4 Flash 0/5 across two
+harness revisions and both step caps. The three runs produce three different
+implementations, none matching the upstream fix.
+
+Full write-ups: [DeepSeek V4 Flash results](docs/results_deepseek_v4_flash.md)
+and [glm-5.2 harness control](docs/results_glm_5_2_harness_control.md).
 
 ## Requirements
 
@@ -414,7 +458,26 @@ tests/                      harness and architecture regression tests
 
 ## Limitations
 
-- one final attempt per task and architecture;
+- one final attempt per task and architecture — and single-run variance is now
+  measured rather than assumed: on a re-run at a higher cap, two core-small
+  combinations flip from fail to pass while using *fewer* steps than the
+  original cap allowed, so one-attempt differences of one or two tasks carry no
+  weight;
+- results are harness-specific — the same model under the same protocol loses
+  four of 36 core-small combinations between two harness revisions, so no
+  number here survives a harness change unexamined;
+- benchmark tasks are public GitHub pull requests, so training-data
+  contamination cannot be excluded for any model. The oldest core-small task
+  (`parse_pr_165`, base commit 2023-11-21, versus February–June 2026 for nine
+  of the twelve) is also the one that most separates models. Its difficulty
+  despite maximum exposure argues against simple memorisation, but the question
+  is open and untested; a symbol-renaming perturbation or post-cutoff tasks
+  would settle it;
+- `static/pricing.csv` disagrees with the provider catalogue for the models
+  used — `z-ai/glm-5.2` is listed at $0.392/$1.232 per 1M against an actual
+  $0.966/$3.036, and no row carries a cache-read rate. Budget guards and every
+  cost conclusion use provider-reported billing and are unaffected; the
+  `cost_usd` estimate field is not reliable;
 - one primary model family;
 - mixed step caps outside the core-small pilot;
 - 20 paired tasks had exploratory exposure before the final architecture
@@ -432,6 +495,8 @@ These limitations are discussed in detail in the
 
 - [Final benchmark results](docs/final_benchmark_results.md)
 - [Final benchmark task set](docs/final_benchmark_task_set.md)
+- [DeepSeek V4 Flash core-small results](docs/results_deepseek_v4_flash.md)
+- [glm-5.2 harness control](docs/results_glm_5_2_harness_control.md)
 - [Full project specification](docs/spec.md)
 - [Short project specification](docs/spec_short.md)
 - [Orchestrator ablation results](docs/orchestrator_ablation_results.md)
