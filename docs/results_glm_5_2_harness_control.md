@@ -61,11 +61,23 @@ before now passes.
 50- and 100-step caps. It is the one task in the block that no tested
 configuration resolves.
 
-The regressions concentrate in the multi-agent architectures (3 of 4), which are
-also where the prompt changes landed and where the new
+The regressions concentrate in the multi-agent architectures (3 of 4).
+
+The likeliest mechanism is context accounting, not agent policy. In the old
+harness the default compaction mode was `summarize` and `checkpoint` did not
+exist; more importantly, the context budget now counts the complete replay
+envelope sent to the provider, including retained assistant tool calls and
+provider reasoning metadata that the old accounting did not charge. The same
+48000-token budget therefore holds less usable conversation, which shows up as
+more compactions, more re-reading, and more steps.
+
+Two settings this document previously blamed —
 `developer_escalate_after_failed_tests` and
-`developer_escalate_after_no_edit_episodes` defaults apply — those settings did
-not exist in the old harness at all.
+`developer_escalate_after_no_edit_episodes` — are **not** part of the change.
+Both exist in the old harness with the identical default of 1
+(`src/config.py:107-108` at `6c0af80`); only their appearance in the recorded
+`resolved_config` is new. Likewise `single_decomposition_max_subtasks` is 8 in
+both.
 
 Two of these four turn out to be artifacts of the fixed 50-step cap rather than
 lost capability; see *Step-Cap Probe* below.
