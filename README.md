@@ -256,6 +256,29 @@ core-small task that glm-5.2 fails 0/12 and DeepSeek V4 Flash 0/5 across two
 harness revisions and both step caps. The three runs produce three different
 implementations, none matching the upstream fix.
 
+![Success rate by architecture for the three run sets](experiments/results/kernel_v2_report/figures/01-harness-effect.png)
+
+Every outcome in the block, so the four regressions and the one universally
+unresolved task are visible directly:
+
+![Every core-small outcome by task, architecture and run set](experiments/results/kernel_v2_report/figures/04-task-matrix.png)
+
+The mechanism is step consumption meeting a fixed cap:
+
+![Mean steps and runs reaching the 50-step cap](experiments/results/kernel_v2_report/figures/03-step-pressure.png)
+
+![Steps used before and after raising the cap to 100](experiments/results/kernel_v2_report/figures/05-step-cap-probe.png)
+
+Cost, on actual provider billing rather than the static estimate:
+
+![Cost per run and cost per resolved task](experiments/results/kernel_v2_report/figures/02-cost.png)
+
+Regenerate with
+`experiments/results/kernel_v2_report/generate_figures.py`; the same directory
+holds `summary.csv`, `task_matrix.csv` and a
+[generated report](experiments/results/kernel_v2_report/README.md) with the
+full tables.
+
 Full write-ups: [DeepSeek V4 Flash results](docs/results_deepseek_v4_flash.md)
 and [glm-5.2 harness control](docs/results_glm_5_2_harness_control.md).
 
@@ -497,6 +520,7 @@ These limitations are discussed in detail in the
 - [Final benchmark task set](docs/final_benchmark_task_set.md)
 - [DeepSeek V4 Flash core-small results](docs/results_deepseek_v4_flash.md)
 - [glm-5.2 harness control](docs/results_glm_5_2_harness_control.md)
+- [Kernel v2 re-measurement figures and tables](experiments/results/kernel_v2_report/README.md)
 - [Full project specification](docs/spec.md)
 - [Short project specification](docs/spec_short.md)
 - [Orchestrator ablation results](docs/orchestrator_ablation_results.md)

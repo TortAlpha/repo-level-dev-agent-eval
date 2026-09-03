@@ -1,0 +1,13 @@
+task_id,glm_old:single,glm_old:multi-graph,glm_old:multi-orch-guarded,glm_new:single,glm_new:multi-graph,glm_new:multi-orch-guarded,deepseek:single,deepseek:multi-graph,deepseek:multi-orch-guarded
+h11_pr_181,resolved,resolved,resolved,resolved,failed,resolved,failed,resolved,resolved
+humanize_pr_329,resolved,resolved,resolved,resolved,resolved,resolved,resolved,resolved,resolved
+pluggy_pr_646,resolved,resolved,resolved,resolved,resolved,resolved,failed,resolved,resolved
+w3lib_pr_272,resolved,resolved,resolved,resolved,resolved,resolved,resolved,resolved,resolved
+parse_pr_165,failed,failed,failed,failed,failed,failed,failed,failed,failed
+parse_pr_227,resolved,resolved,resolved,failed,resolved,resolved,resolved,resolved,resolved
+cachetools_pr_57d2e48,resolved,resolved,resolved,resolved,resolved,resolved,resolved,resolved,resolved
+tinydb_pr_616,resolved,resolved,resolved,resolved,resolved,resolved,resolved,resolved,resolved
+python_dotenv_pr_640,resolved,resolved,resolved,resolved,resolved,resolved,resolved,resolved,resolved
+tenacity_pr_628,resolved,resolved,resolved,resolved,resolved,resolved,resolved,resolved,resolved
+freezegun_pr_546,resolved,resolved,resolved,resolved,resolved,resolved,resolved,resolved,resolved
+croniter_pr_235,resolved,resolved,resolved,resolved,failed,failed,resolved,resolved,resolved

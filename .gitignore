@@ -18,3 +18,5 @@ experiments/results/jobs/
 
 .DS_Store
 experiments/results/final_report/.matplotlib/
+experiments/results/kernel_v2_report/.matplotlib/
+experiments/results/kernel_v2_report/__pycache__/
