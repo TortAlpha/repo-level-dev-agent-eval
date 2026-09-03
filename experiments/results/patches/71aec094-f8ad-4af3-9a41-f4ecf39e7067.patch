@@ -1,0 +1,48 @@
+diff --git a/h11/_headers.py b/h11/_headers.py
+index b97d020b634a9f47f5ae6aa3b30e2bd13a6c48c4..42cfd0d15538df97c01ad1aa56fa749f65ea0c08 100644
+--- a/h11/_headers.py
++++ b/h11/_headers.py
+@@ -173,6 +173,8 @@ def normalize_and_validate(
+                 raise LocalProtocolError("conflicting Content-Length headers")
+             value = lengths.pop()
+             validate(_content_length_re, value, "bad Content-Length")
++            if len(value) > 20:
++                raise LocalProtocolError("bad Content-Length")
+             if seen_content_length is None:
+                 seen_content_length = value
+                 new_headers.append((raw_name, name, value))
+diff --git a/h11/tests/test_content_length_limit.py b/h11/tests/test_content_length_limit.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..16d3294c3c08ad81eced1b9c733738271cb1a147
+--- /dev/null
++++ b/h11/tests/test_content_length_limit.py
+@@ -0,0 +1,29 @@
++import pytest
++
++import h11
++from .._headers import normalize_and_validate
++from .._util import LocalProtocolError
++
++
++def test_content_length_digit_limit() -> None:
++    maximum_safe_length = b"9" * 20
++    assert normalize_and_validate([(b"Content-Length", maximum_safe_length)]) == [
++        (b"content-length", maximum_safe_length)
++    ]
++
++    with pytest.raises(LocalProtocolError, match="bad Content-Length"):
++        normalize_and_validate([(b"Content-Length", b"9" * 21)])
++
++
++def test_received_oversized_content_length_is_protocol_error() -> None:
++    client = h11.Connection(h11.CLIENT)
++    client.send(h11.Request(method="GET", target="/", headers=[("Host", "example.com")]))
++    client.send(h11.EndOfMessage())
++
++    client.receive_data(
++        b"HTTP/1.1 200 OK\r\nContent-Length: " + b"9" * 21 + b"\r\n\r\n"
++    )
++
++    with pytest.raises(h11.ProtocolError) as excinfo:
++        client.next_event()
++    assert isinstance(excinfo.value, h11.RemoteProtocolError)

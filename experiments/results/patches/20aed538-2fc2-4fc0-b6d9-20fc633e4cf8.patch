@@ -1,0 +1,31 @@
+diff --git a/h11/_headers.py b/h11/_headers.py
+index b97d020b634a9f47f5ae6aa3b30e2bd13a6c48c4..ce6f593c7bbd90144e16eab6cffeb91bb6965008 100644
+--- a/h11/_headers.py
++++ b/h11/_headers.py
+@@ -173,6 +173,8 @@ def normalize_and_validate(
+                 raise LocalProtocolError("conflicting Content-Length headers")
+             value = lengths.pop()
+             validate(_content_length_re, value, "bad Content-Length")
++            if len(value) > 18:
++                raise LocalProtocolError("bad Content-Length")
+             if seen_content_length is None:
+                 seen_content_length = value
+                 new_headers.append((raw_name, name, value))
+diff --git a/h11/tests/test_content_length_limits.py b/h11/tests/test_content_length_limits.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..1af0042cfba80057f6bd43d09941d38ad625b62a
+--- /dev/null
++++ b/h11/tests/test_content_length_limits.py
+@@ -0,0 +1,12 @@
++import pytest
++
++import h11
++
++
++def test_response_rejects_oversized_content_length_as_protocol_error() -> None:
++    connection = h11.Connection(h11.CLIENT)
++    connection.receive_data(
++        b"HTTP/1.1 200 OK\r\nContent-Length: " + b"1" * 19 + b"\r\n\r\n"
++    )
++    with pytest.raises(h11.ProtocolError):
++        connection.next_event()
