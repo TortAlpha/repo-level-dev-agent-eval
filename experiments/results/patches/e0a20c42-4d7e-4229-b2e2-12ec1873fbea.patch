@@ -1,0 +1,41 @@
+diff --git a/tests/test_ipv6_fragment.py b/tests/test_ipv6_fragment.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..d8fe2ad9acdfcbcf30412fea6644b96a2077ba57
+--- /dev/null
++++ b/tests/test_ipv6_fragment.py
+@@ -0,0 +1,16 @@
++from w3lib.url import canonicalize_url, parse_url
++
++
++def test_parse_url_bracketed_ipv6_query_and_fragment():
++    url = "http://[2001:db8::1]?foo=bar#baz"
++    parsed = parse_url(url)
++    assert parsed.scheme == "http"
++    assert parsed.netloc == "[2001:db8::1]"
++    assert parsed.path == ""
++    assert parsed.query == "foo=bar"
++    assert parsed.fragment == "baz"
++
++
++def test_canonicalize_url_bracketed_ipv6_query_and_fragment():
++    url = "http://[2001:db8::1]?foo=bar#baz"
++    assert canonicalize_url(url) == "http://[2001:db8::1]/?foo=bar"
+diff --git a/w3lib/_url.py b/w3lib/_url.py
+index 0fc540d0ce1fa76712a635caa90cef7e0b20eaa5..b07b2039b095c029c249f19a173988813758ffa8 100644
+--- a/w3lib/_url.py
++++ b/w3lib/_url.py
+@@ -658,7 +658,13 @@ def _urlsplit(  # pylint: disable=too-many-locals,too-many-statements
+             open_br_pos = idx
+         elif char == "]" and closing_br_pos == -1:
+             closing_br_pos = idx
+-        if slash_pos != question_pos != hash_pos != open_br_pos != closing_br_pos != -1:
++        # only stop scanning once '/', '?', '#', and (if '[' seen) the matching ']' have been found
++        if (
++            slash_pos != -1
++            and question_pos != -1
++            and hash_pos != -1
++            and (open_br_pos == -1 or closing_br_pos != -1)
++        ):
+             break
+ 
+     if url[:2] == "//":

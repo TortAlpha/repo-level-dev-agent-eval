@@ -1,0 +1,454 @@
+{
+  "schema_version": 1,
+  "session_id": "final_v1_swepro_graph75",
+  "created_at": "2026-07-13T12:13:58.017233+00:00",
+  "task_set": "final-v1",
+  "task_set_path": "eval/task_sets/final_v1.json",
+  "task_set_sha256": "d892c96228ad300a3702bbd0e57fad8b19afc364a6079ae903c85cb5d7076d25",
+  "previously_exercised": [
+    "h11_pr_181",
+    "humanize_pr_329",
+    "pluggy_pr_646",
+    "w3lib_pr_272",
+    "parse_pr_165",
+    "parse_pr_227",
+    "cachetools_pr_57d2e48",
+    "tinydb_pr_616",
+    "python_dotenv_pr_640",
+    "toolz_pr_603",
+    "markdown_pr_1606",
+    "markdown_pr_1546",
+    "sqlparse_pr_642",
+    "sqlparse_pr_746",
+    "sqlparse_pr_664",
+    "more_itertools_pr_1166",
+    "more_itertools_pr_1153",
+    "boltons_pr_403",
+    "pydash_pr_cdd84b4",
+    "sqlglot_pr_7660486c",
+    "swepro_openlibrary_2abe28b4"
+  ],
+  "collection_sha256": "0d3d18079f06bc7bf62eeb93ed2681c99f74c25d689e57b4e08122645d2dc159",
+  "pricing_sha256": "ee2eebcdae576de8990552d704983dbd89114ded81bf06c187267e1060934373",
+  "tasks": [
+    "swepro_ansible_11c1777d",
+    "swepro_ansible_a6e671db",
+    "swepro_ansible_9a21e247",
+    "swepro_ansible_d62496fe",
+    "swepro_ansible_77658704",
+    "swepro_openlibrary_2abe28b4",
+    "swepro_openlibrary_43f9e7e0",
+    "swepro_openlibrary_6afdb09d",
+    "swepro_openlibrary_9cd47f4d",
+    "swepro_openlibrary_7f7e53aa",
+    "swepro_qutebrowser_50efac08",
+    "swepro_qutebrowser_54bcdc1e",
+    "swepro_qutebrowser_44e64199",
+    "swepro_qutebrowser_3e21c821",
+    "swepro_qutebrowser_36ade4bb"
+  ],
+  "task_inputs": {
+    "swepro_ansible_11c1777d": {
+      "base_commit": "e1daaae42af1a4e465edbdad4bb3c6dd7e7110d5",
+      "task_sha256": "9eff33d96ed166db53332ff472119e57cddd1f083ad54f943ff8e1bc237d683a",
+      "hidden_tree_sha256": "35bb9432ef54cdecaba235e65370b975193a789cc6a1a2487193052eaf4d1890",
+      "docker_image": "jefzda/sweap-images:ansible.ansible-ansible__ansible-11c1777d56664b1acb56b387a1ad6aeadef1391d-v0f01c69f1e2528b935359cfe578530722bca2c59",
+      "visible_test_command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest test/units/utils --deselect=test/units/utils/display/test_warning.py::test_warning --deselect=test/units/utils/display/test_warning.py::test_warning_no_color --ignore=test/units/utils/test_encrypt.py --deselect=test/units/utils/test_display.py::test_get_text_width_no_locale",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest ../hidden_tests/test/units/module_utils/facts/network/test_locally_reachable_ips.py::TestLocalRoutesLinux::test"
+        }
+      ]
+    },
+    "swepro_ansible_a6e671db": {
+      "base_commit": "1f59bbf4f39504c8f2087f8132f2475a6ac38dcb",
+      "task_sha256": "da8e13bdd8459fece0620e7a007a3145f03ab34e345b44d172a2d1eb52117370",
+      "hidden_tree_sha256": "f546745c9b103cce6f2dcdd55003ffabe4e723fb85ce0195ef2563148667d316",
+      "docker_image": "jefzda/sweap-images:ansible.ansible-ansible__ansible-a6e671db25381ed111bbad0ab3e7d97366395d05-v0f01c69f1e2528b935359cfe578530722bca2c59",
+      "visible_test_command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest test/units/utils --ignore=test/units/utils/display --ignore=test/units/utils/test_encrypt.py --deselect=test/units/utils/test_display.py::test_get_text_width_no_locale",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest '../hidden_tests/test/units/module_utils/facts/hardware/test_aix_processor.py::test_get_cpu_info[scenario0]' '../hidden_tests/test/units/module_utils/facts/hardware/test_aix_processor.py::test_get_cpu_info[scenario1]'"
+        }
+      ]
+    },
+    "swepro_ansible_9a21e247": {
+      "base_commit": "4c8c40fd3d4a58defdc80e7d22aa8d26b731353e",
+      "task_sha256": "e02aaa5ec3a02c10336fe36c4bc3d3c3751d87afe4003d4c5c36de1a75b53693",
+      "hidden_tree_sha256": "6b8df6784e597e51879bc97a23b8a5ac4f84df1b524db17b640e802bab3e2461",
+      "docker_image": "jefzda/sweap-images:ansible.ansible-ansible__ansible-9a21e247786ebd294dafafca1105fcd770ff46c6-v67cdaa49f89b34e42b69d5b7830b3c3ad3d8803f",
+      "visible_test_command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest test/units/module_utils/common/test_sys_info.py",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest '../hidden_tests/test/units/module_utils/common/test_sys_info.py::test_get_distribution_not_linux[FreeBSD-Freebsd]' '../hidden_tests/test/units/module_utils/common/test_sys_info.py::test_get_distribution_version_not_linux[FreeBSD-12.1]' '../hidden_tests/test/units/module_utils/common/test_sys_info.py::test_get_distribution_not_linux[Darwin-Darwin]' '../hidden_tests/test/units/module_utils/common/test_sys_info.py::test_get_distribution_version_not_linux[Darwin-19.6.0]' '../hidden_tests/test/units/module_utils/common/test_sys_info.py::test_get_distribution_not_linux[SunOS-Solaris]' '../hidden_tests/test/units/module_utils/common/test_sys_info.py::test_get_distribution_version_not_linux[SunOS-11.4]'"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest test/units/module_utils/common/test_sys_info.py::TestGetDistribution::test_distro_unknown test/units/module_utils/common/test_sys_info.py::TestGetDistribution::test_distro_amazon_linux_short test/units/module_utils/common/test_sys_info.py::TestGetPlatformSubclass::test_not_linux test/units/module_utils/common/test_sys_info.py::TestGetDistribution::test_distro_amazon_linux_long test/units/module_utils/common/test_sys_info.py::TestGetPlatformSubclass::test_get_distribution_found test/units/module_utils/common/test_sys_info.py::TestGetPlatformSubclass::test_get_distribution_none test/units/module_utils/common/test_sys_info.py::TestGetDistribution::test_distro_known test/units/module_utils/common/test_sys_info.py::test_distro_found"
+        }
+      ]
+    },
+    "swepro_ansible_d62496fe": {
+      "base_commit": "df29852f3a48160e1a60635692c202531dd8b14a",
+      "task_sha256": "20846d693db988ee3614d83e2a03e1be129f7570f3ac9cfe4a557607b4052595",
+      "hidden_tree_sha256": "0138ce410924f42de4c8738120e84319f7779326ca0a7636c7b9f9dcfff7ee4e",
+      "docker_image": "jefzda/sweap-images:ansible.ansible-ansible__ansible-d62496fe416623e88b90139dc7917080cb04ce70-v0f01c69f1e2528b935359cfe578530722bca2c59",
+      "visible_test_command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest test/units/module_utils/common/text/formatters/test_human_to_bytes.py",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest '../hidden_tests/test/units/module_utils/common/text/formatters/test_human_to_bytes.py::test_human_to_bytes_nonsensical[13youcanhaveabyteofmysandwich]'"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest 'test/units/module_utils/common/text/formatters/test_human_to_bytes.py::test_human_to_bytes_number[0-0]' 'test/units/module_utils/common/text/formatters/test_human_to_bytes.py::test_human_to_bytes_number[0B-0]' 'test/units/module_utils/common/text/formatters/test_human_to_bytes.py::test_human_to_bytes_number[1024-1024]' 'test/units/module_utils/common/text/formatters/test_human_to_bytes.py::test_human_to_bytes_number[1024B-1024]' 'test/units/module_utils/common/text/formatters/test_human_to_bytes.py::test_human_to_bytes_number[1K-1024]' 'test/units/module_utils/common/text/formatters/test_human_to_bytes.py::test_human_to_bytes_number[1KB-1024]' 'test/units/module_utils/common/text/formatters/test_human_to_bytes.py::test_human_to_bytes_number[1M-1048576]' 'test/units/module_utils/common/text/formatters/test_human_to_bytes.py::test_human_to_bytes_number[1MB-1048576]' 'test/units/module_utils/common/text/formatters/test_human_to_bytes.py::test_human_to_bytes_number[1G-1073741824]' 'test/units/module_utils/common/text/formatters/test_human_to_bytes.py::test_human_to_bytes_number[1GB-1073741824]' 'test/units/module_utils/common/text/formatters/test_human_to_bytes.py::test_human_to_bytes_number[1T-1099511627776]' 'test/units/module_utils/common/text/formatters/test_human_to_bytes.py::test_human_to_bytes_number[1TB-1099511627776]' 'test/units/module_utils/common/text/formatters/test_human_to_bytes.py::test_human_to_bytes_number[1P-1125899906842624]' 'test/units/module_utils/common/text/formatters/test_human_to_bytes.py::test_human_to_bytes_number[1PB-1125899906842624]' 'test/units/module_utils/common/text/formatters/test_human_to_bytes.py::test_human_to_bytes_number[1E-1152921504606846976]'"
+        }
+      ]
+    },
+    "swepro_ansible_77658704": {
+      "base_commit": "db2d5b09eff918e981c9e10787a5f2c500d1784f",
+      "task_sha256": "b4a0224ec116f30f95e2580e1f62cd18bfd0582f694e9d3edf9ca785269a16e2",
+      "hidden_tree_sha256": "872645a3efbbe87daf038f593e63c098719372cf00038ae070ecc66785eba5ef",
+      "docker_image": "jefzda/sweap-images:ansible.ansible-ansible__ansible-77658704217d5f166404fc67997203c25381cb6e-v390e508d27db7a51eece36bb6d9698b63a5b638a",
+      "visible_test_command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest test/units/modules/network/nxos/test_nxos_vrf_af.py",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest ../hidden_tests/test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_auto_evpn_route_target_and_manual_route_target ../hidden_tests/test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_auto_evpn_route_target_and_manual_route_targets_with_absent_vrf ../hidden_tests/test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_route_target_both_absent_current_existing ../hidden_tests/test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_route_target_both_absent_current_non_existing ../hidden_tests/test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_route_target_both_present_current_existing ../hidden_tests/test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_route_target_both_present_current_non_existing ../hidden_tests/test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_route_target_default_direction_present_current_existing ../hidden_tests/test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_route_target_default_direction_present_current_non_existing ../hidden_tests/test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_route_target_export_absent_current_existing ../hidden_tests/test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_route_target_export_absent_current_non_existing ../hidden_tests/test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_route_target_export_present_current_existing ../hidden_tests/test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_route_target_export_present_current_non_existing ../hidden_tests/test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_route_target_import_absent_current_existing ../hidden_tests/test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_route_target_import_absent_current_non_existing ../hidden_tests/test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_route_target_import_present_current_existing ../hidden_tests/test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_route_target_import_present_current_non_existing ../hidden_tests/test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_route_target_multi_both_absent_current_existing ../hidden_tests/test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_route_target_multi_both_absent_current_mix ../hidden_tests/test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_route_target_multi_both_absent_current_non_existing ../hidden_tests/test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_route_target_multi_both_current_only_import_or_export ../hidden_tests/test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_route_target_multi_both_present_current_existing ../hidden_tests/test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_route_target_multi_both_present_current_non_existing ../hidden_tests/test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_route_target_multi_direction_current_only_import_or_export ../hidden_tests/test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_route_target_multi_export_absent_current_existing ../hidden_tests/test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_route_target_multi_export_absent_current_mix ../hidden_tests/test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_route_target_multi_export_absent_current_non_existing ../hidden_tests/test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_route_target_multi_export_present_current_existing ../hidden_tests/test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_route_target_multi_export_present_current_non_existing ../hidden_tests/test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_route_target_multi_import_absent_current_existing ../hidden_tests/test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_route_target_multi_import_absent_current_mix"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_absent_current_existing test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_absent_current_non_existing test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_auto_evpn_route_target_absent_current_existing test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_auto_evpn_route_target_absent_current_non_existing test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_auto_evpn_route_target_present_current_existing test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_auto_evpn_route_target_present_current_non_existing test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_present_current_existing test/units/modules/network/nxos/test_nxos_vrf_af.py::TestNxosVrfafModule::test_nxos_vrf_af_present_current_non_existing"
+        }
+      ]
+    },
+    "swepro_openlibrary_2abe28b4": {
+      "base_commit": "eb8da9e755f4bf59f8f0bd2b021d3e49a87ccf4e",
+      "task_sha256": "20add663c561296fce43c56b19df7eaf5db172e90e0fb8d109ae7456f8cb7439",
+      "hidden_tree_sha256": "92df57e110d22b6895d876483fdfb7a9c431b47af98d13d2a2146dde7333196a",
+      "docker_image": "jefzda/sweap-images:internetarchive.openlibrary-internetarchive__openlibrary-2abe28b472ffed563a87cfe83685b161b35263b0-v13642507b4fc1f8d234172bf81299",
+      "visible_test_command": "bash ./run_tests.sh openlibrary/tests/core/test_vendors.py",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "bash ./run_tests.sh ../hidden_tests/openlibrary/tests/core/test_vendors.py::test_clean_amazon_metadata_for_load_ISBN ../hidden_tests/openlibrary/tests/core/test_vendors.py::test_clean_amazon_metadata_for_load_translator ../hidden_tests/openlibrary/tests/core/test_vendors.py::test_clean_amazon_metadata_for_load_subtitle ../hidden_tests/openlibrary/tests/core/test_vendors.py::test_serialize_sample_record"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "bash ./run_tests.sh openlibrary/tests/core/test_vendors.py::test_clean_amazon_metadata_for_load_non_ISBN openlibrary/tests/core/test_vendors.py::test_betterworldbooks_fmt openlibrary/tests/core/test_vendors.py::test_get_amazon_metadata 'openlibrary/tests/core/test_vendors.py::test_clean_amazon_metadata_does_not_load_DVDS_product_group[dvd-expected0]' 'openlibrary/tests/core/test_vendors.py::test_clean_amazon_metadata_does_not_load_DVDS_product_group[DVD-expected1]' 'openlibrary/tests/core/test_vendors.py::test_clean_amazon_metadata_does_not_load_DVDS_product_group[Dvd-expected2]' openlibrary/tests/core/test_vendors.py::test_serialize_does_not_load_translators_as_authors 'openlibrary/tests/core/test_vendors.py::test_clean_amazon_metadata_does_not_load_DVDS_physical_format[dvd-expected0]' 'openlibrary/tests/core/test_vendors.py::test_clean_amazon_metadata_does_not_load_DVDS_physical_format[DVD-expected1]' 'openlibrary/tests/core/test_vendors.py::test_clean_amazon_metadata_does_not_load_DVDS_physical_format[Dvd-expected2]' 'openlibrary/tests/core/test_vendors.py::test_is_dvd[dvd-dvd-True]' 'openlibrary/tests/core/test_vendors.py::test_is_dvd[None-None-False]' 'openlibrary/tests/core/test_vendors.py::test_is_dvd[Book-Book-False]' 'openlibrary/tests/core/test_vendors.py::test_is_dvd[DVD-None-True]' 'openlibrary/tests/core/test_vendors.py::test_is_dvd[Dvd-None-True]'"
+        }
+      ]
+    },
+    "swepro_openlibrary_43f9e7e0": {
+      "base_commit": "de903b9535d53122d655590f238a78e217a6c770",
+      "task_sha256": "3a97dd40b517ec258230ab3935b59d8802f72420eaa576ccd2fff1d54e4b48be",
+      "hidden_tree_sha256": "24927c93eedcb3069d66466afb5f76b90234b76173d1d9b2430603473df4ad92",
+      "docker_image": "jefzda/sweap-images:internetarchive.openlibrary-internetarchive__openlibrary-43f9e7e0d56a4f1d487533543c17040a029ac501-v0f5aece3601a5b4419f7ccec1dbda",
+      "visible_test_command": "bash ./run_tests.sh openlibrary/catalog/add_book/tests/test_add_book.py",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "bash ./run_tests.sh ../hidden_tests/openlibrary/catalog/add_book/tests/test_add_book.py::test_force_new_wikisource_edition"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "bash ./run_tests.sh openlibrary/catalog/add_book/tests/test_add_book.py::test_isbns_from_record openlibrary/catalog/add_book/tests/test_add_book.py::test_editions_matched_no_results openlibrary/catalog/add_book/tests/test_add_book.py::test_editions_matched openlibrary/catalog/add_book/tests/test_add_book.py::test_match_wikisource_edition openlibrary/catalog/add_book/tests/test_add_book.py::test_load_without_required_field openlibrary/catalog/add_book/tests/test_add_book.py::test_load_test_item openlibrary/catalog/add_book/tests/test_add_book.py::test_load_deduplicates_authors openlibrary/catalog/add_book/tests/test_add_book.py::test_load_with_subjects openlibrary/catalog/add_book/tests/test_add_book.py::test_load_with_new_author openlibrary/catalog/add_book/tests/test_add_book.py::test_load_with_redirected_author openlibrary/catalog/add_book/tests/test_add_book.py::test_duplicate_ia_book openlibrary/catalog/add_book/tests/test_add_book.py::test_matched_edition_with_new_language_in_rec_adds_language openlibrary/catalog/add_book/tests/test_add_book.py::test_matched_edition_with_new_language_is_added_even_if_no_existing_language openlibrary/catalog/add_book/tests/test_add_book.py::test_matched_edition_properly_updates_non_language_fields openlibrary/catalog/add_book/tests/test_add_book.py::Test_From_MARC::test_from_marc_author"
+        }
+      ]
+    },
+    "swepro_openlibrary_6afdb09d": {
+      "base_commit": "1a3fab3f0b319e0df49dd742ce2ffa0d747d1b44",
+      "task_sha256": "7264457f7066abf0cc578eada6157d559f3ae0cc6eeef3f8f156cc0803ac63eb",
+      "hidden_tree_sha256": "7291a75bd9acb0d5c2d2f18fa9e050036d81ac3255bbf30d6f3d5c157619d4f3",
+      "docker_image": "jefzda/sweap-images:internetarchive.openlibrary-internetarchive__openlibrary-6afdb09df692223c3a31df65cfa92f15e5614c01-v08d8e8889ec945ab821fb156c04c7",
+      "visible_test_command": "bash ./run_tests.sh scripts/solr_builder/tests/test_fn_to_cli.py",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "bash ./run_tests.sh ../hidden_tests/scripts/solr_builder/tests/test_fn_to_cli.py::TestFnToCLI::test_lists ../hidden_tests/scripts/solr_builder/tests/test_fn_to_cli.py::TestFnToCLI::test_paths"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "bash ./run_tests.sh scripts/solr_builder/tests/test_fn_to_cli.py::TestFnToCLI::test_full_flow scripts/solr_builder/tests/test_fn_to_cli.py::TestFnToCLI::test_parse_docs scripts/solr_builder/tests/test_fn_to_cli.py::TestFnToCLI::test_type_to_argparse scripts/solr_builder/tests/test_fn_to_cli.py::TestFnToCLI::test_is_optional"
+        }
+      ]
+    },
+    "swepro_openlibrary_9cd47f4d": {
+      "base_commit": "7fab050b6a99923d9d2efcc2f79311580b88f8a9",
+      "task_sha256": "3071ed33244db7bd1d8cdef94de45093ac893e883e887f7a2b3199fc5878774a",
+      "hidden_tree_sha256": "d8f75406f0001ecda1779ff6f9aaf888840f7b35d2770d7313fb749f809ec10a",
+      "docker_image": "jefzda/sweap-images:internetarchive.openlibrary-internetarchive__openlibrary-9cd47f4dc21e273320d9e30d889c864f8cb20ccf-v0f5aece3601a5b4419f7ccec1dbda",
+      "visible_test_command": "bash ./run_tests.sh openlibrary/catalog/add_book/tests/test_add_book.py",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "bash ./run_tests.sh '../hidden_tests/openlibrary/catalog/add_book/tests/test_add_book.py::test_process_cover_url[edition0-None-expected_edition0]' '../hidden_tests/openlibrary/catalog/add_book/tests/test_add_book.py::test_process_cover_url[edition1-None-expected_edition1]' '../hidden_tests/openlibrary/catalog/add_book/tests/test_add_book.py::test_process_cover_url[edition2-https://m.media-amazon.com/image/123.jpg-expected_edition2]' '../hidden_tests/openlibrary/catalog/add_book/tests/test_add_book.py::test_process_cover_url[edition3-http://m.media-amazon.com/image/123.jpg-expected_edition3]' '../hidden_tests/openlibrary/catalog/add_book/tests/test_add_book.py::test_process_cover_url[edition4-https://m.MEDIA-amazon.com/image/123.jpg-expected_edition4]' '../hidden_tests/openlibrary/catalog/add_book/tests/test_add_book.py::test_process_cover_url[edition5-None-expected_edition5]'"
+        }
+      ]
+    },
+    "swepro_openlibrary_7f7e53aa": {
+      "base_commit": "630221ab686c64e75a2ce253c893c033e4814b2e",
+      "task_sha256": "330c4e5206f0fd74160a291c33965afa29f92f3afecb97337450b1cb8b6b4dfb",
+      "hidden_tree_sha256": "d730d1669cf982ee03f433de1de426046e44376796356f52e376e6762a1a4346",
+      "docker_image": "jefzda/sweap-images:internetarchive.openlibrary-internetarchive__openlibrary-7f7e53aa4cf74a4f8549a5bcd4810c527e2f6d7e-v13642507b4fc1f8d234172bf81299",
+      "visible_test_command": "bash ./run_tests.sh openlibrary/tests/catalog/test_utils.py '--deselect=openlibrary/tests/catalog/test_utils.py::test_format_languages' '--deselect=openlibrary/tests/catalog/test_utils.py::test_format_language_rasise_for_invalid_language'",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "bash ./run_tests.sh '../hidden_tests/openlibrary/tests/catalog/test_utils.py::test_format_languages[languages2-expected2]'"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "bash ./run_tests.sh openlibrary/tests/catalog/test_utils.py::test_author_dates_match openlibrary/tests/catalog/test_utils.py::test_flip_name openlibrary/tests/catalog/test_utils.py::test_pick_first_date openlibrary/tests/catalog/test_utils.py::test_pick_best_name openlibrary/tests/catalog/test_utils.py::test_pick_best_author openlibrary/tests/catalog/test_utils.py::test_match_with_bad_chars openlibrary/tests/catalog/test_utils.py::test_strip_count openlibrary/tests/catalog/test_utils.py::test_remove_trailing_dot 'openlibrary/tests/catalog/test_utils.py::test_publication_year[1999-01-1999]' 'openlibrary/tests/catalog/test_utils.py::test_publication_year[1999-1999_0]' 'openlibrary/tests/catalog/test_utils.py::test_publication_year[01-1999-1999]' 'openlibrary/tests/catalog/test_utils.py::test_publication_year[1999-01-01-1999]' 'openlibrary/tests/catalog/test_utils.py::test_publication_year[1999/1/1-1999]' 'openlibrary/tests/catalog/test_utils.py::test_publication_year[01-01-1999-1999]' 'openlibrary/tests/catalog/test_utils.py::test_publication_year[1/1/1999-1999]'"
+        }
+      ]
+    },
+    "swepro_qutebrowser_50efac08": {
+      "base_commit": "434f6906f9088172494fa7e219a856d893ed55ba",
+      "task_sha256": "cc2c4ccc0a3389ba4aae68a3c5987faf4dcb733d8d7a6f29f91bf096e0d6ea66",
+      "hidden_tree_sha256": "340522b1befc1884c18816a530c7ed818b904e37bdf5d26c8ac300c40958061b",
+      "docker_image": "jefzda/sweap-images:qutebrowser.qutebrowser-qutebrowser__qutebrowser-50efac08f623644a85441bbe02ab9347d2b71a9d-v9f8e9d96c85c85a605e382f1510bd08563afc",
+      "visible_test_command": "bash ./run_tests_checked.sh tests/unit/browser/webengine/test_darkmode.py",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "bash ./run_tests_checked.sh '../hidden_tests/tests/unit/browser/webengine/test_darkmode.py::test_qt_version_differences[6.4-expected2]'"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "bash ./run_tests_checked.sh 'tests/unit/browser/webengine/test_darkmode.py::test_colorscheme[auto-5.15.2-expected0]' 'tests/unit/browser/webengine/test_darkmode.py::test_colorscheme[auto-5.15.3-expected1]' 'tests/unit/browser/webengine/test_darkmode.py::test_colorscheme[auto-6.2.0-expected2]' 'tests/unit/browser/webengine/test_darkmode.py::test_colorscheme[None-5.15.2-expected3]' 'tests/unit/browser/webengine/test_darkmode.py::test_colorscheme[None-5.15.3-expected4]' 'tests/unit/browser/webengine/test_darkmode.py::test_colorscheme[None-6.2.0-expected5]' 'tests/unit/browser/webengine/test_darkmode.py::test_colorscheme[dark-5.15.2-expected6]' 'tests/unit/browser/webengine/test_darkmode.py::test_colorscheme[dark-5.15.3-expected7]' 'tests/unit/browser/webengine/test_darkmode.py::test_colorscheme[dark-6.2.0-expected8]' 'tests/unit/browser/webengine/test_darkmode.py::test_colorscheme[light-5.15.2-expected9]' 'tests/unit/browser/webengine/test_darkmode.py::test_colorscheme[light-5.15.3-expected10]' 'tests/unit/browser/webengine/test_darkmode.py::test_colorscheme[light-6.2.0-expected11]' 'tests/unit/browser/webengine/test_darkmode.py::test_colorscheme_gentoo_workaround' 'tests/unit/browser/webengine/test_darkmode.py::test_basics[settings0-expected0]' 'tests/unit/browser/webengine/test_darkmode.py::test_basics[settings1-expected1]'"
+        }
+      ]
+    },
+    "swepro_qutebrowser_54bcdc1e": {
+      "base_commit": "0df0985292b79e54c062b7fd8b3f5220b444b429",
+      "task_sha256": "1e6dc4ba477db09a6144f69bf4568d7e81f7f6f964e312aa01cf8167c627fbf5",
+      "hidden_tree_sha256": "5f9cca01853c70d4cc3baad519f4aa269632c4ad55298169d09d45ce0099615d",
+      "docker_image": "jefzda/sweap-images:qutebrowser.qutebrowser-qutebrowser__qutebrowser-54bcdc1eefa86cc20790973d6997b60c3bba884c-v2ef375ac784985212b1805e1d0431dc8f1b3c",
+      "visible_test_command": "bash ./run_tests_checked.sh tests/unit/utils/test_utils.py -k 'not hypothesis'",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "bash ./run_tests_checked.sh '../hidden_tests/tests/unit/utils/test_utils.py::TestReadFile::test_glob_resources_pathlib[True]' '../hidden_tests/tests/unit/utils/test_utils.py::TestReadFile::test_glob_resources_pathlib[False]' '../hidden_tests/tests/unit/utils/test_utils.py::TestReadFile::test_glob_resources_zipfile[True]' '../hidden_tests/tests/unit/utils/test_utils.py::TestReadFile::test_glob_resources_zipfile[False]'"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "bash ./run_tests_checked.sh tests/unit/utils/test_utils.py::TestEliding::test_too_small 'tests/unit/utils/test_utils.py::TestEliding::test_elided[foo-3-foo]' tests/unit/utils/test_utils.py::TestElidingFilenames::test_too_small 'tests/unit/utils/test_utils.py::TestElidingFilenames::test_elided[foobar-3-...]' 'tests/unit/utils/test_utils.py::TestElidingFilenames::test_elided[foobar.txt-50-foobar.txt]' 'tests/unit/utils/test_utils.py::TestElidingFilenames::test_elided[foobarbazqux.py-10-foo...x.py]'"
+        }
+      ]
+    },
+    "swepro_qutebrowser_44e64199": {
+      "base_commit": "22a3fd479accc3b9a0c0e2e5c2f1841324c3ab3d",
+      "task_sha256": "3f63e7db98e64939f6a1d6d255047dcc41a7f9756057410e3fc8e2a58e13c355",
+      "hidden_tree_sha256": "3813cc929b66763ec557a8e33bc3a074bddfde01d03735a802871e2e367c4eab",
+      "docker_image": "jefzda/sweap-images:qutebrowser.qutebrowser-qutebrowser__qutebrowser-44e64199ed38003253f0296badd4a447645067b6-v2ef375ac784985212b1805e1d0431dc8f1b3c",
+      "visible_test_command": "bash ./run_tests_checked.sh tests/unit/utils/test_version.py '--deselect=tests/unit/utils/test_version.py::TestChromiumVersion' '--deselect=tests/unit/utils/test_version.py::TestWebEngineVersions::test_real_chromium_version' '--deselect=tests/unit/utils/test_version.py::TestModuleVersions'",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "bash ./run_tests_checked.sh '../hidden_tests/tests/unit/utils/test_version.py::TestWebEngineVersions::test_from_pyqt[Qt-5.12.10-69.0.3497.128]' '../hidden_tests/tests/unit/utils/test_version.py::TestWebEngineVersions::test_from_pyqt[importlib-5.15.1-80.0.3987.163]' '../hidden_tests/tests/unit/utils/test_version.py::TestWebEngineVersions::test_from_pyqt[importlib-5.15.2-83.0.4103.122]'"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "bash ./run_tests_checked.sh 'tests/unit/utils/test_version.py::test_distribution[None-None]' 'tests/unit/utils/test_version.py::test_is_sandboxed[None-False]' 'tests/unit/utils/test_version.py::test_is_sandboxed[distribution1-True]' 'tests/unit/utils/test_version.py::test_is_sandboxed[distribution2-False]' 'tests/unit/utils/test_version.py::TestGitStr::test_frozen_ok' 'tests/unit/utils/test_version.py::TestGitStr::test_frozen_oserror' 'tests/unit/utils/test_version.py::TestGitStr::test_normal_successful' 'tests/unit/utils/test_version.py::TestGitStr::test_normal_error' 'tests/unit/utils/test_version.py::TestGitStr::test_normal_path_oserror' 'tests/unit/utils/test_version.py::TestGitStr::test_normal_path_nofile' 'tests/unit/utils/test_version.py::TestGitStrSubprocess::test_real_git' 'tests/unit/utils/test_version.py::TestGitStrSubprocess::test_missing_dir' 'tests/unit/utils/test_version.py::TestGitStrSubprocess::test_exception[OSError]' 'tests/unit/utils/test_version.py::TestGitStrSubprocess::test_exception[exc1]' 'tests/unit/utils/test_version.py::test_release_info[files0-expected0]'"
+        }
+      ]
+    },
+    "swepro_qutebrowser_3e21c821": {
+      "base_commit": "fce306d5f184f185b660f35ec2808b6745d57520",
+      "task_sha256": "61d0e5d0017b4f2c7a362382b0c24207e906d8009e47beca6484841d45b28a88",
+      "hidden_tree_sha256": "b865fe116a431e28232bef96629940306cb59aafa61b733f1ce7b425eb450458",
+      "docker_image": "jefzda/sweap-images:qutebrowser.qutebrowser-qutebrowser__qutebrowser-3e21c8214a998cb1058defd15aabb24617a76402-v5fc38aaf22415ab0b70567368332beee7955b",
+      "visible_test_command": "bash ./run_tests_checked.sh tests/unit/keyinput/test_bindingtrie.py tests/unit/keyinput/test_keyutils.py",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "bash ./run_tests_checked.sh '../hidden_tests/tests/unit/keyinput/test_bindingtrie.py::test_matches_single[abc-abcd-1]' '../hidden_tests/tests/unit/keyinput/test_bindingtrie.py::test_matches_single[abcd-abcd-2]' '../hidden_tests/tests/unit/keyinput/test_bindingtrie.py::test_matches_single[ax-abcd-0]' '../hidden_tests/tests/unit/keyinput/test_bindingtrie.py::test_matches_single[abcdef-abcd-0]' '../hidden_tests/tests/unit/keyinput/test_bindingtrie.py::test_matches_single[abc-abcdef-1]' '../hidden_tests/tests/unit/keyinput/test_bindingtrie.py::test_matches_single[abcde-abcdef-1]' '../hidden_tests/tests/unit/keyinput/test_bindingtrie.py::test_matches_single[abcd-abcdef-1]' '../hidden_tests/tests/unit/keyinput/test_bindingtrie.py::test_matches_single[abcdx-abcdef-0]' '../hidden_tests/tests/unit/keyinput/test_bindingtrie.py::test_matches_single[ax-abcdef-0]' '../hidden_tests/tests/unit/keyinput/test_bindingtrie.py::test_matches_single[abcdefg-abcdef-0]' '../hidden_tests/tests/unit/keyinput/test_bindingtrie.py::test_matches_single[abcdef-abcdef-2]' '../hidden_tests/tests/unit/keyinput/test_bindingtrie.py::test_matches_single[ab-a-0]' '../hidden_tests/tests/unit/keyinput/test_bindingtrie.py::test_matches_single[--2]' '../hidden_tests/tests/unit/keyinput/test_bindingtrie.py::test_matches_single[-a-1]' '../hidden_tests/tests/unit/keyinput/test_bindingtrie.py::test_matches_single[a--0]' '../hidden_tests/tests/unit/keyinput/test_bindingtrie.py::test_str' '../hidden_tests/tests/unit/keyinput/test_bindingtrie.py::test_matches_tree[configured0-expected0]' '../hidden_tests/tests/unit/keyinput/test_bindingtrie.py::test_matches_tree[configured1-expected1]' '../hidden_tests/tests/unit/keyinput/test_bindingtrie.py::test_matches_tree[configured2-expected2]' '../hidden_tests/tests/unit/keyinput/test_bindingtrie.py::test_matches_tree[configured3-expected3]' '../hidden_tests/tests/unit/keyinput/test_bindingtrie.py::test_matches_tree[abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-expected4]' '../hidden_tests/tests/unit/keyinput/test_bindingtrie.py::test_bench_create[configured0]' '../hidden_tests/tests/unit/keyinput/test_bindingtrie.py::test_bench_create[configured1]' '../hidden_tests/tests/unit/keyinput/test_keyutils.py::test_key_data_keys' '../hidden_tests/tests/unit/keyinput/test_keyutils.py::test_key_data_modifiers' '../hidden_tests/tests/unit/keyinput/test_keyutils.py::TestKeyInfoText::test_text[Escape-False]' '../hidden_tests/tests/unit/keyinput/test_keyutils.py::TestKeyInfoText::test_text[Escape-True]' '../hidden_tests/tests/unit/keyinput/test_keyutils.py::TestKeyInfoText::test_text[Tab-False]' '../hidden_tests/tests/unit/keyinput/test_keyutils.py::TestKeyInfoText::test_text[Tab-True]' '../hidden_tests/tests/unit/keyinput/test_keyutils.py::TestKeyInfoText::test_text[Backtab-False]'"
+        }
+      ]
+    },
+    "swepro_qutebrowser_36ade4bb": {
+      "base_commit": "73f93008f6c8104dcb317b10bae2c6d156674b33",
+      "task_sha256": "d4436796b2fb2f9ff9bd94b0e20c734a184cf463715bd320ded5b0b326d71aae",
+      "hidden_tree_sha256": "2a45eecb4c03f37120fc3b0e16ea05bb37776dc2df7dfd1eda6e93c93fea18ba",
+      "docker_image": "jefzda/sweap-images:qutebrowser.qutebrowser-qutebrowser__qutebrowser-36ade4bba504eb96f05d32ceab9972df7eb17bcc-v2ef375ac784985212b1805e1d0431dc8f1b3c",
+      "visible_test_command": "bash ./run_tests_checked.sh tests/unit/config/test_qtargs.py '--deselect=tests/unit/config/test_qtargs.py::TestDarkMode::test_new_chromium' '--deselect=tests/unit/config/test_qtargs.py::TestEnvVars'",
+      "required_hidden_suites": [
+        {
+          "name": "hidden_semantic",
+          "command": "bash ./run_tests_checked.sh '../hidden_tests/tests/unit/config/test_qtargs.py::TestQtArgs::test_overlay_features_flag[True-CustomFeature-CustomFeature,OverlayScrollbar-True]' '../hidden_tests/tests/unit/config/test_qtargs.py::TestQtArgs::test_overlay_features_flag[True-CustomFeature-CustomFeature,OverlayScrollbar-False]' '../hidden_tests/tests/unit/config/test_qtargs.py::TestQtArgs::test_overlay_features_flag[True-CustomFeature1,CustomFeature2-CustomFeature1,CustomFeature2,OverlayScrollbar-True]' '../hidden_tests/tests/unit/config/test_qtargs.py::TestQtArgs::test_overlay_features_flag[True-CustomFeature1,CustomFeature2-CustomFeature1,CustomFeature2,OverlayScrollbar-False]' '../hidden_tests/tests/unit/config/test_qtargs.py::TestQtArgs::test_overlay_features_flag[False-CustomFeature-CustomFeature-True]' '../hidden_tests/tests/unit/config/test_qtargs.py::TestQtArgs::test_overlay_features_flag[False-CustomFeature-CustomFeature-False]' '../hidden_tests/tests/unit/config/test_qtargs.py::TestQtArgs::test_disable_features_passthrough[CustomFeature-True]' '../hidden_tests/tests/unit/config/test_qtargs.py::TestQtArgs::test_disable_features_passthrough[CustomFeature-False]' '../hidden_tests/tests/unit/config/test_qtargs.py::TestQtArgs::test_disable_features_passthrough[CustomFeature1,CustomFeature2-True]' '../hidden_tests/tests/unit/config/test_qtargs.py::TestQtArgs::test_disable_features_passthrough[CustomFeature1,CustomFeature2-False]'"
+        },
+        {
+          "name": "hidden_compat",
+          "command": "bash ./run_tests_checked.sh 'tests/unit/config/test_qtargs.py::TestQtArgs::test_qt_args[args0-expected0]' 'tests/unit/config/test_qtargs.py::TestQtArgs::test_qt_args[args1-expected1]' 'tests/unit/config/test_qtargs.py::TestQtArgs::test_qt_args[args2-expected2]' 'tests/unit/config/test_qtargs.py::TestQtArgs::test_qt_args[args3-expected3]' 'tests/unit/config/test_qtargs.py::TestQtArgs::test_qt_args[args4-expected4]' 'tests/unit/config/test_qtargs.py::TestQtArgs::test_qt_both' 'tests/unit/config/test_qtargs.py::TestQtArgs::test_with_settings' 'tests/unit/config/test_qtargs.py::TestQtArgs::test_shared_workers[Backend.QtWebEngine-True]' 'tests/unit/config/test_qtargs.py::TestQtArgs::test_shared_workers[Backend.QtWebKit-False]' 'tests/unit/config/test_qtargs.py::TestQtArgs::test_in_process_stack_traces[Backend.QtWebEngine-True-True-True]' 'tests/unit/config/test_qtargs.py::TestQtArgs::test_in_process_stack_traces[Backend.QtWebEngine-True-False-None]' 'tests/unit/config/test_qtargs.py::TestQtArgs::test_in_process_stack_traces[Backend.QtWebEngine-False-True-None]' 'tests/unit/config/test_qtargs.py::TestQtArgs::test_in_process_stack_traces[Backend.QtWebEngine-False-False-False]' 'tests/unit/config/test_qtargs.py::TestQtArgs::test_in_process_stack_traces[Backend.QtWebKit-True-True-None]' 'tests/unit/config/test_qtargs.py::TestQtArgs::test_in_process_stack_traces[Backend.QtWebKit-True-False-None]'"
+        }
+      ]
+    }
+  },
+  "ordered_combinations": [
+    {
+      "task": "swepro_ansible_11c1777d",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-graph"
+    },
+    {
+      "task": "swepro_ansible_a6e671db",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-graph"
+    },
+    {
+      "task": "swepro_ansible_9a21e247",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-graph"
+    },
+    {
+      "task": "swepro_ansible_d62496fe",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-graph"
+    },
+    {
+      "task": "swepro_ansible_77658704",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-graph"
+    },
+    {
+      "task": "swepro_openlibrary_2abe28b4",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-graph"
+    },
+    {
+      "task": "swepro_openlibrary_43f9e7e0",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-graph"
+    },
+    {
+      "task": "swepro_openlibrary_6afdb09d",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-graph"
+    },
+    {
+      "task": "swepro_openlibrary_9cd47f4d",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-graph"
+    },
+    {
+      "task": "swepro_openlibrary_7f7e53aa",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-graph"
+    },
+    {
+      "task": "swepro_qutebrowser_50efac08",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-graph"
+    },
+    {
+      "task": "swepro_qutebrowser_54bcdc1e",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-graph"
+    },
+    {
+      "task": "swepro_qutebrowser_44e64199",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-graph"
+    },
+    {
+      "task": "swepro_qutebrowser_3e21c821",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-graph"
+    },
+    {
+      "task": "swepro_qutebrowser_36ade4bb",
+      "model": "z-ai/glm-5.2",
+      "agent": "multi-graph"
+    }
+  ],
+  "settings": {
+    "tasks": null,
+    "task_set": "final-v1",
+    "task_groups": null,
+    "matrix": "swepro-all-graph75",
+    "models": "z-ai/glm-5.2",
+    "agents": "multi-graph",
+    "session": "final_v1_swepro_graph75",
+    "campaign": "final_v1_main",
+    "provider": "openrouter",
+    "action_transport": null,
+    "reasoning_effort": null,
+    "role_model": null,
+    "developer_escalation_model": null,
+    "developer_escalate_after_no_edit_episodes": null,
+    "developer_escalate_after_failed_tests": null,
+    "max_cost_usd": null,
+    "max_total_cost_usd": 50.0,
+    "context_budget_tokens": null,
+    "single_research_guard": null,
+    "single_research_warning_steps": null,
+    "single_research_hard_limit": null,
+    "single_post_plan_research_warning_steps": null,
+    "single_post_plan_research_hard_limit": null,
+    "single_compatibility_guard": null,
+    "max_subtasks": null,
+    "decomposition_implementation_warning_steps": null,
+    "decomposition_implementation_hard_limit": null,
+    "decomposition_verification_step_reserve": null,
+    "decomposition_max_repair_cycles": null,
+    "collection": "repositories/collection.csv",
+    "max_steps": 75,
+    "max_iterations": null,
+    "enable_review": false,
+    "no_score": false,
+    "no_regression": false,
+    "no_network": false,
+    "no_setup": false,
+    "order": "task-major",
+    "seed": 20260712,
+    "infrastructure_retries": 1,
+    "archive_patches": true,
+    "keep_workspaces": false,
+    "concurrency": 1
+  },
+  "resolved_config": {
+    "model_provider": "openrouter",
+    "provider_default_model": "z-ai/glm-5.2",
+    "temperature": 0.0,
+    "max_tokens": 4096,
+    "reasoning_effort": null,
+    "action_transport": "text_json",
+    "request_timeout_seconds": 600,
+    "max_retries": 2,
+    "max_iterations": 5,
+    "max_steps": 75,
+    "test_timeout_seconds": 600,
+    "shell_timeout_seconds": 300,
+    "compaction_mode": "summarize",
+    "context_budget_tokens": 48000,
+    "docker_network_disabled": true,
+    "single_research_guard_enabled": true,
+    "single_compatibility_guard_enabled": true,
+    "single_research_limits": {
+      "warning": 12,
+      "hard": 20,
+      "post_plan_warning": 5,
+      "post_plan_hard": 8
+    },
+    "role_models": {
+      "orchestrator": null,
+      "planner": null,
+      "developer": null,
+      "tester": null,
+      "reviewer": null
+    },
+    "developer_escalation_model": null
+  },
+  "harness": {
+    "git_commit": "d3caa470f5b18d6b5f7e03a65c12dc0bfad366ca",
+    "dirty": false,
+    "dirty_entries": [],
+    "tree_sha256": "6950a224ae23cdf304324ebb7e0115faf392d0da3ff60e822c533098c898e9ad",
+    "file_count": 65
+  },
+  "fingerprint": "0d764d533b61ccdd3c293af6c7112d0607c87bf8c59890fc128fd8f92c42bae2"
+}

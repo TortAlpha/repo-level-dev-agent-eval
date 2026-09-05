@@ -1,0 +1,84 @@
+diff --git a/src/dotenv/parser.py b/src/dotenv/parser.py
+index eb100b478cc1383eeaad53c6fbf39b9cf7c6b2be..58d3f49f130e226ae001723793035492834b9a5f 100644
+--- a/src/dotenv/parser.py
++++ b/src/dotenv/parser.py
+@@ -69,6 +69,8 @@ class Error(Exception):
+ class Reader:
+     def __init__(self, stream: IO[str]) -> None:
+         self.string = stream.read()
++        if self.string.startswith("\ufeff"):
++            self.string = self.string[1:]
+         self.position = Position.start()
+         self.mark = Position.start()
+ 
+diff --git a/tests/test_bom_strip.py b/tests/test_bom_strip.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..e7296023be5fb3ff332d7f7aa7f68dc1281c1334
+--- /dev/null
++++ b/tests/test_bom_strip.py
+@@ -0,0 +1,65 @@
++import io
++
++import pytest
++
++from dotenv.parser import Binding, Original, parse_stream
++
++
++@pytest.mark.parametrize(
++    "test_input,expected",
++    [
++        (
++            "\ufeffa=b\nSECOND=value2",
++            [
++                Binding(
++                    key="a",
++                    value="b",
++                    original=Original(string="a=b\n", line=1),
++                    error=False,
++                ),
++                Binding(
++                    key="SECOND",
++                    value="value2",
++                    original=Original(string="SECOND=value2", line=2),
++                    error=False,
++                ),
++            ],
++        ),
++        (
++            "\ufeffa=b",
++            [
++                Binding(
++                    key="a",
++                    value="b",
++                    original=Original(string="a=b", line=1),
++                    error=False,
++                )
++            ],
++        ),
++        (
++            "a=b",
++            [
++                Binding(
++                    key="a",
++                    value="b",
++                    original=Original(string="a=b", line=1),
++                    error=False,
++                )
++            ],
++        ),
++        (
++            "a\ufeff=b",
++            [
++                Binding(
++                    key="a\ufeff",
++                    value="b",
++                    original=Original(string="a\ufeff=b", line=1),
++                    error=False,
++                )
++            ],
++        ),
++    ],
++)
++def test_parse_stream_bom_strip(test_input, expected):
++    stream = io.StringIO(test_input)
++    assert list(parse_stream(stream)) == expected

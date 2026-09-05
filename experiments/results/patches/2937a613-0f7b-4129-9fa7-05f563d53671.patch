@@ -1,0 +1,40 @@
+diff --git a/parse/__init__.py b/parse/__init__.py
+index 8922db37a5434a887ce2dec44c54b87b852f9d17..968a5a3ac00a39786a0c1f5daeead19e9926b85f 100644
+--- a/parse/__init__.py
++++ b/parse/__init__.py
+@@ -727,7 +727,10 @@ class Parser(object):
+             self._group_index += 1
+             conv[group] = percentage
+         elif type == "f":
+-            s = r"\d*\.\d+"
++            if format.get("precision") == "0":
++                s = r"\d+"
++            else:
++                s = r"\d*\.\d+"
+             conv[group] = convert_first(float)
+         elif type == "F":
+             s = r"\d*\.\d+"
+diff --git a/tests/test_precision0_float.py b/tests/test_precision0_float.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..0c7f190e5dde907db7e28a33688262d99aae4bd7
+--- /dev/null
++++ b/tests/test_precision0_float.py
+@@ -0,0 +1,18 @@
++import parse
++
++
++def test_precision0_float_without_decimal_point():
++    result = parse.parse("a {:.0f} b", "a 12 b")
++    assert result is not None
++    assert result[0] == 12.0
++    assert isinstance(result[0], float)
++
++
++def test_precision0_float_with_zero_padding():
++    result = parse.parse("foo_{:02.0f}t", "foo_20t")
++    assert result is not None
++    assert result[0] == 20.0
++
++
++def test_precision0_float_rejects_decimal_point():
++    assert parse.parse("a {:.0f} b", "a 12.0 b") is None

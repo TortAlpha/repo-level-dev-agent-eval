@@ -1,0 +1,67 @@
+diff --git a/src/humanize/filesize.py b/src/humanize/filesize.py
+index c495fed3ee9e724755800a0352c975335a9b1465..6cf154f09867e2cfcea5c8d578bd7d6edbf1e7b1 100644
+--- a/src/humanize/filesize.py
++++ b/src/humanize/filesize.py
+@@ -94,9 +94,16 @@ def naturalsize(
+         return _("%d Byte") % int(bytes_)
+ 
+     if abs_bytes < base:
+-        return f"{int(bytes_)}B" if gnu else _("%d Bytes") % int(bytes_)
++        return f"{int(bytes_)}B" if gnu else f"%d Bytes" % int(bytes_)
+ 
+     exp = int(min(log(abs_bytes, base), len(suffix)))
+     space = "" if gnu else " "
+-    ret: str = format % (bytes_ / (base**exp)) + space + _(suffix[exp - 1])
++    mantissa = bytes_ / (base**exp)
++    # Add a tiny epsilon to guard against floating-point division rounding
++    # down at boundaries (e.g. 999.95 formatting as 999.9).
++    mantissa_str = format % (mantissa + 1e-13)
++    if float(mantissa_str) >= base and exp < len(suffix):
++        exp += 1
++        mantissa_str = format % (bytes_ / (base**exp))
++    ret: str = mantissa_str + space + _(suffix[exp - 1])
+     return ret
+diff --git a/tests/test_filesize_boundary.py b/tests/test_filesize_boundary.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..bacdeb0d93eefba4723eba87baacff006a29d7ef
+--- /dev/null
++++ b/tests/test_filesize_boundary.py
+@@ -0,0 +1,38 @@
++#!/usr/bin/env python
++
++"""Regression tests for naturalsize rounding at unit boundaries."""
++
++from __future__ import annotations
++
++import pytest
++
++import humanize
++
++
++@pytest.mark.parametrize(
++    "test_args, expected",
++    [
++        # Decimal: just below a boundary rounds up to the next suffix
++        ([999950], "1.0 MB"),
++        ([999999], "1.0 MB"),
++        ([999999999], "1.0 GB"),
++        # Decimal: not crossing a rounded boundary keeps the suffix
++        ([999949], "999.9 kB"),
++        # Binary: just below a boundary rounds up to the next suffix
++        ([1048575, True], "1.0 MiB"),
++        ([1073741823, True], "1.0 GiB"),
++        # Binary: not crossing a rounded boundary keeps the suffix
++        ([1047576, True], "1023.0 KiB"),
++        # GNU: just below a boundary rounds up to the next suffix
++        ([1048575, False, True], "1.0M"),
++        ([1073741823, False, True], "1.0G"),
++        # GNU: not crossing a rounded boundary keeps the suffix
++        ([1047576, False, True], "1023.0K"),
++        # Largest supported suffix: rounding up must not advance past the end
++        ([10**33 * 0.99995], "999.9 QB"),
++        ([1024**11 * 0.99995, True], "1023.9 QiB"),
++        ([1024**11 * 0.99995, False, True], "1023.9Q"),
++    ],
++)
++def test_naturalsize_boundary(test_args: list, expected: str) -> None:
++    assert humanize.naturalsize(*test_args) == expected

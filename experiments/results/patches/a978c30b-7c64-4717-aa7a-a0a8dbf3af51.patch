@@ -1,0 +1,40 @@
+diff --git a/parse/__init__.py b/parse/__init__.py
+index 8922db37a5434a887ce2dec44c54b87b852f9d17..1cf51d43d9327cc3b9d8caa195fcc2c0d5a219d5 100644
+--- a/parse/__init__.py
++++ b/parse/__init__.py
+@@ -727,7 +727,11 @@ class Parser(object):
+             self._group_index += 1
+             conv[group] = percentage
+         elif type == "f":
+-            s = r"\d*\.\d+"
++            precision = format.get("precision")
++            if precision and int(precision) == 0:
++                s = r"\d+"
++            else:
++                s = r"\d*\.\d+"
+             conv[group] = convert_first(float)
+         elif type == "F":
+             s = r"\d*\.\d+"
+diff --git a/tests/test_precision0_float.py b/tests/test_precision0_float.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4c8b341b5e885ba55ab16d3d3d8523e0507266fb
+--- /dev/null
++++ b/tests/test_precision0_float.py
+@@ -0,0 +1,17 @@
++import parse
++
++
++def test_precision0_float_without_decimal():
++    result = parse.parse("a {:.0f} b", "a 12 b")
++    assert result is not None
++    assert result.fixed[0] == 12.0
++
++
++def test_precision0_float_with_zero_padding():
++    result = parse.parse("foo_{:02.0f}t", "foo_20t")
++    assert result is not None
++    assert result.fixed[0] == 20.0
++
++
++def test_precision0_float_requires_exact_match():
++    assert parse.parse("a {:.0f} b", "a 12.0 b") is None

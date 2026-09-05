@@ -1,0 +1,52 @@
+diff --git a/src/cachetools/_cachedmethod.py b/src/cachetools/_cachedmethod.py
+index cdf63d4f84671cc033bb7adcfd8180565ba042c8..d1e81761e62ca970c1759455e302c8ce0e827daa 100644
+--- a/src/cachetools/_cachedmethod.py
++++ b/src/cachetools/_cachedmethod.py
+@@ -4,6 +4,7 @@ __all__ = ()
+ 
+ import functools
+ import warnings
++import inspect
+ import weakref
+ 
+ 
+@@ -28,7 +29,16 @@ class _WrapperBase:
+ 
+     def __init__(self, obj, method, cache, key, lock=None, cond=None):
+         if isinstance(obj, type):
+-            _warn_classmethod(stacklevel=5)
++            # Suppress deprecation warning during autospec via unittest.mock
++            frames = inspect.stack()
++            try:
++                if not any(
++                    frame.frame.f_globals.get('__name__', '').startswith('unittest.mock')
++                    for frame in frames
++                ):
++                    _warn_classmethod(stacklevel=5)
++            finally:
++                del frames
+         functools.update_wrapper(self, method)
+         self._obj = obj  # protected
+         self.__cache = cache
+diff --git a/tests/test_cachedmethod_autospec.py b/tests/test_cachedmethod_autospec.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..a779ccb4c204d13daba713da49af5ad3072152d0
+--- /dev/null
++++ b/tests/test_cachedmethod_autospec.py
+@@ -0,0 +1,15 @@
++import warnings
++from cachetools import cachedmethod
++from cachetools.keys import hashkey
++from unittest.mock import create_autospec
++
++def test_create_autospec_no_warning():
++    class C:
++        @cachedmethod(lambda self: {}, key=hashkey)
++        def f(self, x):
++            return x
++
++    with warnings.catch_warnings(record=True) as w:
++        warnings.simplefilter('always')
++        create_autospec(C, instance=True)
++    assert not w, f"Autospec of class with @cachedmethod should not emit warnings, got: {w}"
+\ No newline at end of file

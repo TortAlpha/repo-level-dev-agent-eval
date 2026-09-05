@@ -1,0 +1,99 @@
+diff --git a/src/pluggy/_callers.py b/src/pluggy/_callers.py
+index 450db1a7cb0691a11090b82368652c339221bb68..fb1efce4aa1252003e3d9cb7e2e208bc09822730 100644
+--- a/src/pluggy/_callers.py
++++ b/src/pluggy/_callers.py
+@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
+ from typing import TypeAlias
+ import warnings
+ 
+-from ._hooks import HookImpl
++from ._hooks import HookImpl, HookCaller
+ from ._result import HookCallError
+ from ._result import Result
+ from ._warnings import PluggyTeardownRaisedWarning
+diff --git a/src/pluggy/_manager.py b/src/pluggy/_manager.py
+index 1b994f255d1d3a1a8f427a0aab6385d9996549b7..51107b5d2922ed72c58b32a3ae4685a27a09fe34 100644
+--- a/src/pluggy/_manager.py
++++ b/src/pluggy/_manager.py
+@@ -221,7 +221,12 @@ class PluginManager:
+         hookcallers = self.get_hookcallers(plugin)
+         if hookcallers:
+             for hookcaller in hookcallers:
+-                hookcaller._remove_plugin(plugin)
++                # remove all hook implementations for this plugin
++                while True:
++                    try:
++                        hookcaller._remove_plugin(plugin)
++                    except ValueError:
++                        break
+ 
+         # if self._name2plugin[name] == None registration was blocked: ignore
+         if self._name2plugin.get(name):
+@@ -445,6 +450,7 @@ class PluginManager:
+             for hookimpl in hookcaller.get_hookimpls():
+                 if hookimpl.plugin is plugin:
+                     hookcallers.append(hookcaller)
++                    break
+         return hookcallers
+ 
+     def add_hookcall_monitoring(
+diff --git a/testing/test_pluginmanager_multiple_impls.py b/testing/test_pluginmanager_multiple_impls.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..8459747616178468987560b699b1f09aa9aeaaac
+--- /dev/null
++++ b/testing/test_pluginmanager_multiple_impls.py
+@@ -0,0 +1,54 @@
++import pytest
++from pluggy._manager import PluginManager
++from pluggy import HookspecMarker, HookimplMarker
++from pluggy._callers import HookCaller
++
++hookspec = HookspecMarker("test")
++hookimpl = HookimplMarker("test")
++
++def test_get_hookcallers_no_duplicates_and_unregister_clears_all():
++    pm = PluginManager("test")
++
++    class Spec:
++        @hookspec
++        def myhook(self, x):
++            """a hook specification"""
++            pass
++
++    pm.add_hookspecs(Spec)
++
++    class PluginMultiple:
++        @hookimpl
++        def myhook(self, x):
++            return x + 1
++
++        @hookimpl(specname="myhook")
++        def alias(self, x):
++            return x + 2
++
++    # Instantiate and register the plugin with two implementations on the same hook
++    plugin = PluginMultiple()
++    name = pm.register(plugin)
++
++    # Before unregister: get_hookcallers(plugin) should list only one HookCaller
++    hook_callers = pm.get_hookcallers(plugin)
++    assert isinstance(hook_callers, list)
++    assert len(hook_callers) == 1
++    hc = hook_callers[0]
++    assert isinstance(hc, HookCaller)
++    assert hc.name == "myhook"
++
++    # Both implementations should run when calling the hook
++    results = pm.hook.myhook(x=10)
++    assert set(results) == {11, 12}
++
++    # Unregistering should remove all implementations of that plugin
++    removed = pm.unregister(plugin=plugin)
++    assert removed == name
++    # Plugin is no longer registered
++    assert pm.get_name(plugin) is None
++    # get_hookcallers for an unregistered plugin returns None
++    assert pm.get_hookcallers(plugin) is None
++    # Calling the hook now yields no results
++    results_after = pm.hook.myhook(x=10)
++    assert results_after == []

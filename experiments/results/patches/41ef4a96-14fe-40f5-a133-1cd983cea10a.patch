@@ -1,0 +1,77 @@
+diff --git a/src/pluggy/_hooks.py b/src/pluggy/_hooks.py
+index 7fde78c932dfa29cb6b06ead29f94adeae4875d1..bd24841970ef3e9cb983a36d058cbc26c6c3e1b6 100644
+--- a/src/pluggy/_hooks.py
++++ b/src/pluggy/_hooks.py
+@@ -440,11 +440,12 @@ class HookCaller:
+         return self._call_history is not None
+ 
+     def _remove_plugin(self, plugin: _Plugin) -> None:
+-        for i, method in enumerate(self._hookimpls):
+-            if method.plugin == plugin:
+-                del self._hookimpls[i]
+-                return
+-        raise ValueError(f"plugin {plugin!r} not found")
++        new_hookimpls = [
++            method for method in self._hookimpls if method.plugin is not plugin
++        ]
++        if len(new_hookimpls) == len(self._hookimpls):
++            raise ValueError(f"plugin {plugin!r} not found")
++        self._hookimpls[:] = new_hookimpls
+ 
+     def get_hookimpls(self) -> list[HookImpl]:
+         """Get all registered hook implementations for this hook."""
+diff --git a/src/pluggy/_manager.py b/src/pluggy/_manager.py
+index 1b994f255d1d3a1a8f427a0aab6385d9996549b7..8639824e90d53074deb3f8ebbcb0403dbd3eea06 100644
+--- a/src/pluggy/_manager.py
++++ b/src/pluggy/_manager.py
+@@ -442,9 +442,8 @@ class PluginManager:
+             return None
+         hookcallers = []
+         for hookcaller in self.hook.__dict__.values():
+-            for hookimpl in hookcaller.get_hookimpls():
+-                if hookimpl.plugin is plugin:
+-                    hookcallers.append(hookcaller)
++            if any(hookimpl.plugin is plugin for hookimpl in hookcaller.get_hookimpls()):
++                hookcallers.append(hookcaller)
+         return hookcallers
+ 
+     def add_hookcall_monitoring(
+diff --git a/testing/test_plugin_remove_multi.py b/testing/test_plugin_remove_multi.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..003c2ab04bdb6b894282fa7fd14f466e7a6b2054
+--- /dev/null
++++ b/testing/test_plugin_remove_multi.py
+@@ -0,0 +1,33 @@
++import pluggy
++
++
++hookspec = pluggy.HookspecMarker("example")
++hookimpl = pluggy.HookimplMarker("example")
++
++
++def test_remove_plugin_multiple_impls_and_specname() -> None:
++    class Hooks:
++        @hookspec
++        def he_method(self, arg): ...
++
++    class Plugin:
++        @hookimpl
++        def he_method(self, arg):
++            return arg
++
++        @hookimpl(specname="he_method")
++        def other(self, arg):
++            return arg
++
++    pm = pluggy.PluginManager("example")
++    pm.add_hookspecs(Hooks)
++    plugin = Plugin()
++    pm.register(plugin)
++
++    hookcaller = pm.hook.he_method
++    assert len(hookcaller.get_hookimpls()) == 2
++    assert len(pm.get_hookcallers(plugin)) == 1
++
++    pm.unregister(plugin)
++    assert hookcaller.get_hookimpls() == []
++    assert pm.get_hookcallers(plugin) is None

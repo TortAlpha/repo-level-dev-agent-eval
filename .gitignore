@@ -7,6 +7,9 @@ repositories/tasks
 
 *__pycache__*
 *.egg-info
+# Preserve package metadata archived as evaluator provenance evidence.
+!experiments/results/setup_artifacts/**/*.egg-info/
+!experiments/results/setup_artifacts/**/*.egg-info/**
 
 *.env
 *.idea
@@ -20,3 +23,10 @@ experiments/results/jobs/
 experiments/results/final_report/.matplotlib/
 experiments/results/kernel_v2_report/.matplotlib/
 experiments/results/kernel_v2_report/__pycache__/
+
+# Runtime coordination state and local presentation build cache.
+experiments/results/*.lock
+experiments/results/patches/*.lock
+experiments/results/leases/
+docs/defense/presentation/.build/
+docs/defense/presentation/node_modules/

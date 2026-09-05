@@ -1,0 +1,55 @@
+diff --git a/src/humanize/filesize.py b/src/humanize/filesize.py
+index c495fed3ee9e724755800a0352c975335a9b1465..fa50d14f9db13dd3c0b5c40c4440936acbda2491 100644
+--- a/src/humanize/filesize.py
++++ b/src/humanize/filesize.py
+@@ -96,7 +96,17 @@ def naturalsize(
+     if abs_bytes < base:
+         return f"{int(bytes_)}B" if gnu else _("%d Bytes") % int(bytes_)
+ 
+-    exp = int(min(log(abs_bytes, base), len(suffix)))
++    max_exp = len(suffix)
++    exp = int(min(log(abs_bytes, base), max_exp))
++    mantissa = bytes_ / (base**exp)
++
++    formatted_mantissa = format % mantissa
++    rounded_mantissa = float(formatted_mantissa)
++    if abs(rounded_mantissa) >= base and exp < max_exp:
++        exp += 1
++        mantissa = bytes_ / (base**exp)
++        formatted_mantissa = format % mantissa
++
+     space = "" if gnu else " "
+-    ret: str = format % (bytes_ / (base**exp)) + space + _(suffix[exp - 1])
++    ret: str = formatted_mantissa + space + _(suffix[exp - 1])
+     return ret
+diff --git a/tests/test_filesize_boundaries.py b/tests/test_filesize_boundaries.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..cb29add63a9ac22fe555fcf1ceaf10e1a26b6bcb
+--- /dev/null
++++ b/tests/test_filesize_boundaries.py
+@@ -0,0 +1,25 @@
++"""Additional naturalsize tests for boundary rounding."""
++
++from __future__ import annotations
++
++import humanize
++
++
++def test_decimal_boundary_rounding() -> None:
++    value = 1000**2 - 0.5
++    assert humanize.naturalsize(value) == "1.0 MB"
++
++
++def test_binary_boundary_rounding() -> None:
++    value = 1024**2 - 0.5
++    assert humanize.naturalsize(value, True) == "1.0 MiB"
++
++
++def test_gnu_boundary_rounding() -> None:
++    value = 1024**2 - 0.5
++    assert humanize.naturalsize(value, False, True) == "1.0M"
++
++
++def test_max_suffix_does_not_bump() -> None:
++    value = 1000**10 * 999.95
++    assert humanize.naturalsize(value) == "1000.0 QB"

@@ -1,0 +1,158 @@
+{
+  "commit": "8da3f3f890340caac306af062e2adc21acfdb943",
+  "published_summary_matches_raw_records": true,
+  "historical_records": 291,
+  "selected_records": 102,
+  "unique_tasks": 39,
+  "blocks": [
+    {
+      "block": "Core small",
+      "agent_mode": "single",
+      "runs": 12,
+      "successes": 11,
+      "total_cost_usd": 0.3764755,
+      "total_steps": 257,
+      "total_tokens": 1681762,
+      "step_cap": 50
+    },
+    {
+      "block": "Core small",
+      "agent_mode": "multi-graph",
+      "runs": 12,
+      "successes": 11,
+      "total_cost_usd": 0.76416042,
+      "total_steps": 412,
+      "total_tokens": 1722376,
+      "step_cap": 50
+    },
+    {
+      "block": "Core small",
+      "agent_mode": "multi-orch-guarded",
+      "runs": 12,
+      "successes": 11,
+      "total_cost_usd": 0.97067375,
+      "total_steps": 452,
+      "total_tokens": 1905302,
+      "step_cap": 50
+    },
+    {
+      "block": "Core medium",
+      "agent_mode": "single",
+      "runs": 12,
+      "successes": 11,
+      "total_cost_usd": 0.47638338,
+      "total_steps": 236,
+      "total_tokens": 1434864,
+      "step_cap": 50
+    },
+    {
+      "block": "Core medium",
+      "agent_mode": "multi-graph",
+      "runs": 12,
+      "successes": 10,
+      "total_cost_usd": 0.7273928,
+      "total_steps": 490,
+      "total_tokens": 1898924,
+      "step_cap": 75
+    },
+    {
+      "block": "Core medium",
+      "agent_mode": "multi-orch-guarded",
+      "runs": 12,
+      "successes": 10,
+      "total_cost_usd": 0.9330787,
+      "total_steps": 501,
+      "total_tokens": 2139870,
+      "step_cap": 75
+    },
+    {
+      "block": "SWE-bench Pro",
+      "agent_mode": "single",
+      "runs": 15,
+      "successes": 9,
+      "total_cost_usd": 3.30768217,
+      "total_steps": 428,
+      "total_tokens": 4811418,
+      "step_cap": 50
+    },
+    {
+      "block": "SWE-bench Pro",
+      "agent_mode": "multi-graph",
+      "runs": 15,
+      "successes": 9,
+      "total_cost_usd": 3.44122414,
+      "total_steps": 742,
+      "total_tokens": 4642641,
+      "step_cap": 75
+    }
+  ],
+  "aggregates": {
+    "single": {
+      "runs": 39,
+      "successes": 31,
+      "total_cost_usd": 4.16054105,
+      "cost_per_success_usd": 0.13421100161290322
+    },
+    "multi-graph": {
+      "runs": 39,
+      "successes": 30,
+      "total_cost_usd": 4.93277736,
+      "cost_per_success_usd": 0.164425912
+    },
+    "multi-orch-guarded": {
+      "runs": 24,
+      "successes": 21,
+      "total_cost_usd": 1.90375245,
+      "cost_per_success_usd": 0.09065487857142858
+    }
+  },
+  "paired_disagreements": {
+    "markdown_pr_1546": {
+      "single": true,
+      "multi-graph": false
+    },
+    "sqlparse_pr_749": {
+      "single": false,
+      "multi-graph": true
+    },
+    "sqlparse_pr_746": {
+      "single": true,
+      "multi-graph": false
+    }
+  },
+  "paired_outcomes": {
+    "single=True,graph=True": 29,
+    "single=False,graph=False": 7,
+    "single=True,graph=False": 2,
+    "single=False,graph=True": 1
+  },
+  "primary_cost_usd": 10.99707086,
+  "campaign_cost_usd": 11.10700569,
+  "historical_recorded_cost_usd": 20.93963277,
+  "composition": {
+    "core_small": {
+      "tasks": 12,
+      "repositories": 11,
+      "strict_raw_loc_and_files": 9,
+      "strict_nonblank_loc_and_files": 9,
+      "single_source_file_patches": 10
+    },
+    "core_medium": {
+      "tasks": 12,
+      "repositories": 6,
+      "strict_raw_loc_and_files": 2,
+      "strict_nonblank_loc_and_files": 3,
+      "single_source_file_patches": 9
+    }
+  },
+  "provider_record_counts": {
+    "absent": 83,
+    "openrouter": 208
+  },
+  "primary_models": [
+    "z-ai/glm-5.2"
+  ],
+  "primary_status_evaluation_disagreements": 30,
+  "missing_cost_records": 170,
+  "scope": "Arithmetic verification only; does not re-run model calls or validate original test execution."
+}

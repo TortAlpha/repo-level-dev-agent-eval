@@ -1,0 +1,49 @@
+diff --git a/tests/test_strftime.py b/tests/test_strftime.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..05cd703d2c4789b282dcfa80e3f14cf7b4569a44
+--- /dev/null
++++ b/tests/test_strftime.py
+@@ -0,0 +1,43 @@
++# -*- encoding: utf8 -*-
++"""Tests for strftime-style datetime format support in parse."""
++
++import unittest
++from datetime import date, datetime, time, timezone, timedelta
++
++import parse
++
++
++class TestStrftime(unittest.TestCase):
++    def test_date_ymd(self):
++        result = parse.parse("a {:%Y-%m-%d} b", "a 1997-07-16 b")
++        self.assertEqual(result[0], date(1997, 7, 16))
++
++    def test_date_month_abbrev(self):
++        result = parse.parse("a {:%Y-%b-%d} b", "a 1997-Feb-16 b")
++        self.assertEqual(result[0], date(1997, 2, 16))
++
++    def test_datetime_with_time(self):
++        result = parse.parse("{:%Y-%m-%d %H:%M:%S}", "1997-07-16 12:30:45")
++        self.assertEqual(result[0], datetime(1997, 7, 16, 12, 30, 45))
++
++    def test_datetime_with_timezone(self):
++        result = parse.parse("{:%Y-%m-%d %H:%M %z}", "1997-07-16 12:30 +0530")
++        self.assertEqual(result[0], datetime(1997, 7, 16, 12, 30, tzinfo=timezone(timedelta(hours=5, minutes=30))))
++
++    def test_time_only(self):
++        result = parse.parse("{:%H:%M:%S}", "12:30:45")
++        self.assertEqual(result[0], time(12, 30, 45))
++
++    def test_multiple_strftime_fields(self):
++        result = parse.parse("{:%Y-%m-%d} {:%H:%M}", "1997-07-16 12:30")
++        self.assertEqual(result[0], date(1997, 7, 16))
++        self.assertEqual(result[1], time(12, 30))
++
++    def test_mixed_with_other_types(self):
++        result = parse.parse("{:%Y-%m-%d} {:d}", "1997-07-16 42")
++        self.assertEqual(result[0], date(1997, 7, 16))
++        self.assertEqual(result[1], 42)
++
++
++if __name__ == "__main__":
++    unittest.main()

@@ -1,0 +1,32 @@
+diff --git a/repro.py b/repro.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..49a2094c320636c38a2f4252c63afa97bd5c15ae
+--- /dev/null
++++ b/repro.py
+@@ -0,0 +1,13 @@
++import warnings
++from unittest import mock
++from cachetools import cachedmethod, TTLCache
++
++class SomeClass:
++    @cachedmethod(lambda self: TTLCache(maxsize=10))
++    def foo(self, x):
++        return x
++
++with warnings.catch_warnings(record=True) as w:
++    warnings.simplefilter("always")
++    mock.create_autospec(SomeClass, instance=True)
++    print("warnings:", [str(x.message) for x in w])
+diff --git a/src/cachetools/_cachedmethod.py b/src/cachetools/_cachedmethod.py
+index cdf63d4f84671cc033bb7adcfd8180565ba042c8..2a8d05b24d30e0bb2d212b5190397bbb33ee3d66 100644
+--- a/src/cachetools/_cachedmethod.py
++++ b/src/cachetools/_cachedmethod.py
+@@ -77,7 +77,7 @@ class _DescriptorBase:
+ 
+     def __get__(self, obj, objtype=None):
+         wrapper = self.Wrapper(obj)
+-        if self.__attrname is not None:
++        if self.__attrname is not None and obj is not None:
+             # replace descriptor instance with wrapper in instance dict
+             try:
+                 # In case of a race condition where another thread already replaced

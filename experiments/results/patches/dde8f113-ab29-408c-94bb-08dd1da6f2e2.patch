@@ -1,0 +1,34 @@
+diff --git a/src/croniter/croniter.py b/src/croniter/croniter.py
+index f73a6a9ab83ffbbb18c4dbb9fd4957c6dc3ba1d6..fde0afcd455d7ba61d997bb1fec390bcc8d574d5 100644
+--- a/src/croniter/croniter.py
++++ b/src/croniter/croniter.py
+@@ -1273,7 +1273,7 @@ class croniter:
+         if field_index == DAY_FIELD:
+             return ((dt.day - 1) % step) + 1
+         if field_index == MONTH_FIELD:
+-            return dt.month % step
++            return ((dt.month - 1) % step) + 1
+         if field_index == DOW_FIELD:
+             return (dt.weekday() + 1) % step
+ 
+diff --git a/src/croniter/tests/test_croniter_month_anchor.py b/src/croniter/tests/test_croniter_month_anchor.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..6466f4bcc44a5faeb798217379fde68b96801bdd
+--- /dev/null
++++ b/src/croniter/tests/test_croniter_month_anchor.py
+@@ -0,0 +1,15 @@
++from datetime import datetime
++
++import pytest
++from croniter import croniter, CroniterBadCronError
++
++
++def test_expand_from_start_time_month_anchor_multiple_of_step():
++    # June (6) is an exact multiple of 3; should not error and should anchor at 6
++    start = datetime(2024, 6, 1)
++    ci = croniter("0 0 1 */3 *", start, expand_from_start_time=True)
++    # Current should be the start date itself
++    assert ci.get_current(datetime) == start
++    # Subsequent occurrences advance by 3-month increments: 9, 12, then wrap to 3
++    months = [ci.get_next(datetime).month for _ in range(3)]
++    assert months == [9, 12, 3]

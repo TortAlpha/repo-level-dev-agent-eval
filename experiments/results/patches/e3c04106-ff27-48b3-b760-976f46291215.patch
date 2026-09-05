@@ -1,0 +1,152 @@
+diff --git a/freezegun/api.py b/freezegun/api.py
+index 0f11e0c113f328fb4ce71329cf8e6b35ab58a3fe..5430d0d6159f6a7867cd90acdad1bf506674ebbe 100644
+--- a/freezegun/api.py
++++ b/freezegun/api.py
+@@ -509,12 +509,14 @@ class TickingDateTimeFactory:
+     def __call__(self) -> datetime.datetime:
+         return self.time_to_freeze + (real_datetime.now() - self.start)
+ 
+-    def tick(self, delta: Union[datetime.timedelta, int]=datetime.timedelta(seconds=1)) -> datetime.datetime:
+-        if isinstance(delta, numbers.Real):
+-            # noinspection PyTypeChecker
+-            self.move_to(self.time_to_freeze + datetime.timedelta(seconds=delta))
++    def tick(self, delta: Union[datetime.timedelta, numbers.Real] = 1) -> datetime.datetime:
++        if isinstance(delta, datetime.timedelta):
++            inc = delta
++        elif isinstance(delta, numbers.Real):
++            inc = datetime.timedelta(seconds=float(delta))
+         else:
+-            self.move_to(self.time_to_freeze + delta)  # type: ignore
++            raise TypeError(f"delta must be timedelta or real number, got {delta!r}")
++        self.move_to(self.time_to_freeze + inc)
+         return self.time_to_freeze
+ 
+     def move_to(self, target_datetime: _Freezable) -> None:
+@@ -531,12 +533,14 @@ class FrozenDateTimeFactory:
+     def __call__(self) -> datetime.datetime:
+         return self.time_to_freeze
+ 
+-    def tick(self, delta: Union[datetime.timedelta, int]=datetime.timedelta(seconds=1)) -> datetime.datetime:
+-        if isinstance(delta, numbers.Real):
+-            # noinspection PyTypeChecker
+-            self.time_to_freeze += datetime.timedelta(seconds=delta)
++    def tick(self, delta: Union[datetime.timedelta, numbers.Real] = 1) -> datetime.datetime:
++        if isinstance(delta, datetime.timedelta):
++            inc = delta
++        elif isinstance(delta, numbers.Real):
++            inc = datetime.timedelta(seconds=float(delta))
+         else:
+-            self.time_to_freeze += delta  # type: ignore
++            raise TypeError(f"delta must be timedelta or real number, got {delta!r}")
++        self.time_to_freeze += inc
+         return self.time_to_freeze
+ 
+     def move_to(self, target_datetime: _Freezable) -> None:
+@@ -557,10 +561,16 @@ class StepTickTimeFactory:
+         self.tick()
+         return return_time
+ 
+-    def tick(self, delta: Union[datetime.timedelta, int, None]=None) -> datetime.datetime:
+-        if not delta:
+-            delta = datetime.timedelta(seconds=self.step_width)
+-        self.time_to_freeze += delta  # type: ignore
++    def tick(self, delta: Union[datetime.timedelta, numbers.Real, None] = None) -> datetime.datetime:
++        if delta is None:
++            inc = datetime.timedelta(seconds=float(self.step_width))
++        elif isinstance(delta, datetime.timedelta):
++            inc = delta
++        elif isinstance(delta, numbers.Real):
++            inc = datetime.timedelta(seconds=float(delta))
++        else:
++            raise TypeError(f"delta must be timedelta, real number, or None, got {delta!r}")
++        self.time_to_freeze += inc
+         return self.time_to_freeze
+ 
+     def update_step_width(self, step_width: float) -> None:
+diff --git a/tests/test_ticking_factory_numeric_delta.py b/tests/test_ticking_factory_numeric_delta.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..dadbd73300099174f352ea27f4e3b6ee06996834
+--- /dev/null
++++ b/tests/test_ticking_factory_numeric_delta.py
+@@ -0,0 +1,23 @@
++import datetime
++from fractions import Fraction
++
++import pytest
++
++from freezegun import freeze_time
++
++
++def test_ticking_datetime_factory_tick_accepts_fraction():
++    initial = datetime.datetime(2022, 1, 1, 12, 0, 0)
++    delta = Fraction(3, 2)
++    final = initial + datetime.timedelta(seconds=float(delta))
++    with freeze_time(initial, tick=True) as factory:
++        returned = factory.tick(delta)
++        assert returned == final
++        assert factory.time_to_freeze == final
++
++
++def test_ticking_datetime_factory_tick_invalid_type_raises():
++    initial = datetime.datetime(2022, 1, 1, 12, 0, 0)
++    with freeze_time(initial, tick=True) as factory:
++        with pytest.raises(TypeError):
++            factory.tick("invalid")
+diff --git a/tests/test_ticking_numeric_delta.py b/tests/test_ticking_numeric_delta.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..26601dc4afbb6fddfc5bb84efac078e02e3e50d7
+--- /dev/null
++++ b/tests/test_ticking_numeric_delta.py
+@@ -0,0 +1,52 @@
++import datetime
++from fractions import Fraction
++
++import pytest
++
++from freezegun import freeze_time
++
++
++def test_frozen_datetime_factory_tick_accepts_fraction():
++    initial = datetime.datetime(2022, 1, 1, 12, 0, 0)
++    delta = Fraction(3, 2)
++    final = initial + datetime.timedelta(seconds=float(delta))
++    with freeze_time(initial) as factory:
++        returned = factory.tick(delta)
++        assert returned == final
++        # subsequent call returns the same time
++        assert factory() == final
++
++
++def test_step_tick_time_factory_manual_tick_accepts_fraction():
++    initial = datetime.datetime(2022, 1, 1, 12, 0, 0)
++    delta = Fraction(5, 2)
++    final = initial + datetime.timedelta(seconds=float(delta))
++    with freeze_time(initial, auto_tick_seconds=0) as factory:
++        returned = factory.tick(delta)
++        assert returned == final
++        assert factory() == final
++
++
++def test_step_tick_time_factory_auto_tick_accepts_fraction():
++    initial = datetime.datetime(2022, 1, 1, 12, 0, 0)
++    step = Fraction(7, 2)
++    final = initial + datetime.timedelta(seconds=float(step))
++    with freeze_time(initial, auto_tick_seconds=step) as factory:
++        first = factory()
++        assert first == initial
++        second = factory()
++        assert second == final
++
++
++def test_frozen_datetime_factory_tick_invalid_type_raises():
++    initial = datetime.datetime(2022, 1, 1)
++    with freeze_time(initial) as factory:
++        with pytest.raises(TypeError):
++            factory.tick("invalid")
++
++
++def test_step_tick_time_factory_manual_invalid_type_raises():
++    initial = datetime.datetime(2022, 1, 1)
++    with freeze_time(initial, auto_tick_seconds=0) as factory:
++        with pytest.raises(TypeError):
++            factory.tick("invalid")

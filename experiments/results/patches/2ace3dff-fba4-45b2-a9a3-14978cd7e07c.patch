@@ -1,0 +1,58 @@
+diff --git a/src/humanize/filesize.py b/src/humanize/filesize.py
+index c495fed3ee9e724755800a0352c975335a9b1465..3d4766df265feb04189c1337bf22e5ca06f64183 100644
+--- a/src/humanize/filesize.py
++++ b/src/humanize/filesize.py
+@@ -98,5 +98,26 @@ def naturalsize(
+ 
+     exp = int(min(log(abs_bytes, base), len(suffix)))
+     space = "" if gnu else " "
+-    ret: str = format % (bytes_ / (base**exp)) + space + _(suffix[exp - 1])
+-    return ret
++
++    # Determine scaled value
++    scaled = bytes_ / (base ** exp)
++
++    # Determine decimal precision from format string
++    try:
++        decimal_part = format.split('.')[-1]
++        if decimal_part.endswith('f'):
++            decimals = int(decimal_part[:-1])
++        else:
++            decimals = 6
++    except Exception:
++        decimals = 6
++
++    rounded = round(scaled, decimals)
++
++    # If rounding crosses unit boundary, bump unit
++    if rounded >= base and exp < len(suffix):
++        rounded /= base
++        exp += 1
++
++    out = format % rounded
++    return out + space + _(suffix[exp - 1])
+diff --git a/tests/test_naturalsize_rounding.py b/tests/test_naturalsize_rounding.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..c8c770fe93c7f1ace530c041da7fad8260bf949e
+--- /dev/null
++++ b/tests/test_naturalsize_rounding.py
+@@ -0,0 +1,18 @@
++import humanize
++
++
++def test_decimal_boundary_rounding():
++    # Just below the 1 MB boundary: 999.95 kB should round up to 1.0 MB
++    assert humanize.naturalsize(999_950) == "1.0 MB"
++
++
++def test_binary_boundary_rounding():
++    # Just below the 1 MiB boundary: 1023.96 KiB should round up to 1.0 MiB
++    bytes_val = 1023.96 * 1024
++    assert humanize.naturalsize(bytes_val, binary=True) == "1.0 MiB"
++
++
++def test_gnu_boundary_rounding():
++    # Just below the 1 MiB boundary: 1023.96 KiB should round up to 1.0 MiB in GNU style
++    bytes_val = 1023.96 * 1024
++    assert humanize.naturalsize(bytes_val, gnu=True) == "1.0M"
+\ No newline at end of file

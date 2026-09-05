@@ -1,0 +1,52 @@
+diff --git a/src/cachetools/_cachedmethod.py b/src/cachetools/_cachedmethod.py
+index cdf63d4f84671cc033bb7adcfd8180565ba042c8..9f0ff1785a471e29c8ee26c13f6a21bd8c7c65ac 100644
+--- a/src/cachetools/_cachedmethod.py
++++ b/src/cachetools/_cachedmethod.py
+@@ -77,6 +77,8 @@ class _DescriptorBase:
+ 
+     def __get__(self, obj, objtype=None):
+         wrapper = self.Wrapper(obj)
++        if obj is None:
++            return wrapper
+         if self.__attrname is not None:
+             # replace descriptor instance with wrapper in instance dict
+             try:
+diff --git a/tests/test_autospec_cachedmethod.py b/tests/test_autospec_cachedmethod.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4fec22e642776f76e892d25b6a63cc53d9c13ff0
+--- /dev/null
++++ b/tests/test_autospec_cachedmethod.py
+@@ -0,0 +1,33 @@
++import unittest
++import warnings
++from unittest.mock import create_autospec
++
++from cachetools import cachedmethod
++
++
++class CachedMethodClass:
++    def __init__(self):
++        self.cache = {}
++        self.count = 0
++
++    @cachedmethod(lambda self: self.cache)
++    def get(self, value):
++        self.count += 1
++        return value
++
++
++class AutospecCachedMethodTest(unittest.TestCase):
++    def test_autospec_no_warnings(self):
++        with warnings.catch_warnings():
++            warnings.simplefilter("error")
++            create_autospec(CachedMethodClass, instance=True)
++
++    def test_instance_caching_unchanged(self):
++        obj = CachedMethodClass()
++        self.assertEqual(obj.get(1), 1)
++        self.assertEqual(obj.get(1), 1)
++        self.assertEqual(obj.count, 1)
++
++
++if __name__ == "__main__":
++    unittest.main()

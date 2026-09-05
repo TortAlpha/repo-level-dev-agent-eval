@@ -1,0 +1,54 @@
+diff --git a/src/humanize/filesize.py b/src/humanize/filesize.py
+index c495fed3ee9e724755800a0352c975335a9b1465..f443f98f0b79defec0369ea28fd0fe56bc47d3c0 100644
+--- a/src/humanize/filesize.py
++++ b/src/humanize/filesize.py
+@@ -98,5 +98,20 @@ def naturalsize(
+ 
+     exp = int(min(log(abs_bytes, base), len(suffix)))
+     space = "" if gnu else " "
+-    ret: str = format % (bytes_ / (base**exp)) + space + _(suffix[exp - 1])
++
++    scaled = bytes_ / (base**exp)
++    while True:
++        formatted = format % scaled
++        try:
++            rounded = abs(float(formatted))
++        except ValueError:
++            break
++
++        if exp < len(suffix) and rounded >= base:
++            exp += 1
++            scaled = bytes_ / (base**exp)
++            continue
++        break
++
++    ret: str = formatted + space + _(suffix[exp - 1])
+     return ret
+diff --git a/tests/test_naturalsize_rounding.py b/tests/test_naturalsize_rounding.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..33cd2795d51031cf9bb3fe3ee54c2c148afbfea9
+--- /dev/null
++++ b/tests/test_naturalsize_rounding.py
+@@ -0,0 +1,22 @@
++from __future__ import annotations
++
++import humanize
++
++
++def test_decimal_rounding_advances_suffix() -> None:
++    assert humanize.naturalsize(999950) == "1.0 MB"
++
++
++def test_binary_rounding_advances_suffix() -> None:
++    boundary = float(1024**2) - 0.05 * 1024
++    assert humanize.naturalsize(boundary, True) == "1.0 MiB"
++
++
++def test_gnu_rounding_advances_suffix() -> None:
++    boundary = float(1024**2) - 0.05 * 1024
++    assert humanize.naturalsize(boundary, False, True) == "1.0M"
++
++
++def test_largest_suffix_stays_stable() -> None:
++    value = 1000**10 * 999.95
++    assert humanize.naturalsize(value) == "999.9 QB"

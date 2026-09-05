@@ -1,0 +1,56 @@
+diff --git a/src/dotenv/parser.py b/src/dotenv/parser.py
+index eb100b478cc1383eeaad53c6fbf39b9cf7c6b2be..ee8acedb221c6c198f5f451c986073898d96194e 100644
+--- a/src/dotenv/parser.py
++++ b/src/dotenv/parser.py
+@@ -68,7 +68,10 @@ class Error(Exception):
+ 
+ class Reader:
+     def __init__(self, stream: IO[str]) -> None:
+-        self.string = stream.read()
++        content = stream.read()
++        if content.startswith("\ufeff"):
++            content = content[1:]
++        self.string = content
+         self.position = Position.start()
+         self.mark = Position.start()
+ 
+diff --git a/tests/test_bom.py b/tests/test_bom.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3315983749d5569e47bec71b97a36466dceec35b
+--- /dev/null
++++ b/tests/test_bom.py
+@@ -0,0 +1,33 @@
++import io
++
++import pytest
++
++from dotenv.parser import parse_stream
++
++
++def test_parse_stream_strips_leading_utf8_bom():
++    # A BOM at the start should be ignored so the first key is parsed correctly.
++    content = "\ufeffFIRST=foo\nSECOND=bar\n"
++    bindings = list(parse_stream(io.StringIO(content)))
++
++    assert len(bindings) == 2
++
++    first = bindings[0]
++    assert first.key == "FIRST"
++    assert first.value == "foo"
++    # The original string for the first binding should not include the BOM
++    assert first.original.string == "FIRST=foo\n"
++
++    second = bindings[1]
++    assert second.key == "SECOND"
++    assert second.value == "bar"
++
++
++def test_parse_stream_preserves_content_without_bom():
++    # Files without a BOM should parse exactly as before
++    content = "FIRST=foo\nSECOND=bar\n"
++    bindings = list(parse_stream(io.StringIO(content)))
++
++    assert len(bindings) == 2
++    assert bindings[0].key == "FIRST"
++    assert bindings[0].original.string == "FIRST=foo\n"
+\ No newline at end of file

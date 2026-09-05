@@ -1,0 +1,47 @@
+diff --git a/h11/_headers.py b/h11/_headers.py
+index b97d020b634a9f47f5ae6aa3b30e2bd13a6c48c4..bc6440bc8270428582b4260593142e52d22313e2 100644
+--- a/h11/_headers.py
++++ b/h11/_headers.py
+@@ -68,6 +68,9 @@ except ImportError:
+ # Maybe a dict-of-lists would be better?
+ 
+ _content_length_re = re.compile(rb"[0-9]+")
++# Content-Length is a decimal number. Reject absurdly long values to avoid a
++# DoS via int() conversion over the whole decimal string.
++_MAX_CONTENT_LENGTH_DIGITS = 18
+ _field_name_re = re.compile(field_name.encode("ascii"))
+ _field_value_re = re.compile(field_value.encode("ascii"))
+ 
+@@ -173,6 +176,8 @@ def normalize_and_validate(
+                 raise LocalProtocolError("conflicting Content-Length headers")
+             value = lengths.pop()
+             validate(_content_length_re, value, "bad Content-Length")
++            if len(value) > _MAX_CONTENT_LENGTH_DIGITS:
++                raise LocalProtocolError("Content-Length too long")
+             if seen_content_length is None:
+                 seen_content_length = value
+                 new_headers.append((raw_name, name, value))
+diff --git a/h11/tests/test_content_length_limit.py b/h11/tests/test_content_length_limit.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..d43f2c709b38b3eeb7b98c90f8b0c526ec09bc22
+--- /dev/null
++++ b/h11/tests/test_content_length_limit.py
+@@ -0,0 +1,18 @@
++import pytest
++
++from .._headers import normalize_and_validate
++from .._util import LocalProtocolError
++
++
++def test_reject_absurdly_long_content_length() -> None:
++    # A Content-Length value with far too many digits must be rejected
++    # promptly as a protocol error rather than being parsed as an int.
++    with pytest.raises(LocalProtocolError):
++        normalize_and_validate([("Content-Length", "1" * 100)])
++
++
++def test_accept_normal_content_length() -> None:
++    # Normal valid Content-Length values still work.
++    assert normalize_and_validate([("Content-Length", "12345")]) == [
++        (b"content-length", b"12345")
++    ]

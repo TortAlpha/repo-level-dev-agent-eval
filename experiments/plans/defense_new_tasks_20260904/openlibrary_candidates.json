@@ -1,0 +1,427 @@
+{
+  "created_at_utc": "2026-09-04T20:55:50.177984+00:00",
+  "repository": "internetarchive/openlibrary",
+  "purpose": "Pre-model purposive selection for kernel/v2 defense experiment. This report is evaluator-only and must not be supplied to solver contexts.",
+  "exposure_logs": [
+    {
+      "path": "experiments/results/runs.jsonl",
+      "sha256": "f38a553df0af5d9ac215191c7e448bddcc8a77718423bc6218b32421673c9fcc",
+      "bytes": 5212171
+    },
+    {
+      "path": "experiments/results/sweep_attempts.jsonl",
+      "sha256": "ce1e2de7515fe7302830749bfa047d4889211bcb6fd392ae8363c73384290685",
+      "bytes": 126185
+    },
+    {
+      "path": "experiments/results/infrastructure_failures.jsonl",
+      "sha256": "cde29601a680cb0a055595f3dfaffba880df092b3ff85ea6a33cb9102af52a7c",
+      "bytes": 33173
+    }
+  ],
+  "excluded_distinct_task_ids_all_repositories": 61,
+  "openlibrary_unexposed_rows": 84,
+  "openlibrary_unexposed_nonrejected_rows": 80,
+  "selection_rule": [
+    "Exclude every task ID found recursively in any runs.jsonl, sweep_attempts.jsonl, or infrastructure_failures.jsonl entry, and every rejected registry row.",
+    "Screen reference patch paths/counts and task descriptions before any new model result. Favor 40-180 changed lines in Python production code, fixed task/hidden files, and explicitly targeted visible commands. This is a purposive sample, not a random sample or full audit of every candidate.",
+    "For localized tasks require substantive reference changes confined to one production Python file. From reviewed candidates with targeted commands order by changed lines then task ID; select first two and retain next two as backups. 03095f26 is deferred because its visible command has no test target and its ordered-key wording does not match the reference set iteration.",
+    "For cross-module tasks require substantive behavior changes in multiple cooperating modules, explicit task requirements for their interface/data flow, and meaningful withheld integration or paired helper-and-caller coverage. Do not count a type annotation, variable rename, unrelated hunk or untested extra reference change as cross-module evidence.",
+    "Order eligible reviewed cross-module candidates by changed lines then task ID: 08ac40d0, 5c6c22f3, 6e889f4a, 1894cb48. First two are primary; last two are backups. Do not select near-duplicate rewrites of the same feature such as 5c6c22f3 plus its successor 0a90f9f0.",
+    "Replace primary tasks only for preflight/environment/oracle invalidity, in listed backup order, before model outcomes. Never replace based on solver success. Freeze final task IDs, classifications, commands and fingerprints before solving."
+  ],
+  "limitations": [
+    "Unexposed means no recorded task attempt in the inspected local logs, not no developer familiarity, no related-task exposure, and not absence from model pretraining.",
+    "All candidates are from one large repository; classification concerns requested change locality, not repository size or an established simple/hard rating.",
+    "Existing imported descriptions contain implementation hints and sometimes explicit interface names; this is an adapted SWE-bench Pro task format, not a clean issue-only benchmark.",
+    "Registry pr_task_verified is metadata only. Selector ran no Docker preflight or tests; root must require visible-base pass, semantic-base failure, reference semantic/compat pass under frozen kernel/v2 scoring.",
+    "Some natural-language requirements are broader or inconsistent with the reference patch; immutable test outcomes should be reported as test-measured correctness, not complete semantic proof."
+  ],
+  "rejected_from_cross_module_shortlist": [
+    {
+      "task_id": "swepro_openlibrary_431442c9",
+      "reason": "Task requirements and hidden tests only require the Luqum helper; caller expansion in gold patch is not a sound cross-module task label."
+    },
+    {
+      "task_id": "swepro_openlibrary_58999808",
+      "reason": "Hidden oracle focuses on date formatting/validation in checkins.py, not database-update integration."
+    },
+    {
+      "task_id": "swepro_openlibrary_00bec1e7",
+      "reason": "Second production file changes variable names only; substantive new behavior is localized to validation."
+    },
+    {
+      "task_id": "swepro_openlibrary_f343c08f",
+      "reason": "The helper file changes a type annotation only; substantial behavior change remains in author loader."
+    },
+    {
+      "task_id": "swepro_openlibrary_c12943be",
+      "reason": "Although gold integrates several call sites, explicit requirements/hidden tests predominantly demand a single normalization utility."
+    },
+    {
+      "task_id": "swepro_openlibrary_ba3abfb6",
+      "reason": "Semantic oracle lists older utility tests without direct coverage of the requested override flow; reference POST forwards an argument not visibly added to load in the patch."
+    }
+  ],
+  "candidates": [
+    {
+      "task_id": "swepro_openlibrary_c05ccf2c",
+      "classification": "localized",
+      "selection_role": "primary",
+      "rank_within_role_and_class": 1,
+      "production_files": [
+        "openlibrary/catalog/utils/__init__.py"
+      ],
+      "module_areas": [
+        "Catalog import normalization"
+      ],
+      "patch_size": {
+        "additions": 40,
+        "deletions": 9,
+        "changed_lines": 49,
+        "changed_lines_by_file": {
+          "openlibrary/catalog/utils/__init__.py": 49
+        }
+      },
+      "intended_behavior": "Normalize language keys, MARC/ISO codes and full names, with stable deduplication and explicit invalid/ambiguous errors.",
+      "classification_reason": "The production change is confined to format_languages in one catalog utility module; it consumes existing language helpers without changing their contracts.",
+      "readiness_notes": "Only one F2P parameter case is selected; it does not establish exhaustive coverage of all stated ambiguity/deduplication behavior. Existing visible command explicitly deselects two language tests. Language fixtures and offline lookup must pass preflight.",
+      "task_status": "pr_task_verified",
+      "base_commit": "0180e2ca33a152e69bdbc97047cf6961787c947d",
+      "task_file_path": "repositories/tasks/swepro_openlibrary_c05ccf2c/task.md",
+      "reference_patch_path": "repositories/tasks/swepro_openlibrary_c05ccf2c/reference.patch",
+      "task_sha256": "044c545a568132995b3e637e68b1e93800a65b271492e3f8c84671601828adcc",
+      "reference_patch_sha256": "bdc78b652a2a902adea27d6344d6ed332b653264aa707f93a07af4a4cd7477e2",
+      "repo_path": "repositories/tasks/swepro_openlibrary_c05ccf2c/repo",
+      "docker_image": "jefzda/sweap-images:internetarchive.openlibrary-internetarchive__openlibrary-c05ccf2cd8baa81609434e0e35c4a63bc0da5a25-v0f5aece3601a5b4419f7ccec1dbda",
+      "setup_commands": "true",
+      "visible_test_command": "bash ./run_tests.sh openlibrary/tests/catalog/test_utils.py '--deselect=openlibrary/tests/catalog/test_utils.py::test_format_languages' '--deselect=openlibrary/tests/catalog/test_utils.py::test_format_language_rasise_for_invalid_language'",
+      "hidden_semantic_test_command": "bash ./run_tests.sh '../hidden_tests/openlibrary/tests/catalog/test_utils.py::test_format_languages[languages2-expected2]'",
+      "hidden_compat_test_command": "bash ./run_tests.sh openlibrary/tests/catalog/test_utils.py::test_author_dates_match openlibrary/tests/catalog/test_utils.py::test_flip_name openlibrary/tests/catalog/test_utils.py::test_pick_first_date openlibrary/tests/catalog/test_utils.py::test_pick_best_name openlibrary/tests/catalog/test_utils.py::test_pick_best_author openlibrary/tests/catalog/test_utils.py::test_match_with_bad_chars openlibrary/tests/catalog/test_utils.py::test_strip_count openlibrary/tests/catalog/test_utils.py::test_remove_trailing_dot 'openlibrary/tests/catalog/test_utils.py::test_publication_year[1999-01-1999]' 'openlibrary/tests/catalog/test_utils.py::test_publication_year[1999-1999_0]' 'openlibrary/tests/catalog/test_utils.py::test_publication_year[01-1999-1999]' 'openlibrary/tests/catalog/test_utils.py::test_publication_year[1999-01-01-1999]' 'openlibrary/tests/catalog/test_utils.py::test_publication_year[1999/1/1-1999]' 'openlibrary/tests/catalog/test_utils.py::test_publication_year[01-01-1999-1999]' 'openlibrary/tests/catalog/test_utils.py::test_publication_year[1/1/1999-1999]'",
+      "registry_notes": "Imported from SWE-bench Pro public split; instance_id=instance_internetarchive__openlibrary-c05ccf2cd8baa81609434e0e35c4a63bc0da5a25-v0f5aece3601a5b4419f7ccec1dbda2071be28ee4. Augmented spec (requirements/interface) included in task.md. F2P ids: 1, P2P ids: 77 (compat capped at 15).",
+      "files_present": {
+        "repo": true,
+        "hidden_tests": true,
+        "reference_patch": true
+      },
+      "model_outcomes_consulted": false,
+      "tests_run_by_selector": false
+    },
+    {
+      "task_id": "swepro_openlibrary_0dc5b20f",
+      "classification": "localized",
+      "selection_role": "primary",
+      "rank_within_role_and_class": 2,
+      "production_files": [
+        "openlibrary/catalog/marc/parse.py"
+      ],
+      "module_areas": [
+        "MARC parser"
+      ],
+      "patch_size": {
+        "additions": 32,
+        "deletions": 30,
+        "changed_lines": 62,
+        "changed_lines_by_file": {
+          "openlibrary/catalog/marc/parse.py": 62
+        }
+      },
+      "intended_behavior": "Preserve alternate-script author names from MARC 880 linkages for personal author/contributor fields.",
+      "classification_reason": "The changed author parsing and normalization call sites remain in a single parse.py module; existing MARC linkage API is reused.",
+      "readiness_notes": "F2P uses two binary MARC fixtures. Fixture preservation and path imports require preflight. The reference patch also adjusts publisher and organization-name cleanup in the same file; this is localized scope, not a claim of trivial difficulty.",
+      "task_status": "pr_task_verified",
+      "base_commit": "bd9d2a04efbbaec1575faa02a02eea995badf7f0",
+      "task_file_path": "repositories/tasks/swepro_openlibrary_0dc5b20f/task.md",
+      "reference_patch_path": "repositories/tasks/swepro_openlibrary_0dc5b20f/reference.patch",
+      "task_sha256": "733c4284d2a00b48881041b52675cc082f72db1ef2ac9860fdfabe0233c8194f",
+      "reference_patch_sha256": "a01b1b3446d282718e9244e01a55fb8ea42c87a1855cac76ef600cc4bf95158e",
+      "repo_path": "repositories/tasks/swepro_openlibrary_0dc5b20f/repo",
+      "docker_image": "jefzda/sweap-images:internetarchive.openlibrary-internetarchive__openlibrary-0dc5b20fa186f9714f8a838178597e69f549d026-v2d9a6c849c60ed19fd0858ce9e40b",
+      "setup_commands": "true",
+      "visible_test_command": "bash ./run_tests.sh openlibrary/catalog/marc/tests/test_parse.py",
+      "hidden_semantic_test_command": "bash ./run_tests.sh '../hidden_tests/openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCBinary::test_binary[880_Nihon_no_chasho.mrc]' '../hidden_tests/openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCBinary::test_binary[880_arabic_french_many_linkages.mrc]'",
+      "hidden_compat_test_command": "bash ./run_tests.sh 'openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCXML::test_xml[39002054008678.yale.edu]' 'openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCXML::test_xml[flatlandromanceo00abbouoft]' 'openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCXML::test_xml[nybc200247]' 'openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCXML::test_xml[secretcodeofsucc00stjo]' 'openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCXML::test_xml[warofrebellionco1473unit]' 'openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCXML::test_xml[zweibchersatir01horauoft]' 'openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCXML::test_xml[onquietcomedyint00brid]' 'openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCXML::test_xml[00schlgoog]' 'openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCXML::test_xml[0descriptionofta1682unit]' 'openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCXML::test_xml[1733mmoiresdel00vill]' 'openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCXML::test_xml[13dipolarcycload00burk]' 'openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCXML::test_xml[bijouorannualofl1828cole]' 'openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCXML::test_xml[cu31924091184469]' 'openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCXML::test_xml[engineercorpsofh00sher]' 'openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCBinary::test_binary[bijouorannualofl1828cole_meta.mrc]'",
+      "registry_notes": "Imported from SWE-bench Pro public split; instance_id=instance_internetarchive__openlibrary-0dc5b20fa186f9714f8a838178597e69f549d026-v2d9a6c849c60ed19fd0858ce9e40b7cc8e097e59. Augmented spec (requirements/interface) included in task.md. F2P ids: 2, P2P ids: 55 (compat capped at 15).",
+      "files_present": {
+        "repo": true,
+        "hidden_tests": true,
+        "reference_patch": true
+      },
+      "model_outcomes_consulted": false,
+      "tests_run_by_selector": false
+    },
+    {
+      "task_id": "swepro_openlibrary_0d13e6b4",
+      "classification": "localized",
+      "selection_role": "backup",
+      "rank_within_role_and_class": 1,
+      "production_files": [
+        "openlibrary/catalog/add_book/load_book.py"
+      ],
+      "module_areas": [
+        "Catalog author loading"
+      ],
+      "patch_size": {
+        "additions": 75,
+        "deletions": 0,
+        "changed_lines": 75,
+        "changed_lines_by_file": {
+          "openlibrary/catalog/add_book/load_book.py": 75
+        }
+      },
+      "intended_behavior": "Strip supported leading author honorifics during query building while preserving exceptions and other author fields.",
+      "classification_reason": "Honorific definitions, helper and its query-building invocation are all changed within load_book.py.",
+      "readiness_notes": "F2P covers parameterized author import behavior; registry has no separate P2P compatibility list, so the visible suite remains the regression check. Requirements include explicit helper name and exception examples.",
+      "task_status": "pr_task_verified",
+      "base_commit": "fe6c160d3f2afd9fd70bea62195337fad15c6535",
+      "task_file_path": "repositories/tasks/swepro_openlibrary_0d13e6b4/task.md",
+      "reference_patch_path": "repositories/tasks/swepro_openlibrary_0d13e6b4/reference.patch",
+      "task_sha256": "30af95f5737ddfe09d224486130c44c1fc05c09326b5ca2868a0f1390a80dec2",
+      "reference_patch_sha256": "8801827197ecd5352179d4bc37edc2c0c31c5c2b1dd9c5e101751f6d3aeb1095",
+      "repo_path": "repositories/tasks/swepro_openlibrary_0d13e6b4/repo",
+      "docker_image": "jefzda/sweap-images:internetarchive.openlibrary-internetarchive__openlibrary-0d13e6b4bf80bced6c0946b969b9a1b6963f6bce-v76304ecdb3a5954fcf13feb710e8c",
+      "setup_commands": "true",
+      "visible_test_command": "bash ./run_tests.sh openlibrary/catalog/add_book/tests/test_load_book.py",
+      "hidden_semantic_test_command": "bash ./run_tests.sh ../hidden_tests/openlibrary/catalog/add_book/tests/test_load_book.py::TestImportAuthor::test_author_importer_drops_honorifics",
+      "hidden_compat_test_command": "",
+      "registry_notes": "Imported from SWE-bench Pro public split; instance_id=instance_internetarchive__openlibrary-0d13e6b4bf80bced6c0946b969b9a1b6963f6bce-v76304ecdb3a5954fcf13feb710e8c40fcf24b73c. Augmented spec (requirements/interface) included in task.md. F2P ids: 10, P2P ids: 0 (compat capped at 15).",
+      "files_present": {
+        "repo": true,
+        "hidden_tests": true,
+        "reference_patch": true
+      },
+      "model_outcomes_consulted": false,
+      "tests_run_by_selector": false
+    },
+    {
+      "task_id": "swepro_openlibrary_de6ae105",
+      "classification": "localized",
+      "selection_role": "backup",
+      "rank_within_role_and_class": 2,
+      "production_files": [
+        "scripts/partner_batch_imports.py"
+      ],
+      "module_areas": [
+        "Partner batch import script"
+      ],
+      "patch_size": {
+        "additions": 71,
+        "deletions": 19,
+        "changed_lines": 90,
+        "changed_lines_by_file": {
+          "scripts/partner_batch_imports.py": 90
+        }
+      },
+      "intended_behavior": "Filter partner imports by excluded author names or recent independently-published titles matching specified low-quality patterns.",
+      "classification_reason": "The policy helper and its constants are confined to one script; no new inter-module contract is required.",
+      "readiness_notes": "CRITICAL: partner_batch_imports.py performs requests.get(SCHEMA_URL) in a class body at import time; offline preflight may fail unless the frozen image already supports/mocks this. Do not enable internet or change the task to make this pass. One F2P function and one P2P function; reference also contains formatting cleanup.",
+      "task_status": "pr_task_verified",
+      "base_commit": "02e8f0cc1e68830a66cb6bc4ee9f3b81463d5e65",
+      "task_file_path": "repositories/tasks/swepro_openlibrary_de6ae105/task.md",
+      "reference_patch_path": "repositories/tasks/swepro_openlibrary_de6ae105/reference.patch",
+      "task_sha256": "b872732212472ce3a7a5fc4b6c718d9ffa255011b78e98be7a4fdafddf6c90ef",
+      "reference_patch_sha256": "861d619282d43ce287dd6d743e22b5c3dac7acf7fa39accd43ed6dbbfdf175ab",
+      "repo_path": "repositories/tasks/swepro_openlibrary_de6ae105/repo",
+      "docker_image": "jefzda/sweap-images:internetarchive.openlibrary-internetarchive__openlibrary-de6ae10512f1b5ef585c8341b451bc49c9fd4996-vfa6ff903cb27f336e17654595dd90",
+      "setup_commands": "true",
+      "visible_test_command": "bash ./run_tests.sh scripts/tests/test_partner_batch_imports.py",
+      "hidden_semantic_test_command": "bash ./run_tests.sh ../hidden_tests/scripts/tests/test_partner_batch_imports.py::test_is_low_quality_book",
+      "hidden_compat_test_command": "bash ./run_tests.sh scripts/tests/test_partner_batch_imports.py::TestBiblio::test_sample_csv_row",
+      "registry_notes": "Imported from SWE-bench Pro public split; instance_id=instance_internetarchive__openlibrary-de6ae10512f1b5ef585c8341b451bc49c9fd4996-vfa6ff903cb27f336e17654595dd900fa943dcd91. Augmented spec (requirements/interface) included in task.md. F2P ids: 1, P2P ids: 1 (compat capped at 15).",
+      "files_present": {
+        "repo": true,
+        "hidden_tests": true,
+        "reference_patch": true
+      },
+      "model_outcomes_consulted": false,
+      "tests_run_by_selector": false
+    },
+    {
+      "task_id": "swepro_openlibrary_08ac40d0",
+      "classification": "cross-module",
+      "selection_role": "primary",
+      "rank_within_role_and_class": 1,
+      "production_files": [
+        "openlibrary/catalog/add_book/__init__.py",
+        "openlibrary/catalog/marc/parse.py"
+      ],
+      "module_areas": [
+        "MARC parsing",
+        "Catalog work creation"
+      ],
+      "patch_size": {
+        "additions": 35,
+        "deletions": 6,
+        "changed_lines": 41,
+        "changed_lines_by_file": {
+          "openlibrary/catalog/add_book/__init__.py": 13,
+          "openlibrary/catalog/marc/parse.py": 28
+        }
+      },
+      "intended_behavior": "Decode MARC author/contributor role codes and preserve each role when constructing a work from imported authors.",
+      "classification_reason": "Parser emits standardized role data; new_work must preserve its one-to-one association with imported author keys. Both modules implement semantic behavior.",
+      "readiness_notes": "Strong alignment: withheld parser fixtures plus test_editior_role_from_700 execute MARC read_edition -> load -> saved work and assert Editor roles. Existing visible suites cover both modules. The spec says unrecognized roles are omitted, whereas the reference only maps recognized values; current oracle may cover a narrower contract.",
+      "task_status": "pr_task_verified",
+      "base_commit": "1e32ae3ec085dc3ab8611b88b56baf6354fa0762",
+      "task_file_path": "repositories/tasks/swepro_openlibrary_08ac40d0/task.md",
+      "reference_patch_path": "repositories/tasks/swepro_openlibrary_08ac40d0/reference.patch",
+      "task_sha256": "4697a208cddf8d7325628d3210dd1c5cbbdb33bfb554ce9c97ef1d947f45d8c3",
+      "reference_patch_sha256": "3eb56ccfdd93edb81090aeeed75f50a129299dc2aeeff19405494d29d32cc316",
+      "repo_path": "repositories/tasks/swepro_openlibrary_08ac40d0/repo",
+      "docker_image": "jefzda/sweap-images:internetarchive.openlibrary-internetarchive__openlibrary-08ac40d050a64e1d2646ece4959af0c42bf6b7b5-v0f5aece3601a5b4419f7ccec1dbda",
+      "setup_commands": "true",
+      "visible_test_command": "bash ./run_tests.sh openlibrary/catalog/marc/tests/test_parse.py openlibrary/catalog/add_book/tests/test_add_book.py",
+      "hidden_semantic_test_command": "bash ./run_tests.sh '../hidden_tests/openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCXML::test_xml[warofrebellionco1473unit]' '../hidden_tests/openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCXML::test_xml[00schlgoog]' '../hidden_tests/openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCBinary::test_binary[memoirsofjosephf00fouc_meta.mrc]' '../hidden_tests/openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCBinary::test_binary[ithaca_college_75002321.mrc]' '../hidden_tests/openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCBinary::test_binary[lesnoirsetlesrou0000garl_meta.mrc]' '../hidden_tests/openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCBinary::test_binary[warofrebellionco1473unit_meta.mrc]' '../hidden_tests/openlibrary/catalog/add_book/tests/test_add_book.py::Test_From_MARC::test_editior_role_from_700'",
+      "hidden_compat_test_command": "bash ./run_tests.sh 'openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCXML::test_xml[39002054008678_yale_edu]' 'openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCXML::test_xml[flatlandromanceo00abbouoft]' 'openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCXML::test_xml[nybc200247]' 'openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCXML::test_xml[secretcodeofsucc00stjo]' 'openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCXML::test_xml[zweibchersatir01horauoft]' 'openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCXML::test_xml[onquietcomedyint00brid]' 'openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCXML::test_xml[0descriptionofta1682unit]' 'openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCXML::test_xml[1733mmoiresdel00vill]' 'openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCXML::test_xml[13dipolarcycload00burk]' 'openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCXML::test_xml[bijouorannualofl1828cole]' 'openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCXML::test_xml[soilsurveyrepor00statgoog]' 'openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCXML::test_xml[cu31924091184469]' 'openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCXML::test_xml[engineercorpsofh00sher]' 'openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCBinary::test_binary[bijouorannualofl1828cole_meta.mrc]' 'openlibrary/catalog/marc/tests/test_parse.py::TestParseMARCBinary::test_binary[onquietcomedyint00brid_meta.mrc]'",
+      "registry_notes": "Imported from SWE-bench Pro public split; instance_id=instance_internetarchive__openlibrary-08ac40d050a64e1d2646ece4959af0c42bf6b7b5-v0f5aece3601a5b4419f7ccec1dbda2071be28ee4. Augmented spec (requirements/interface) included in task.md. F2P ids: 7, P2P ids: 119 (compat capped at 15).",
+      "files_present": {
+        "repo": true,
+        "hidden_tests": true,
+        "reference_patch": true
+      },
+      "model_outcomes_consulted": false,
+      "tests_run_by_selector": false
+    },
+    {
+      "task_id": "swepro_openlibrary_5c6c22f3",
+      "classification": "cross-module",
+      "selection_role": "primary",
+      "rank_within_role_and_class": 2,
+      "production_files": [
+        "openlibrary/plugins/importapi/code.py",
+        "openlibrary/plugins/upstream/utils.py"
+      ],
+      "module_areas": [
+        "Import API metadata adapter",
+        "Upstream normalization utilities"
+      ],
+      "patch_size": {
+        "additions": 78,
+        "deletions": 4,
+        "changed_lines": 82,
+        "changed_lines_by_file": {
+          "openlibrary/plugins/importapi/code.py": 21,
+          "openlibrary/plugins/upstream/utils.py": 61
+        }
+      },
+      "intended_behavior": "Normalize Internet Archive publisher/place metadata and split ISBN-10/ISBN-13 fields through shared utility functions.",
+      "classification_reason": "New public normalization helpers return lists/tuples consumed by get_ia_record; both helper behavior and adapter field mapping must change consistently.",
+      "readiness_notes": "Strong alignment: withheld tests assert get_ia_record output and exercise both helper functions. Visible command covers importer and utility suites. A subset of wording asks for broader empty/whitespace handling than shown by the reference; score against frozen oracle and report coverage limits.",
+      "task_status": "pr_task_verified",
+      "base_commit": "31d6ecf3c04c8e365e557f2a9a6a65df2b8d01a3",
+      "task_file_path": "repositories/tasks/swepro_openlibrary_5c6c22f3/task.md",
+      "reference_patch_path": "repositories/tasks/swepro_openlibrary_5c6c22f3/reference.patch",
+      "task_sha256": "a48f23f08f29beebc1f72d92b101c8e14fc9679732963af7215ec0c01295da0b",
+      "reference_patch_sha256": "54c5edee290f2654faf3f93d2abae744a23a60e57c9913b0cf3df1166bcfd54e",
+      "repo_path": "repositories/tasks/swepro_openlibrary_5c6c22f3/repo",
+      "docker_image": "jefzda/sweap-images:internetarchive.openlibrary-internetarchive__openlibrary-5c6c22f3d2edf2f1b10f5dc335e32cb6a5f40341-v76304ecdb3a5954fcf13feb710e8c",
+      "setup_commands": "true",
+      "visible_test_command": "bash ./run_tests.sh openlibrary/plugins/importapi/tests/test_code.py openlibrary/plugins/upstream/tests/test_utils.py",
+      "hidden_semantic_test_command": "bash ./run_tests.sh ../hidden_tests/openlibrary/plugins/importapi/tests/test_code.py::test_get_ia_record ../hidden_tests/openlibrary/plugins/importapi/tests/test_code.py::test_get_ia_record_handles_string_publishers ../hidden_tests/openlibrary/plugins/importapi/tests/test_code.py::test_get_ia_record_handles_isbn_10_and_isbn_13 ../hidden_tests/openlibrary/plugins/importapi/tests/test_code.py::test_get_ia_record_handles_publishers_with_places ../hidden_tests/openlibrary/plugins/upstream/tests/test_utils.py::test_get_isbn_10_and_13 ../hidden_tests/openlibrary/plugins/upstream/tests/test_utils.py::test_get_publisher_and_place ../hidden_tests/openlibrary/plugins/importapi/tests/test_code.py::test_get_ia_record_logs_warning_when_language_has_multiple_matches",
+      "hidden_compat_test_command": "bash ./run_tests.sh 'openlibrary/plugins/importapi/tests/test_code.py::test_get_ia_record_handles_very_short_books[5-1]' 'openlibrary/plugins/importapi/tests/test_code.py::test_get_ia_record_handles_very_short_books[4-4]' 'openlibrary/plugins/importapi/tests/test_code.py::test_get_ia_record_handles_very_short_books[3-3]' openlibrary/plugins/upstream/tests/test_utils.py::test_url_quote openlibrary/plugins/upstream/tests/test_utils.py::test_urlencode openlibrary/plugins/upstream/tests/test_utils.py::test_entity_decode openlibrary/plugins/upstream/tests/test_utils.py::test_set_share_links openlibrary/plugins/upstream/tests/test_utils.py::test_set_share_links_unicode openlibrary/plugins/upstream/tests/test_utils.py::test_item_image openlibrary/plugins/upstream/tests/test_utils.py::test_canonical_url openlibrary/plugins/upstream/tests/test_utils.py::test_get_coverstore_url openlibrary/plugins/upstream/tests/test_utils.py::test_reformat_html openlibrary/plugins/upstream/tests/test_utils.py::test_strip_accents openlibrary/plugins/upstream/tests/test_utils.py::test_get_abbrev_from_full_lang_name",
+      "registry_notes": "Imported from SWE-bench Pro public split; instance_id=instance_internetarchive__openlibrary-5c6c22f3d2edf2f1b10f5dc335e32cb6a5f40341-v76304ecdb3a5954fcf13feb710e8c40fcf24b73c. Augmented spec (requirements/interface) included in task.md. F2P ids: 8, P2P ids: 14 (compat capped at 15).",
+      "files_present": {
+        "repo": true,
+        "hidden_tests": true,
+        "reference_patch": true
+      },
+      "model_outcomes_consulted": false,
+      "tests_run_by_selector": false
+    },
+    {
+      "task_id": "swepro_openlibrary_6e889f4a",
+      "classification": "cross-module",
+      "selection_role": "backup",
+      "rank_within_role_and_class": 1,
+      "production_files": [
+        "openlibrary/plugins/importapi/code.py",
+        "openlibrary/plugins/upstream/utils.py"
+      ],
+      "module_areas": [
+        "Import API metadata adapter",
+        "Upstream language utilities"
+      ],
+      "patch_size": {
+        "additions": 99,
+        "deletions": 5,
+        "changed_lines": 104,
+        "changed_lines_by_file": {
+          "openlibrary/plugins/importapi/code.py": 39,
+          "openlibrary/plugins/upstream/utils.py": 65
+        }
+      },
+      "intended_behavior": "Resolve full language names to bibliographic codes in IA imports and compute non-negative page counts for short books.",
+      "classification_reason": "Language utility adds exceptions and conversion contract; importer handles successful conversion/errors and changes output metadata. Both modules have substantive logic changes.",
+      "readiness_notes": "Withheld tests cover the shared converter and importer outputs, including three short-book cases. Similar pipeline to 5c6c22f3 but distinct behavior; prefer replacing a failed cross-module slot only, and note within-repository task dependence. Visible suite is utility-only; hidden importer behavior is essential.",
+      "task_status": "pr_task_verified",
+      "base_commit": "9a9204b43f9ab94601e8664340eb1dd0fca33517",
+      "task_file_path": "repositories/tasks/swepro_openlibrary_6e889f4a/task.md",
+      "reference_patch_path": "repositories/tasks/swepro_openlibrary_6e889f4a/reference.patch",
+      "task_sha256": "a109e8233bde7578d4c98019158df0322c85cd5a2091809f4f18246815bf5b1d",
+      "reference_patch_sha256": "5815fd420d190e889db9325646e307b005419326aa82b593d72fbaecd3979a0e",
+      "repo_path": "repositories/tasks/swepro_openlibrary_6e889f4a/repo",
+      "docker_image": "jefzda/sweap-images:internetarchive.openlibrary-internetarchive__openlibrary-6e889f4a733c9f8ce9a9bd2ec6a934413adcedb9-ve8c8d62a2b60610a3c4631f5f23ed",
+      "setup_commands": "true",
+      "visible_test_command": "bash ./run_tests.sh openlibrary/plugins/upstream/tests/test_utils.py",
+      "hidden_semantic_test_command": "bash ./run_tests.sh ../hidden_tests/openlibrary/plugins/upstream/tests/test_utils.py::test_get_abbrev_from_full_lang_name ../hidden_tests/openlibrary/plugins/importapi/tests/test_code.py::test_get_ia_record '../hidden_tests/openlibrary/plugins/importapi/tests/test_code.py::test_get_ia_record_handles_very_short_books[5-1]' '../hidden_tests/openlibrary/plugins/importapi/tests/test_code.py::test_get_ia_record_handles_very_short_books[4-4]' '../hidden_tests/openlibrary/plugins/importapi/tests/test_code.py::test_get_ia_record_handles_very_short_books[3-3]'",
+      "hidden_compat_test_command": "bash ./run_tests.sh openlibrary/plugins/upstream/tests/test_utils.py::test_url_quote openlibrary/plugins/upstream/tests/test_utils.py::test_urlencode openlibrary/plugins/upstream/tests/test_utils.py::test_entity_decode openlibrary/plugins/upstream/tests/test_utils.py::test_set_share_links openlibrary/plugins/upstream/tests/test_utils.py::test_set_share_links_unicode openlibrary/plugins/upstream/tests/test_utils.py::test_item_image openlibrary/plugins/upstream/tests/test_utils.py::test_canonical_url openlibrary/plugins/upstream/tests/test_utils.py::test_get_coverstore_url openlibrary/plugins/upstream/tests/test_utils.py::test_reformat_html openlibrary/plugins/upstream/tests/test_utils.py::test_strip_accents",
+      "registry_notes": "Imported from SWE-bench Pro public split; instance_id=instance_internetarchive__openlibrary-6e889f4a733c9f8ce9a9bd2ec6a934413adcedb9-ve8c8d62a2b60610a3c4631f5f23ed866bada9818. Augmented spec (requirements/interface) included in task.md. F2P ids: 5, P2P ids: 10 (compat capped at 15).",
+      "files_present": {
+        "repo": true,
+        "hidden_tests": true,
+        "reference_patch": true
+      },
+      "model_outcomes_consulted": false,
+      "tests_run_by_selector": false
+    },
+    {
+      "task_id": "swepro_openlibrary_1894cb48",
+      "classification": "cross-module",
+      "selection_role": "backup",
+      "rank_within_role_and_class": 2,
+      "production_files": [
+        "openlibrary/catalog/add_book/__init__.py",
+        "openlibrary/catalog/add_book/match.py",
+        "openlibrary/plugins/upstream/models.py"
+      ],
+      "module_areas": [
+        "Catalog matching orchestration",
+        "Edition similarity scoring",
+        "Upstream work/edition models"
+      ],
+      "patch_size": {
+        "additions": 20,
+        "deletions": 86,
+        "changed_lines": 106,
+        "changed_lines_by_file": {
+          "openlibrary/catalog/add_book/__init__.py": 80,
+          "openlibrary/catalog/add_book/match.py": 23,
+          "openlibrary/plugins/upstream/models.py": 3
+        }
+      },
+      "intended_behavior": "Prevent title-only MARC matches to sparse ISBN promise records and aggregate edition/work authors for confidence-based matching.",
+      "classification_reason": "find_match removes permissive matching, editions_match obtains combined authors, and Edition.get_authors aggregates work and edition authors. The desired decision spans these module contracts.",
+      "readiness_notes": "Withheld integration test covers the harmful title-only match; visible suites cover matching and add-book flow. Oracle does not exhaustively prove every author aggregation scenario. F2P count is one with 15 selected P2P cases; matching semantics are broader than this one regression.",
+      "task_status": "pr_task_verified",
+      "base_commit": "88da48a8faf5d6864c6ceea4a3e4a305550318e2",
+      "task_file_path": "repositories/tasks/swepro_openlibrary_1894cb48/task.md",
+      "reference_patch_path": "repositories/tasks/swepro_openlibrary_1894cb48/reference.patch",
+      "task_sha256": "b23b86231a9980c3fe5317a4b0b15a8b20ab370b7fecef04827ed5b25d72254a",
+      "reference_patch_sha256": "afec916fcb624517f2cbec4cc131ec4f57b23dc8888d5825e44c10a5c38d2988",
+      "repo_path": "repositories/tasks/swepro_openlibrary_1894cb48/repo",
+      "docker_image": "jefzda/sweap-images:internetarchive.openlibrary-internetarchive__openlibrary-1894cb48d6e7fb498295a5d3ed0596f6f603b784-v0f5aece3601a5b4419f7ccec1dbda",
+      "setup_commands": "true",
+      "visible_test_command": "bash ./run_tests.sh openlibrary/catalog/add_book/tests/test_match.py openlibrary/catalog/add_book/tests/test_add_book.py",
+      "hidden_semantic_test_command": "bash ./run_tests.sh '../hidden_tests/openlibrary/catalog/add_book/tests/test_add_book.py::test_find_match_title_only_promiseitem_against_noisbn_marc'",
+      "hidden_compat_test_command": "bash ./run_tests.sh 'openlibrary/catalog/add_book/tests/test_match.py::test_editions_match_identical_record' 'openlibrary/catalog/add_book/tests/test_match.py::test_add_db_name' 'openlibrary/catalog/add_book/tests/test_match.py::TestExpandRecord::test_expand_record' 'openlibrary/catalog/add_book/tests/test_match.py::TestExpandRecord::test_expand_record_publish_country' 'openlibrary/catalog/add_book/tests/test_match.py::TestExpandRecord::test_expand_record_transfer_fields' 'openlibrary/catalog/add_book/tests/test_match.py::TestExpandRecord::test_expand_record_isbn' 'openlibrary/catalog/add_book/tests/test_match.py::TestAuthors::test_author_contrib' 'openlibrary/catalog/add_book/tests/test_match.py::TestTitles::test_build_titles' 'openlibrary/catalog/add_book/tests/test_match.py::TestTitles::test_build_titles_ampersand' 'openlibrary/catalog/add_book/tests/test_match.py::TestTitles::test_build_titles_complex' 'openlibrary/catalog/add_book/tests/test_match.py::test_compare_publisher' 'openlibrary/catalog/add_book/tests/test_match.py::TestRecordMatching::test_match_without_ISBN' 'openlibrary/catalog/add_book/tests/test_match.py::TestRecordMatching::test_match_low_threshold' 'openlibrary/catalog/add_book/tests/test_match.py::TestRecordMatching::test_matching_title_author_and_publish_year_but_not_publishers' 'openlibrary/catalog/add_book/tests/test_match.py::TestRecordMatching::test_noisbn_record_should_not_match_title_only'",
+      "registry_notes": "Imported from SWE-bench Pro public split; instance_id=instance_internetarchive__openlibrary-1894cb48d6e7fb498295a5d3ed0596f6f603b784-v0f5aece3601a5b4419f7ccec1dbda2071be28ee4. Augmented spec (requirements/interface) included in task.md. F2P ids: 1, P2P ids: 62 (compat capped at 15).",
+      "files_present": {
+        "repo": true,
+        "hidden_tests": true,
+        "reference_patch": true
+      },
+      "model_outcomes_consulted": false,
+      "tests_run_by_selector": false
+    }
+  ]
+}

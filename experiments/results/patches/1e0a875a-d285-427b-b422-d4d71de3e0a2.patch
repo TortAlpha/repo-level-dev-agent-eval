@@ -1,0 +1,54 @@
+diff --git a/h11/_headers.py b/h11/_headers.py
+index b97d020b634a9f47f5ae6aa3b30e2bd13a6c48c4..3ee67d7e7c0dfa46eb6d730b6cc585aede42f36c 100644
+--- a/h11/_headers.py
++++ b/h11/_headers.py
+@@ -68,6 +68,8 @@ except ImportError:
+ # Maybe a dict-of-lists would be better?
+ 
+ _content_length_re = re.compile(rb"[0-9]+")
++# Reject headers that would take us too long to parse.
++_MAX_CONTENT_LENGTH_DIGITS = 19
+ _field_name_re = re.compile(field_name.encode("ascii"))
+ _field_value_re = re.compile(field_value.encode("ascii"))
+ 
+@@ -172,6 +174,8 @@ def normalize_and_validate(
+             if len(lengths) != 1:
+                 raise LocalProtocolError("conflicting Content-Length headers")
+             value = lengths.pop()
++            if len(value) > _MAX_CONTENT_LENGTH_DIGITS:
++                raise LocalProtocolError("bad Content-Length")
+             validate(_content_length_re, value, "bad Content-Length")
+             if seen_content_length is None:
+                 seen_content_length = value
+diff --git a/h11/tests/test_content_length_limits.py b/h11/tests/test_content_length_limits.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..2fde866de64e7cb4a1fddbd121ad48805106c975
+--- /dev/null
++++ b/h11/tests/test_content_length_limits.py
+@@ -0,0 +1,26 @@
++import pytest
++
++from .._headers import normalize_and_validate
++from .._util import LocalProtocolError
++
++
++def test_content_length_max_digits_allowed() -> None:
++    max_value = "9" * 19
++    assert normalize_and_validate([("Content-Length", max_value)]) == [
++        (b"content-length", max_value.encode("ascii"))
++    ]
++
++
++def test_content_length_too_many_digits_is_rejected() -> None:
++    too_long = "9" * 20
++    with pytest.raises(LocalProtocolError):
++        normalize_and_validate([("Content-Length", too_long)])
++
++
++def test_content_length_too_many_digits_with_other_header() -> None:
++    too_long = "9" * 20
++    max_value = "1"
++    with pytest.raises(LocalProtocolError):
++        normalize_and_validate(
++            [("Content-Length", max_value), ("Content-Length", too_long)]
++        )

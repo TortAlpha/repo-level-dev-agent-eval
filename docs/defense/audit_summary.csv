@@ -1,0 +1,9 @@
+block,agent_mode,runs,successes,total_cost_usd,total_steps,total_tokens,step_cap
+Core small,single,12,11,0.3764755,257,1681762,50
+Core small,multi-graph,12,11,0.76416042,412,1722376,50
+Core small,multi-orch-guarded,12,11,0.97067375,452,1905302,50
+Core medium,single,12,11,0.47638338,236,1434864,50
+Core medium,multi-graph,12,10,0.7273928,490,1898924,75
+Core medium,multi-orch-guarded,12,10,0.9330787,501,2139870,75
+SWE-bench Pro,single,15,9,3.30768217,428,4811418,50
+SWE-bench Pro,multi-graph,15,9,3.44122414,742,4642641,75

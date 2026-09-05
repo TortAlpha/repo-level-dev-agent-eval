@@ -1,0 +1,745 @@
+{
+  "commit": "8da3f3f890340caac306af062e2adc21acfdb943",
+  "primary_runs": 102,
+  "historical_review_rows": 87,
+  "primary_quality_review_count": 0,
+  "groups": {
+    "Core small": {
+      "single": {
+        "runs": 12,
+        "resolved_at_1": {
+          "numerator": 11,
+          "denominator": 12,
+          "value": 0.9166666666666666
+        },
+        "visible_test_pass_rate": {
+          "numerator": 12,
+          "denominator": 12,
+          "value": 1.0
+        },
+        "hidden_test_pass_rate": {
+          "numerator": 11,
+          "denominator": 12,
+          "value": 0.9166666666666666
+        },
+        "regression_rate": {
+          "numerator": 0,
+          "denominator": 12,
+          "value": 0.0
+        },
+        "handoff_rate": {
+          "numerator": 0,
+          "denominator": 12,
+          "value": 0.0
+        },
+        "patch_validity_rate": {
+          "numerator": 12,
+          "denominator": 12,
+          "value": 1.0
+        },
+        "tool_use_validity_rate": {
+          "numerator": 241,
+          "denominator": 251,
+          "value": 0.9601593625498008
+        },
+        "hallucinated_refs_per_run": 0.8333333333333334,
+        "action_failure_count": 10,
+        "test_overfitting_rate": {
+          "numerator": 1,
+          "denominator": 12,
+          "value": 0.08333333333333333
+        },
+        "repair_success_rate": {
+          "numerator": 12,
+          "denominator": 12,
+          "value": 1.0
+        },
+        "mean_iterations": 3.4166666666666665,
+        "mean_llm_calls": 21.5,
+        "mean_quality_score": null,
+        "quality_reviewed_runs": 0,
+        "test_oracle_tampering_detected": 0
+      },
+      "multi-graph": {
+        "runs": 12,
+        "resolved_at_1": {
+          "numerator": 11,
+          "denominator": 12,
+          "value": 0.9166666666666666
+        },
+        "visible_test_pass_rate": {
+          "numerator": 11,
+          "denominator": 12,
+          "value": 0.9166666666666666
+        },
+        "hidden_test_pass_rate": {
+          "numerator": 11,
+          "denominator": 12,
+          "value": 0.9166666666666666
+        },
+        "regression_rate": {
+          "numerator": 0,
+          "denominator": 12,
+          "value": 0.0
+        },
+        "handoff_rate": {
+          "numerator": 0,
+          "denominator": 12,
+          "value": 0.0
+        },
+        "patch_validity_rate": {
+          "numerator": 12,
+          "denominator": 12,
+          "value": 1.0
+        },
+        "tool_use_validity_rate": {
+          "numerator": 322,
+          "denominator": 341,
+          "value": 0.9442815249266863
+        },
+        "hallucinated_refs_per_run": 1.5,
+        "action_failure_count": 18,
+        "test_overfitting_rate": {
+          "numerator": 0,
+          "denominator": 11,
+          "value": 0.0
+        },
+        "repair_success_rate": {
+          "numerator": 8,
+          "denominator": 8,
+          "value": 1.0
+        },
+        "mean_iterations": 2.25,
+        "mean_llm_calls": 33.75,
+        "mean_quality_score": null,
+        "quality_reviewed_runs": 0,
+        "test_oracle_tampering_detected": 0
+      },
+      "multi-orch-guarded": {
+        "runs": 12,
+        "resolved_at_1": {
+          "numerator": 11,
+          "denominator": 12,
+          "value": 0.9166666666666666
+        },
+        "visible_test_pass_rate": {
+          "numerator": 11,
+          "denominator": 12,
+          "value": 0.9166666666666666
+        },
+        "hidden_test_pass_rate": {
+          "numerator": 11,
+          "denominator": 12,
+          "value": 0.9166666666666666
+        },
+        "regression_rate": {
+          "numerator": 0,
+          "denominator": 12,
+          "value": 0.0
+        },
+        "handoff_rate": {
+          "numerator": 0,
+          "denominator": 12,
+          "value": 0.0
+        },
+        "patch_validity_rate": {
+          "numerator": 12,
+          "denominator": 12,
+          "value": 1.0
+        },
+        "tool_use_validity_rate": {
+          "numerator": 325,
+          "denominator": 337,
+          "value": 0.9643916913946587
+        },
+        "hallucinated_refs_per_run": 0.9166666666666666,
+        "action_failure_count": 11,
+        "test_overfitting_rate": {
+          "numerator": 0,
+          "denominator": 11,
+          "value": 0.0
+        },
+        "repair_success_rate": {
+          "numerator": 9,
+          "denominator": 10,
+          "value": 0.9
+        },
+        "mean_iterations": 2.1666666666666665,
+        "mean_llm_calls": 37.75,
+        "mean_quality_score": null,
+        "quality_reviewed_runs": 0,
+        "test_oracle_tampering_detected": 0
+      }
+    },
+    "Core medium": {
+      "single": {
+        "runs": 12,
+        "resolved_at_1": {
+          "numerator": 11,
+          "denominator": 12,
+          "value": 0.9166666666666666
+        },
+        "visible_test_pass_rate": {
+          "numerator": 12,
+          "denominator": 12,
+          "value": 1.0
+        },
+        "hidden_test_pass_rate": {
+          "numerator": 11,
+          "denominator": 12,
+          "value": 0.9166666666666666
+        },
+        "regression_rate": {
+          "numerator": 0,
+          "denominator": 12,
+          "value": 0.0
+        },
+        "handoff_rate": {
+          "numerator": 0,
+          "denominator": 12,
+          "value": 0.0
+        },
+        "patch_validity_rate": {
+          "numerator": 12,
+          "denominator": 12,
+          "value": 1.0
+        },
+        "tool_use_validity_rate": {
+          "numerator": 221,
+          "denominator": 230,
+          "value": 0.9608695652173913
+        },
+        "hallucinated_refs_per_run": 0.75,
+        "action_failure_count": 9,
+        "test_overfitting_rate": {
+          "numerator": 1,
+          "denominator": 12,
+          "value": 0.08333333333333333
+        },
+        "repair_success_rate": {
+          "numerator": 9,
+          "denominator": 9,
+          "value": 1.0
+        },
+        "mean_iterations": 2.5833333333333335,
+        "mean_llm_calls": 19.916666666666668,
+        "mean_quality_score": null,
+        "quality_reviewed_runs": 0,
+        "test_oracle_tampering_detected": 0
+      },
+      "multi-graph": {
+        "runs": 12,
+        "resolved_at_1": {
+          "numerator": 10,
+          "denominator": 12,
+          "value": 0.8333333333333334
+        },
+        "visible_test_pass_rate": {
+          "numerator": 11,
+          "denominator": 12,
+          "value": 0.9166666666666666
+        },
+        "hidden_test_pass_rate": {
+          "numerator": 10,
+          "denominator": 12,
+          "value": 0.8333333333333334
+        },
+        "regression_rate": {
+          "numerator": 1,
+          "denominator": 12,
+          "value": 0.08333333333333333
+        },
+        "handoff_rate": {
+          "numerator": 0,
+          "denominator": 12,
+          "value": 0.0
+        },
+        "patch_validity_rate": {
+          "numerator": 12,
+          "denominator": 12,
+          "value": 1.0
+        },
+        "tool_use_validity_rate": {
+          "numerator": 407,
+          "denominator": 424,
+          "value": 0.9599056603773585
+        },
+        "hallucinated_refs_per_run": 1.1666666666666667,
+        "action_failure_count": 14,
+        "test_overfitting_rate": {
+          "numerator": 1,
+          "denominator": 11,
+          "value": 0.09090909090909091
+        },
+        "repair_success_rate": {
+          "numerator": 8,
+          "denominator": 9,
+          "value": 0.8888888888888888
+        },
+        "mean_iterations": 2.3333333333333335,
+        "mean_llm_calls": 40.25,
+        "mean_quality_score": null,
+        "quality_reviewed_runs": 0,
+        "test_oracle_tampering_detected": 0
+      },
+      "multi-orch-guarded": {
+        "runs": 12,
+        "resolved_at_1": {
+          "numerator": 10,
+          "denominator": 12,
+          "value": 0.8333333333333334
+        },
+        "visible_test_pass_rate": {
+          "numerator": 12,
+          "denominator": 12,
+          "value": 1.0
+        },
+        "hidden_test_pass_rate": {
+          "numerator": 10,
+          "denominator": 12,
+          "value": 0.8333333333333334
+        },
+        "regression_rate": {
+          "numerator": 0,
+          "denominator": 12,
+          "value": 0.0
+        },
+        "handoff_rate": {
+          "numerator": 0,
+          "denominator": 12,
+          "value": 0.0
+        },
+        "patch_validity_rate": {
+          "numerator": 12,
+          "denominator": 12,
+          "value": 1.0
+        },
+        "tool_use_validity_rate": {
+          "numerator": 367,
+          "denominator": 382,
+          "value": 0.9607329842931938
+        },
+        "hallucinated_refs_per_run": 1.1666666666666667,
+        "action_failure_count": 14,
+        "test_overfitting_rate": {
+          "numerator": 2,
+          "denominator": 12,
+          "value": 0.16666666666666666
+        },
+        "repair_success_rate": {
+          "numerator": 9,
+          "denominator": 9,
+          "value": 1.0
+        },
+        "mean_iterations": 2.5833333333333335,
+        "mean_llm_calls": 42.25,
+        "mean_quality_score": null,
+        "quality_reviewed_runs": 0,
+        "test_oracle_tampering_detected": 0
+      }
+    },
+    "SWE Pro": {
+      "single": {
+        "runs": 15,
+        "resolved_at_1": {
+          "numerator": 9,
+          "denominator": 15,
+          "value": 0.6
+        },
+        "visible_test_pass_rate": {
+          "numerator": 15,
+          "denominator": 15,
+          "value": 1.0
+        },
+        "hidden_test_pass_rate": {
+          "numerator": 9,
+          "denominator": 15,
+          "value": 0.6
+        },
+        "regression_rate": {
+          "numerator": 0,
+          "denominator": 15,
+          "value": 0.0
+        },
+        "handoff_rate": {
+          "numerator": 0,
+          "denominator": 15,
+          "value": 0.0
+        },
+        "patch_validity_rate": {
+          "numerator": 15,
+          "denominator": 15,
+          "value": 1.0
+        },
+        "tool_use_validity_rate": {
+          "numerator": 390,
+          "denominator": 408,
+          "value": 0.9558823529411765
+        },
+        "hallucinated_refs_per_run": 1.1333333333333333,
+        "action_failure_count": 17,
+        "test_overfitting_rate": {
+          "numerator": 6,
+          "denominator": 15,
+          "value": 0.4
+        },
+        "repair_success_rate": {
+          "numerator": 14,
+          "denominator": 14,
+          "value": 1.0
+        },
+        "mean_iterations": 3.3333333333333335,
+        "mean_llm_calls": 31.533333333333335,
+        "mean_quality_score": null,
+        "quality_reviewed_runs": 0,
+        "test_oracle_tampering_detected": 0
+      },
+      "multi-graph": {
+        "runs": 15,
+        "resolved_at_1": {
+          "numerator": 9,
+          "denominator": 15,
+          "value": 0.6
+        },
+        "visible_test_pass_rate": {
+          "numerator": 15,
+          "denominator": 15,
+          "value": 1.0
+        },
+        "hidden_test_pass_rate": {
+          "numerator": 9,
+          "denominator": 15,
+          "value": 0.6
+        },
+        "regression_rate": {
+          "numerator": 0,
+          "denominator": 15,
+          "value": 0.0
+        },
+        "handoff_rate": {
+          "numerator": 0,
+          "denominator": 15,
+          "value": 0.0
+        },
+        "patch_validity_rate": {
+          "numerator": 15,
+          "denominator": 15,
+          "value": 1.0
+        },
+        "tool_use_validity_rate": {
+          "numerator": 639,
+          "denominator": 661,
+          "value": 0.9667170953101362
+        },
+        "hallucinated_refs_per_run": 1.2,
+        "action_failure_count": 18,
+        "test_overfitting_rate": {
+          "numerator": 6,
+          "denominator": 15,
+          "value": 0.4
+        },
+        "repair_success_rate": {
+          "numerator": 15,
+          "denominator": 15,
+          "value": 1.0
+        },
+        "mean_iterations": 3.466666666666667,
+        "mean_llm_calls": 49.2,
+        "mean_quality_score": null,
+        "quality_reviewed_runs": 0,
+        "test_oracle_tampering_detected": 0
+      }
+    },
+    "Core total": {
+      "single": {
+        "runs": 24,
+        "resolved_at_1": {
+          "numerator": 22,
+          "denominator": 24,
+          "value": 0.9166666666666666
+        },
+        "visible_test_pass_rate": {
+          "numerator": 24,
+          "denominator": 24,
+          "value": 1.0
+        },
+        "hidden_test_pass_rate": {
+          "numerator": 22,
+          "denominator": 24,
+          "value": 0.9166666666666666
+        },
+        "regression_rate": {
+          "numerator": 0,
+          "denominator": 24,
+          "value": 0.0
+        },
+        "handoff_rate": {
+          "numerator": 0,
+          "denominator": 24,
+          "value": 0.0
+        },
+        "patch_validity_rate": {
+          "numerator": 24,
+          "denominator": 24,
+          "value": 1.0
+        },
+        "tool_use_validity_rate": {
+          "numerator": 462,
+          "denominator": 481,
+          "value": 0.9604989604989606
+        },
+        "hallucinated_refs_per_run": 0.7916666666666666,
+        "action_failure_count": 19,
+        "test_overfitting_rate": {
+          "numerator": 2,
+          "denominator": 24,
+          "value": 0.08333333333333333
+        },
+        "repair_success_rate": {
+          "numerator": 21,
+          "denominator": 21,
+          "value": 1.0
+        },
+        "mean_iterations": 3.0,
+        "mean_llm_calls": 20.708333333333332,
+        "mean_quality_score": null,
+        "quality_reviewed_runs": 0,
+        "test_oracle_tampering_detected": 0
+      },
+      "multi-graph": {
+        "runs": 24,
+        "resolved_at_1": {
+          "numerator": 21,
+          "denominator": 24,
+          "value": 0.875
+        },
+        "visible_test_pass_rate": {
+          "numerator": 22,
+          "denominator": 24,
+          "value": 0.9166666666666666
+        },
+        "hidden_test_pass_rate": {
+          "numerator": 21,
+          "denominator": 24,
+          "value": 0.875
+        },
+        "regression_rate": {
+          "numerator": 1,
+          "denominator": 24,
+          "value": 0.041666666666666664
+        },
+        "handoff_rate": {
+          "numerator": 0,
+          "denominator": 24,
+          "value": 0.0
+        },
+        "patch_validity_rate": {
+          "numerator": 24,
+          "denominator": 24,
+          "value": 1.0
+        },
+        "tool_use_validity_rate": {
+          "numerator": 729,
+          "denominator": 765,
+          "value": 0.9529411764705882
+        },
+        "hallucinated_refs_per_run": 1.3333333333333333,
+        "action_failure_count": 32,
+        "test_overfitting_rate": {
+          "numerator": 1,
+          "denominator": 22,
+          "value": 0.045454545454545456
+        },
+        "repair_success_rate": {
+          "numerator": 16,
+          "denominator": 17,
+          "value": 0.9411764705882353
+        },
+        "mean_iterations": 2.2916666666666665,
+        "mean_llm_calls": 37.0,
+        "mean_quality_score": null,
+        "quality_reviewed_runs": 0,
+        "test_oracle_tampering_detected": 0
+      },
+      "multi-orch-guarded": {
+        "runs": 24,
+        "resolved_at_1": {
+          "numerator": 21,
+          "denominator": 24,
+          "value": 0.875
+        },
+        "visible_test_pass_rate": {
+          "numerator": 23,
+          "denominator": 24,
+          "value": 0.9583333333333334
+        },
+        "hidden_test_pass_rate": {
+          "numerator": 21,
+          "denominator": 24,
+          "value": 0.875
+        },
+        "regression_rate": {
+          "numerator": 0,
+          "denominator": 24,
+          "value": 0.0
+        },
+        "handoff_rate": {
+          "numerator": 0,
+          "denominator": 24,
+          "value": 0.0
+        },
+        "patch_validity_rate": {
+          "numerator": 24,
+          "denominator": 24,
+          "value": 1.0
+        },
+        "tool_use_validity_rate": {
+          "numerator": 692,
+          "denominator": 719,
+          "value": 0.9624478442280946
+        },
+        "hallucinated_refs_per_run": 1.0416666666666667,
+        "action_failure_count": 25,
+        "test_overfitting_rate": {
+          "numerator": 2,
+          "denominator": 23,
+          "value": 0.08695652173913043
+        },
+        "repair_success_rate": {
+          "numerator": 18,
+          "denominator": 19,
+          "value": 0.9473684210526315
+        },
+        "mean_iterations": 2.375,
+        "mean_llm_calls": 40.0,
+        "mean_quality_score": null,
+        "quality_reviewed_runs": 0,
+        "test_oracle_tampering_detected": 0
+      }
+    },
+    "Shared total": {
+      "single": {
+        "runs": 39,
+        "resolved_at_1": {
+          "numerator": 31,
+          "denominator": 39,
+          "value": 0.7948717948717948
+        },
+        "visible_test_pass_rate": {
+          "numerator": 39,
+          "denominator": 39,
+          "value": 1.0
+        },
+        "hidden_test_pass_rate": {
+          "numerator": 31,
+          "denominator": 39,
+          "value": 0.7948717948717948
+        },
+        "regression_rate": {
+          "numerator": 0,
+          "denominator": 39,
+          "value": 0.0
+        },
+        "handoff_rate": {
+          "numerator": 0,
+          "denominator": 39,
+          "value": 0.0
+        },
+        "patch_validity_rate": {
+          "numerator": 39,
+          "denominator": 39,
+          "value": 1.0
+        },
+        "tool_use_validity_rate": {
+          "numerator": 852,
+          "denominator": 889,
+          "value": 0.9583802024746907
+        },
+        "hallucinated_refs_per_run": 0.9230769230769231,
+        "action_failure_count": 36,
+        "test_overfitting_rate": {
+          "numerator": 8,
+          "denominator": 39,
+          "value": 0.20512820512820512
+        },
+        "repair_success_rate": {
+          "numerator": 35,
+          "denominator": 35,
+          "value": 1.0
+        },
+        "mean_iterations": 3.128205128205128,
+        "mean_llm_calls": 24.871794871794872,
+        "mean_quality_score": null,
+        "quality_reviewed_runs": 0,
+        "test_oracle_tampering_detected": 0
+      },
+      "multi-graph": {
+        "runs": 39,
+        "resolved_at_1": {
+          "numerator": 30,
+          "denominator": 39,
+          "value": 0.7692307692307693
+        },
+        "visible_test_pass_rate": {
+          "numerator": 37,
+          "denominator": 39,
+          "value": 0.9487179487179487
+        },
+        "hidden_test_pass_rate": {
+          "numerator": 30,
+          "denominator": 39,
+          "value": 0.7692307692307693
+        },
+        "regression_rate": {
+          "numerator": 1,
+          "denominator": 39,
+          "value": 0.02564102564102564
+        },
+        "handoff_rate": {
+          "numerator": 0,
+          "denominator": 39,
+          "value": 0.0
+        },
+        "patch_validity_rate": {
+          "numerator": 39,
+          "denominator": 39,
+          "value": 1.0
+        },
+        "tool_use_validity_rate": {
+          "numerator": 1368,
+          "denominator": 1426,
+          "value": 0.9593267882187938
+        },
+        "hallucinated_refs_per_run": 1.2820512820512822,
+        "action_failure_count": 50,
+        "test_overfitting_rate": {
+          "numerator": 7,
+          "denominator": 37,
+          "value": 0.1891891891891892
+        },
+        "repair_success_rate": {
+          "numerator": 31,
+          "denominator": 32,
+          "value": 0.96875
+        },
+        "mean_iterations": 2.7435897435897436,
+        "mean_llm_calls": 41.69230769230769,
+        "mean_quality_score": null,
+        "quality_reviewed_runs": 0,
+        "test_oracle_tampering_detected": 0
+      }
+    }
+  },
+  "interpretation": {
+    "test_rates": "Fractions of runs passing the complete suite, not individual test-case accuracy.",
+    "resolved_at_1": "One final run per task and architecture in each reported block.",
+    "tool_use_validity": "Valid categorized actions / (valid + invalid categorized actions), pooled over action counts.",
+    "patch_validity": "Proxy: changed-files list is nonempty, not proof of a valid or correct patch.",
+    "hallucinated_refs": "Proxy: invalid, malformed, or missing actions per run, not verified API hallucinations.",
+    "test_overfitting": "Proxy: final failures among visible-pass runs, not demonstrated intentional overfitting.",
+    "repair_success": "Proxy: visible-pass runs among runs with more than one test iteration, not verified failure-to-success transitions.",
+    "regression_rate": "Runs with at least one recorded regression / runs with a before/after comparison.",
+    "quality": "No primary runs have rubric scores. Historical reviews do not evaluate the primary final patches.",
+    "scope": "Read-only reaggregation of saved records. Does not rerun tests or model calls."
+  }
+}

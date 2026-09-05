@@ -1,0 +1,64 @@
+diff --git a/tinydb/table.py b/tinydb/table.py
+index 5641d22df4c7568064ab8fe08a85489a000f17a9..bf1b71388d9e6c872da292c01daa9764b8afff91 100644
+--- a/tinydb/table.py
++++ b/tinydb/table.py
+@@ -419,8 +419,8 @@ class Table:
+         :param fields: the fields that the matching documents will have
+                        or a method that will update the documents
+         :param cond: which documents to update
+-        :param doc_ids: a list of document IDs
+-        :returns: a list containing the updated document's ID
++        :param doc_ids: a list of document IDs (missing IDs are ignored)
++        :returns: a list containing the updated documents' IDs
+         """
+ 
+         # Define the function that will perform the update
+@@ -437,13 +437,15 @@ class Table:
+         if doc_ids is not None:
+             # Perform the update operation for documents specified by a list
+             # of document IDs
+-
+-            updated_ids = list(doc_ids)
++            initial_ids = list(doc_ids)
++            updated_ids: List[int] = []
+ 
+             def updater(table: dict):
+                 # Call the processing callback with all document IDs
+-                for doc_id in updated_ids:
+-                    perform_update(table, doc_id)
++                for doc_id in initial_ids:
++                    if doc_id in table:
++                        perform_update(table, doc_id)
++                        updated_ids.append(doc_id)
+ 
+             # Perform the update operation (see _update_table for details)
+             self._update_table(updater)
+@@ -603,8 +605,8 @@ class Table:
+         Remove all matching documents.
+ 
+         :param cond: the condition to check against
+-        :param doc_ids: a list of document IDs
+-        :returns: a list containing the removed documents' ID
++        :param doc_ids: a list of document IDs (missing IDs are ignored)
++        :returns: a list containing the removed documents' IDs
+         """
+         if doc_ids is not None:
+             # This function returns the list of IDs for the documents that have
+@@ -614,11 +616,14 @@ class Table:
+             # We convert the document ID iterator into a list, so we can both
+             # use the document IDs to remove the specified documents and
+             # to return the list of affected document IDs
+-            removed_ids = list(doc_ids)
++            initial_ids = list(doc_ids)
++            removed_ids: List[int] = []
+ 
+             def updater(table: dict):
+-                for doc_id in removed_ids:
+-                    table.pop(doc_id)
++                for doc_id in initial_ids:
++                    if doc_id in table:
++                        table.pop(doc_id)
++                        removed_ids.append(doc_id)
+ 
+             # Perform the remove operation
+             self._update_table(updater)

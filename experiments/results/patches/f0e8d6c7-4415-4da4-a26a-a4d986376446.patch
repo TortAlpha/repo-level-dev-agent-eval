@@ -1,0 +1,43 @@
+diff --git a/h11/_headers.py b/h11/_headers.py
+index b97d020b634a9f47f5ae6aa3b30e2bd13a6c48c4..42cfd0d15538df97c01ad1aa56fa749f65ea0c08 100644
+--- a/h11/_headers.py
++++ b/h11/_headers.py
+@@ -173,6 +173,8 @@ def normalize_and_validate(
+                 raise LocalProtocolError("conflicting Content-Length headers")
+             value = lengths.pop()
+             validate(_content_length_re, value, "bad Content-Length")
++            if len(value) > 20:
++                raise LocalProtocolError("bad Content-Length")
+             if seen_content_length is None:
+                 seen_content_length = value
+                 new_headers.append((raw_name, name, value))
+diff --git a/h11/tests/test_content_length_limit.py b/h11/tests/test_content_length_limit.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..386283748fe0c0be4f99a3322d1a178cd443cdfd
+--- /dev/null
++++ b/h11/tests/test_content_length_limit.py
+@@ -0,0 +1,24 @@
++import pytest
++
++from h11 import Request, LocalProtocolError
++
++
++def test_pathological_content_length_rejected():
++    with pytest.raises(LocalProtocolError):
++        Request(
++            method="GET",
++            target="/",
++            headers=[("Host", "example.com"), ("Content-Length", b"1" * 100)],
++        )
++
++
++def test_normal_content_length_accepted():
++    req = Request(
++        method="GET",
++        target="/",
++        headers=[("Host", "example.com"), ("Content-Length", "123")],
++    )
++    assert req.headers == [
++        (b"host", b"example.com"),
++        (b"content-length", b"123"),
++    ]

@@ -1,0 +1,65 @@
+diff --git a/h11/_headers.py b/h11/_headers.py
+index b97d020b634a9f47f5ae6aa3b30e2bd13a6c48c4..147cde7e91e38241195f16ae21a799072545e666 100644
+--- a/h11/_headers.py
++++ b/h11/_headers.py
+@@ -71,6 +71,12 @@ _content_length_re = re.compile(rb"[0-9]+")
+ _field_name_re = re.compile(field_name.encode("ascii"))
+ _field_value_re = re.compile(field_value.encode("ascii"))
+ 
++# RFC 7230 does not specify a maximum, but a Content-Length value with more
++# than 20 digits is unreasonably large (the maximum valid HTTP message size
++# is far smaller). Rejecting such values early avoids expensive int()
++# conversions on very long decimal strings.
++MAX_CONTENT_LENGTH_DIGITS = 20
++
+ 
+ class Headers(Sequence[Tuple[bytes, bytes]]):
+     """
+@@ -173,6 +179,8 @@ def normalize_and_validate(
+                 raise LocalProtocolError("conflicting Content-Length headers")
+             value = lengths.pop()
+             validate(_content_length_re, value, "bad Content-Length")
++            if len(value) > MAX_CONTENT_LENGTH_DIGITS:
++                raise LocalProtocolError("Content-Length too large")
+             if seen_content_length is None:
+                 seen_content_length = value
+                 new_headers.append((raw_name, name, value))
+diff --git a/h11/tests/test_pathological_content_length.py b/h11/tests/test_pathological_content_length.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..d03fc65ac8a473f1fdb63374d92a24ad489bd747
+--- /dev/null
++++ b/h11/tests/test_pathological_content_length.py
+@@ -0,0 +1,33 @@
++import pytest
++
++from h11._headers import normalize_and_validate
++from h11._util import LocalProtocolError
++
++
++def test_rejects_pathological_content_length() -> None:
++    # 21 digits is one more than MAX_CONTENT_LENGTH_DIGITS (20)
++    with pytest.raises(LocalProtocolError) as excinfo:
++        normalize_and_validate([("Content-Length", "1" * 21)])
++    assert "Content-Length too large" in str(excinfo.value)
++
++
++def test_accepts_max_valid_content_length() -> None:
++    # 20 digits is the maximum allowed
++    result = normalize_and_validate([("Content-Length", "1" * 20)])
++    assert result == [(b"content-length", b"1" * 20)]
++
++
++def test_rejects_pathological_content_length_through_connection() -> None:
++    # Verify the error surfaces as a RemoteProtocolError (subclass of h11.ProtocolError)
++    # when receiving data from a remote peer.
++    from h11 import Connection, CLIENT, RemoteProtocolError
++
++    conn = Connection(CLIENT)
++    data = (
++        b"HTTP/1.1 200 OK\r\n"
++        b"Content-Length: " + b"1" * 21 + b"\r\n"
++        b"\r\n"
++    )
++    with pytest.raises(RemoteProtocolError) as excinfo:
++        conn.receive_data(data)
++    assert "Content-Length too large" in str(excinfo.value)

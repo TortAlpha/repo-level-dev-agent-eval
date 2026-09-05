@@ -1,0 +1,109 @@
+diff --git a/freezegun/api.py b/freezegun/api.py
+index 0f11e0c113f328fb4ce71329cf8e6b35ab58a3fe..f9d5d8d3fbaab95d3a000910a09d3aed554c6419 100644
+--- a/freezegun/api.py
++++ b/freezegun/api.py
+@@ -509,12 +509,12 @@ class TickingDateTimeFactory:
+     def __call__(self) -> datetime.datetime:
+         return self.time_to_freeze + (real_datetime.now() - self.start)
+ 
+-    def tick(self, delta: Union[datetime.timedelta, int]=datetime.timedelta(seconds=1)) -> datetime.datetime:
+-        if isinstance(delta, numbers.Real):
+-            # noinspection PyTypeChecker
+-            self.move_to(self.time_to_freeze + datetime.timedelta(seconds=delta))
++    def tick(self, delta: Union[datetime.timedelta, numbers.Real]=datetime.timedelta(seconds=1)) -> datetime.datetime:
++        if isinstance(delta, datetime.timedelta):
++            self.move_to(self.time_to_freeze + delta)
+         else:
+-            self.move_to(self.time_to_freeze + delta)  # type: ignore
++            # noinspection PyTypeChecker
++            self.move_to(self.time_to_freeze + datetime.timedelta(seconds=float(delta)))
+         return self.time_to_freeze
+ 
+     def move_to(self, target_datetime: _Freezable) -> None:
+@@ -531,12 +531,12 @@ class FrozenDateTimeFactory:
+     def __call__(self) -> datetime.datetime:
+         return self.time_to_freeze
+ 
+-    def tick(self, delta: Union[datetime.timedelta, int]=datetime.timedelta(seconds=1)) -> datetime.datetime:
+-        if isinstance(delta, numbers.Real):
+-            # noinspection PyTypeChecker
+-            self.time_to_freeze += datetime.timedelta(seconds=delta)
++    def tick(self, delta: Union[datetime.timedelta, numbers.Real]=datetime.timedelta(seconds=1)) -> datetime.datetime:
++        if isinstance(delta, datetime.timedelta):
++            self.time_to_freeze += delta
+         else:
+-            self.time_to_freeze += delta  # type: ignore
++            # noinspection PyTypeChecker
++            self.time_to_freeze += datetime.timedelta(seconds=float(delta))
+         return self.time_to_freeze
+ 
+     def move_to(self, target_datetime: _Freezable) -> None:
+@@ -557,10 +557,14 @@ class StepTickTimeFactory:
+         self.tick()
+         return return_time
+ 
+-    def tick(self, delta: Union[datetime.timedelta, int, None]=None) -> datetime.datetime:
+-        if not delta:
++    def tick(self, delta: Union[datetime.timedelta, numbers.Real, None]=None) -> datetime.datetime:
++        if delta is None:
+             delta = datetime.timedelta(seconds=self.step_width)
+-        self.time_to_freeze += delta  # type: ignore
++        if isinstance(delta, datetime.timedelta):
++            self.time_to_freeze += delta
++        else:
++            # noinspection PyTypeChecker
++            self.time_to_freeze += datetime.timedelta(seconds=float(delta))
+         return self.time_to_freeze
+ 
+     def update_step_width(self, step_width: float) -> None:
+diff --git a/tests/test_tick_numeric.py b/tests/test_tick_numeric.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..6ad0996dd039d842bc9328ae310c36fce4eec284
+--- /dev/null
++++ b/tests/test_tick_numeric.py
+@@ -0,0 +1,45 @@
++import datetime
++import fractions
++
++import pytest
++
++from freezegun import freeze_time
++from freezegun.api import FrozenDateTimeFactory, StepTickTimeFactory
++
++
++@pytest.mark.parametrize(
++    "delta",
++    [
++        0.5,
++        1.5,
++        -1.5,
++        fractions.Fraction(3, 2),
++        2,
++        -2,
++    ],
++)
++def test_frozen_tick_accepts_numeric_delta(delta):
++    factory = FrozenDateTimeFactory(datetime.datetime(2020, 1, 1, 0, 0, 0))
++    result = factory.tick(delta)
++    assert result == datetime.datetime(2020, 1, 1, 0, 0, 0) + datetime.timedelta(seconds=float(delta))
++
++
++def test_step_tick_accepts_numeric_delta():
++    factory = StepTickTimeFactory(datetime.datetime(2020, 1, 1, 0, 0, 0), 1)
++    result = factory.tick(2)
++    assert result == datetime.datetime(2020, 1, 1, 0, 0, 2)
++
++
++def test_ticking_tick_accepts_numeric_delta():
++    from freezegun.api import TickingDateTimeFactory
++    import datetime as dt
++
++    factory = TickingDateTimeFactory(dt.datetime(2020, 1, 1, 0, 0, 0), dt.datetime(2020, 1, 1, 0, 0, 0))
++    result = factory.tick(1.5)
++    assert result == dt.datetime(2020, 1, 1, 0, 0, 1, 500000)
++
++
++def test_frozen_tick_accepts_timedelta():
++    factory = FrozenDateTimeFactory(datetime.datetime(2020, 1, 1, 0, 0, 0))
++    result = factory.tick(datetime.timedelta(seconds=5))
++    assert result == datetime.datetime(2020, 1, 1, 0, 0, 5)

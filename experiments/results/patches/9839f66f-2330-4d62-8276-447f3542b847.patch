@@ -1,0 +1,52 @@
+diff --git a/h11/_headers.py b/h11/_headers.py
+index b97d020b634a9f47f5ae6aa3b30e2bd13a6c48c4..7ca9b295623414e1f3f08e3a8390186ab2cdb644 100644
+--- a/h11/_headers.py
++++ b/h11/_headers.py
+@@ -68,6 +68,8 @@ except ImportError:
+ # Maybe a dict-of-lists would be better?
+ 
+ _content_length_re = re.compile(rb"[0-9]+")
++# Reject pathological Content-Length header values that are too long.
++_MAX_CONTENT_LENGTH_DIGITS = 20
+ _field_name_re = re.compile(field_name.encode("ascii"))
+ _field_value_re = re.compile(field_value.encode("ascii"))
+ 
+@@ -172,6 +174,8 @@ def normalize_and_validate(
+             if len(lengths) != 1:
+                 raise LocalProtocolError("conflicting Content-Length headers")
+             value = lengths.pop()
++            if len(value) > _MAX_CONTENT_LENGTH_DIGITS:
++                raise LocalProtocolError("bad Content-Length")
+             validate(_content_length_re, value, "bad Content-Length")
+             if seen_content_length is None:
+                 seen_content_length = value
+diff --git a/h11/tests/test_content_length_guard.py b/h11/tests/test_content_length_guard.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..ee88237c8cbc0733c8b036bb95ef8e1427f0feb6
+--- /dev/null
++++ b/h11/tests/test_content_length_guard.py
+@@ -0,0 +1,24 @@
++import pytest
++
++import h11
++from h11._headers import normalize_and_validate, _MAX_CONTENT_LENGTH_DIGITS
++from h11 import LocalProtocolError, ProtocolError, Connection
++
++
++def test_normalize_and_validate_rejects_pathological_content_length():
++    # A Content-Length value longer than the allowed digit count should be rejected.
++    too_long = b"9" * (_MAX_CONTENT_LENGTH_DIGITS + 1)
++    headers = [(b"Content-Length", too_long)]
++    with pytest.raises(LocalProtocolError) as excinfo:
++        normalize_and_validate(headers, _parsed=False)
++    assert "bad Content-Length" in str(excinfo.value)
++
++
++def test_parser_rejects_pathological_content_length_immediately():
++    # The parser should immediately raise a ProtocolError for an overlong Content-Length in a response.
++    conn = Connection(h11.CLIENT)
++    too_long = b"8" * (_MAX_CONTENT_LENGTH_DIGITS + 1)
++    raw = b"HTTP/1.1 200 OK\r\nContent-Length: " + too_long + b"\r\n\r\n"
++    with pytest.raises(ProtocolError) as excinfo:
++        conn.receive_data(raw)
++    assert "bad Content-Length" in str(excinfo.value)

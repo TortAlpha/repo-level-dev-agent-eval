@@ -1,0 +1,606 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-09-04T20:56:17.479768+00:00",
+  "repository": "qutebrowser/qutebrowser",
+  "purpose": "Pre-outcome selection for a new kernel/v2 benchmark; two localized and two cross-module primary tasks, with two fixed-order backups per class.",
+  "scope": "Selection only. No task execution, LLM calls, input edits, registry edits, or outcome-based filtering performed.",
+  "instructions_read": {
+    "applicable_AGENTS_md_found": [],
+    "search_scope": "Workspace and ancestor directories, experiments/, repositories/, eval/."
+  },
+  "selection_rules": [
+    "Exclude every task ID appearing in any session in runs.jsonl, sweep_attempts.jsonl, or infrastructure_failures.jsonl, regardless of outcome.",
+    "Also exclude exact reference-patch duplicates of exposed tasks and manually identified variants of the same previously exercised behavior.",
+    "Require local repo, task description, reference patch, hidden tests, nonempty visible/semantic/compatibility commands and registry status pr_task_verified; fresh base/reference preflight is still mandatory.",
+    "Localized means exactly one runtime production Python module, with 20 to 100 literal production changed lines and no separate implementation integration requirement.",
+    "Cross-module means 2 to 5 runtime production files, 25 to 160 literal production changed lines, at least two distinct functional areas, and connected interface/dataflow/state propagation rather than a repeated rename. Runtime configuration YAML counts as production, while documentation does not.",
+    "Prefer distinct behavior families and semantic test commands that exercise the requested behavior; cross-module primary candidates must exercise integration or multiple components.",
+    "The explicit primary and backup order in this report is frozen before new LLM outcomes. Replace a primary only after documented readiness or preflight failure, choosing the next backup of the same class. Do not promote tasks based on agent success or failure.",
+    "This is a manually curated moderate-scope sample with a deterministic frozen replacement order, not a random or exhaustive sample."
+  ],
+  "audited_exposure_logs": [
+    {
+      "path": "experiments/results/runs.jsonl",
+      "sha256": "f38a553df0af5d9ac215191c7e448bddcc8a77718423bc6218b32421673c9fcc",
+      "records": 438
+    },
+    {
+      "path": "experiments/results/sweep_attempts.jsonl",
+      "sha256": "ce1e2de7515fe7302830749bfa047d4889211bcb6fd392ae8363c73384290685",
+      "records": 265
+    },
+    {
+      "path": "experiments/results/infrastructure_failures.jsonl",
+      "sha256": "cde29601a680cb0a055595f3dfaffba880df092b3ff85ea6a33cb9102af52a7c",
+      "records": 15
+    }
+  ],
+  "exposed_qutebrowser_tasks": [
+    "swepro_qutebrowser_36ade4bb",
+    "swepro_qutebrowser_3e21c821",
+    "swepro_qutebrowser_44e64199",
+    "swepro_qutebrowser_50efac08",
+    "swepro_qutebrowser_54bcdc1e",
+    "swepro_qutebrowser_c580ebf0",
+    "swepro_qutebrowser_f631cd44",
+    "swepro_qutebrowser_f91ace96"
+  ],
+  "notable_rejections": [
+    {
+      "task_id": "swepro_qutebrowser_1a9e74bf",
+      "reason": "Similar feature-flag consolidation behavior and same qtargs module as previously exercised swepro_qutebrowser_36ade4bb; exclude near-variant despite distinct task ID."
+    },
+    {
+      "task_id": "swepro_qutebrowser_34a13afd",
+      "reason": "Registry status rejected; not eligible."
+    },
+    {
+      "task_id": "swepro_qutebrowser_0b621cb0",
+      "reason": "Reference patch repeats QProcess.WriteError as a dictionary key and omits ReadError despite the description requiring both; exclude pending consistency repair."
+    },
+    {
+      "task_id": "swepro_qutebrowser_a84ecfb8",
+      "reason": "Cross-module patch, but selected hidden tests target only empty-command error behavior and do not adequately require the advertised close-match integration."
+    }
+  ],
+  "candidates": [
+    {
+      "task_id": "swepro_qutebrowser_6dd402c0",
+      "classification": "localized",
+      "selection_role": "primary",
+      "rank_within_role": 1,
+      "behavior": "Normalize old and new adblock deserialization exceptions and report corrupted cache without crashing.",
+      "classification_reason": "All implementation changes remain within BraveAdBlocker and its exception mapping in one production module.",
+      "module_areas": [
+        "adblock cache loading"
+      ],
+      "production_files": [
+        {
+          "path": "qutebrowser/components/braveadblock.py",
+          "added_lines": 38,
+          "deleted_lines": 6
+        }
+      ],
+      "all_patch_files": [
+        {
+          "path": "qutebrowser/components/braveadblock.py",
+          "added_lines": 38,
+          "deleted_lines": 6
+        }
+      ],
+      "patch_size": {
+        "added_lines": 38,
+        "deleted_lines": 6,
+        "production_changed_lines": 44,
+        "definition": "Literal added/deleted diff lines, excluding diff headers; includes comments, blank lines and runtime YAML."
+      },
+      "reference_patch_sha256": "d6c796e7ed73c3e21bf99c41e708c1377090103e9c52b1a4ad3316cdf2f4cfd2",
+      "task_description_sha256": "c3ab6f0396768919d458aa5dac940dc86aad1626f234457f96414189f9579909",
+      "base_commit": "d6a3d1fe608bae2afedd3019e46de3476ac18ff6",
+      "task_type": "feature",
+      "registry_status": "pr_task_verified",
+      "readiness": {
+        "selection_review": "passed",
+        "fresh_preflight": "pending; no tests run by this selection task",
+        "repo_directory_present": true,
+        "hidden_test_files_present": true,
+        "checked_runner_present": true,
+        "visible_test_command": "bash ./run_tests_checked.sh tests/unit/components/test_braveadblock.py",
+        "hidden_semantic_test_command": "bash ./run_tests_checked.sh '../hidden_tests/tests/unit/components/test_braveadblock.py::test_corrupt_cache_handling'",
+        "hidden_compat_test_command": "bash ./run_tests_checked.sh 'tests/unit/components/test_braveadblock.py::test_blocking_enabled[True-auto-True]' 'tests/unit/components/test_braveadblock.py::test_blocking_enabled[True-adblock-True]' 'tests/unit/components/test_braveadblock.py::test_blocking_enabled[True-both-True]' 'tests/unit/components/test_braveadblock.py::test_blocking_enabled[True-hosts-False]' 'tests/unit/components/test_braveadblock.py::test_blocking_enabled[False-auto-False]' 'tests/unit/components/test_braveadblock.py::test_blocking_enabled[False-adblock-False]' 'tests/unit/components/test_braveadblock.py::test_blocking_enabled[False-both-False]' 'tests/unit/components/test_braveadblock.py::test_blocking_enabled[False-hosts-False]' 'tests/unit/components/test_braveadblock.py::test_adblock_cache' 'tests/unit/components/test_braveadblock.py::test_invalid_utf8' 'tests/unit/components/test_braveadblock.py::test_config_changed' 'tests/unit/components/test_braveadblock.py::test_whitelist_on_dataset' 'tests/unit/components/test_braveadblock.py::test_update_easylist_easyprivacy_directory' 'tests/unit/components/test_braveadblock.py::test_update_empty_directory_blocklist' 'tests/unit/components/test_braveadblock.py::test_buggy_url_workaround[https://example.org/example.png-None-ResourceType.image]'",
+        "docker_image": "jefzda/sweap-images:qutebrowser.qutebrowser-qutebrowser__qutebrowser-6dd402c0d0f7665d32a74c43c5b4cf5dc8aff28d-v5fc38aaf22415ab0b70567368332beee7955b",
+        "setup_commands": "true",
+        "caveat": "Hidden test targets cache corruption; inspect coverage of both dependency API variants during preflight."
+      },
+      "exposure": {
+        "task_id_seen_in_any_audited_log": false,
+        "exact_reference_patch_seen_under_exposed_task_id": false
+      }
+    },
+    {
+      "task_id": "swepro_qutebrowser_e64622cd",
+      "classification": "localized",
+      "selection_role": "primary",
+      "rank_within_role": 2,
+      "behavior": "Extract signal names for bound and unbound signals across legacy and current PyQt representations.",
+      "classification_reason": "One utility function and its parsing branches change in one production module.",
+      "module_areas": [
+        "Qt signal debugging utility"
+      ],
+      "production_files": [
+        {
+          "path": "qutebrowser/utils/debug.py",
+          "added_lines": 38,
+          "deleted_lines": 3
+        }
+      ],
+      "all_patch_files": [
+        {
+          "path": "qutebrowser/utils/debug.py",
+          "added_lines": 38,
+          "deleted_lines": 3
+        }
+      ],
+      "patch_size": {
+        "added_lines": 38,
+        "deleted_lines": 3,
+        "production_changed_lines": 41,
+        "definition": "Literal added/deleted diff lines, excluding diff headers; includes comments, blank lines and runtime YAML."
+      },
+      "reference_patch_sha256": "0f9c9c7930b6c1870ed9938bcd859fa6ed451e7b8cbe0daa913a8aabee45e7f0",
+      "task_description_sha256": "368e512ea72faaa6585634ce16a192ce4f0eb1f7f9b6ddb171eaeb019dca6b67",
+      "base_commit": "09925f74817cf7a970f166342f81886a1d27ee35",
+      "task_type": "feature",
+      "registry_status": "pr_task_verified",
+      "readiness": {
+        "selection_review": "passed",
+        "fresh_preflight": "pending; no tests run by this selection task",
+        "repo_directory_present": true,
+        "hidden_test_files_present": true,
+        "checked_runner_present": true,
+        "visible_test_command": "bash ./run_tests_checked.sh tests/unit/utils/test_debug.py -k 'not hypothesis'",
+        "hidden_semantic_test_command": "bash ./run_tests_checked.sh '../hidden_tests/tests/unit/utils/test_debug.py::test_signal_name[False-SignalObject-signal1]' '../hidden_tests/tests/unit/utils/test_debug.py::test_signal_name[False-SignalObject-signal2]' '../hidden_tests/tests/unit/utils/test_debug.py::test_signal_name[False-QTimer-timeout]' '../hidden_tests/tests/unit/utils/test_debug.py::test_signal_name[False-QSpinBox-valueChanged]'",
+        "hidden_compat_test_command": "bash ./run_tests_checked.sh 'tests/unit/utils/test_debug.py::test_log_events' 'tests/unit/utils/test_debug.py::test_log_signals[signal_obj0]' 'tests/unit/utils/test_debug.py::test_log_signals[signal_obj1]' 'tests/unit/utils/test_debug.py::TestLogTime::test_duration' 'tests/unit/utils/test_debug.py::TestLogTime::test_logger' 'tests/unit/utils/test_debug.py::TestLogTime::test_decorator' 'tests/unit/utils/test_debug.py::TestQEnumKey::test_metaobj' 'tests/unit/utils/test_debug.py::TestQEnumKey::test_qenum_key[QStyle-13-None-PE_PanelButtonCommand]' 'tests/unit/utils/test_debug.py::TestQEnumKey::test_qenum_key[QFrame-48-None-Sunken]' 'tests/unit/utils/test_debug.py::TestQEnumKey::test_qenum_key[QFrame-48-Shadow-Sunken]' 'tests/unit/utils/test_debug.py::TestQEnumKey::test_qenum_key[QFrame-4919-Shadow-0x1337]' 'tests/unit/utils/test_debug.py::TestQEnumKey::test_qenum_key[Qt-0-None-AnchorLeft]' 'tests/unit/utils/test_debug.py::TestQEnumKey::test_add_base' 'tests/unit/utils/test_debug.py::TestQEnumKey::test_int_noklass' 'tests/unit/utils/test_debug.py::TestQFlagsKey::test_qflags_key[Qt-32-None-AlignTop]'",
+        "docker_image": "jefzda/sweap-images:qutebrowser.qutebrowser-qutebrowser__qutebrowser-e64622cd2df5b521342cf4a62e0d4cb8f8c9ae5a-v363c8a7e5ccdf6968fc7ab84a2053ac780366",
+        "setup_commands": "true",
+        "caveat": "Hidden command contains four unbound-signal cases; broader visible tests cover utility behavior."
+      },
+      "exposure": {
+        "task_id_seen_in_any_audited_log": false,
+        "exact_reference_patch_seen_under_exposed_task_id": false
+      }
+    },
+    {
+      "task_id": "swepro_qutebrowser_8d05f028",
+      "classification": "localized",
+      "selection_role": "backup",
+      "rank_within_role": 1,
+      "behavior": "Skip malformed non-dictionary settings safely during configuration migrations.",
+      "classification_reason": "Related validation and migration branches change within one configuration-file module.",
+      "module_areas": [
+        "configuration migration"
+      ],
+      "production_files": [
+        {
+          "path": "qutebrowser/config/configfiles.py",
+          "added_lines": 24,
+          "deleted_lines": 7
+        }
+      ],
+      "all_patch_files": [
+        {
+          "path": "qutebrowser/config/configfiles.py",
+          "added_lines": 24,
+          "deleted_lines": 7
+        }
+      ],
+      "patch_size": {
+        "added_lines": 24,
+        "deleted_lines": 7,
+        "production_changed_lines": 31,
+        "definition": "Literal added/deleted diff lines, excluding diff headers; includes comments, blank lines and runtime YAML."
+      },
+      "reference_patch_sha256": "5fa7bdd2e4d306ee635ce73442f847a10756a5cdcce3a18221aa2cff437bccb6",
+      "task_description_sha256": "5b5789d596c7a3be09407b7328fa20013bda1b7a8f7d4c195236bfa8fc9cd383",
+      "base_commit": "190bab127d9e8421940f5f3fdc738d1c7ec02193",
+      "task_type": "feature",
+      "registry_status": "pr_task_verified",
+      "readiness": {
+        "selection_review": "passed",
+        "fresh_preflight": "pending; no tests run by this selection task",
+        "repo_directory_present": true,
+        "hidden_test_files_present": true,
+        "checked_runner_present": true,
+        "visible_test_command": "bash ./run_tests_checked.sh tests/unit/config/test_configfiles.py '--deselect=tests/unit/config/test_configfiles.py::TestYaml::test_invalid_in_migrations' -k 'not hypothesis' '--deselect=tests/unit/config/test_configfiles.py::TestYaml::test_invalid'",
+        "hidden_semantic_test_command": "bash ./run_tests_checked.sh '../hidden_tests/tests/unit/config/test_configfiles.py::TestYaml::test_invalid_in_migrations[42]'",
+        "hidden_compat_test_command": "bash ./run_tests_checked.sh 'tests/unit/config/test_configfiles.py::test_qt_version_changed[None-5.12.1-False]' 'tests/unit/config/test_configfiles.py::test_qt_version_changed[5.12.1-5.12.1-False]' 'tests/unit/config/test_configfiles.py::test_qt_version_changed[5.12.2-5.12.1-True]' 'tests/unit/config/test_configfiles.py::test_qt_version_changed[5.12.1-5.12.2-True]' 'tests/unit/config/test_configfiles.py::test_qt_version_changed[5.13.0-5.12.2-True]' 'tests/unit/config/test_configfiles.py::test_qt_version_changed[5.12.2-5.13.0-True]' 'tests/unit/config/test_configfiles.py::TestYaml::test_yaml_config[True-None]' 'tests/unit/config/test_configfiles.py::TestYaml::test_yaml_config[True-old_config1]' 'tests/unit/config/test_configfiles.py::TestYaml::test_yaml_config[True-old_config2]' 'tests/unit/config/test_configfiles.py::TestYaml::test_yaml_config[True-old_config3]' 'tests/unit/config/test_configfiles.py::TestYaml::test_yaml_config[False-None]'",
+        "docker_image": "jefzda/sweap-images:qutebrowser.qutebrowser-qutebrowser__qutebrowser-8d05f0282a271bfd45e614238bd1b555c58b3fc1-v35616345bb8052ea303186706cec663146f0f",
+        "setup_commands": "true",
+        "caveat": "Visible command deliberately deselects invalid-input cases; hidden command has one malformed-input case, so coverage is narrow."
+      },
+      "exposure": {
+        "task_id_seen_in_any_audited_log": false,
+        "exact_reference_patch_seen_under_exposed_task_id": false
+      }
+    },
+    {
+      "task_id": "swepro_qutebrowser_fcfa069a",
+      "classification": "localized",
+      "selection_role": "backup",
+      "rank_within_role": 2,
+      "behavior": "Represent SQLite user_version with major and minor parts and reject incompatible versions during initialization.",
+      "classification_reason": "Version object and database initialization live in one SQL utility module.",
+      "module_areas": [
+        "SQLite schema version handling"
+      ],
+      "production_files": [
+        {
+          "path": "qutebrowser/misc/sql.py",
+          "added_lines": 56,
+          "deleted_lines": 0
+        }
+      ],
+      "all_patch_files": [
+        {
+          "path": "qutebrowser/misc/sql.py",
+          "added_lines": 56,
+          "deleted_lines": 0
+        }
+      ],
+      "patch_size": {
+        "added_lines": 56,
+        "deleted_lines": 0,
+        "production_changed_lines": 56,
+        "definition": "Literal added/deleted diff lines, excluding diff headers; includes comments, blank lines and runtime YAML."
+      },
+      "reference_patch_sha256": "a9a31259ca544d116f0a7c1244d5c193846787dbca0063e7c706b106e4274ae5",
+      "task_description_sha256": "43eaf12420f2598425fa56fbdb46a72cf89da1c3c8a8c7faff8285f466a9885e",
+      "base_commit": "74671c167f6f18a5494ffe44809e6a0e1c6ea8e9",
+      "task_type": "feature",
+      "registry_status": "pr_task_verified",
+      "readiness": {
+        "selection_review": "passed",
+        "fresh_preflight": "pending; no tests run by this selection task",
+        "repo_directory_present": true,
+        "hidden_test_files_present": true,
+        "checked_runner_present": true,
+        "visible_test_command": "bash ./run_tests_checked.sh tests/unit/misc/test_sql.py -k 'not hypothesis' '--deselect=tests/unit/misc/test_sql.py::TestUserVersion' '--deselect=tests/unit/misc/test_sql.py::test_delete_like'",
+        "hidden_semantic_test_command": "bash ./run_tests_checked.sh '../hidden_tests/tests/unit/misc/test_sql.py::TestUserVersion::test_from_int[524289-8-1]' '../hidden_tests/tests/unit/misc/test_sql.py::TestUserVersion::test_from_int[2147483647-32767-65535]' '../hidden_tests/tests/unit/misc/test_sql.py::TestUserVersion::test_to_int[8-1-524289]' '../hidden_tests/tests/unit/misc/test_sql.py::TestUserVersion::test_to_int[32767-65535-2147483647]' '../hidden_tests/tests/unit/misc/test_sql.py::TestUserVersion::test_from_int_invalid[2147483648]' '../hidden_tests/tests/unit/misc/test_sql.py::TestUserVersion::test_from_int_invalid[-1]' '../hidden_tests/tests/unit/misc/test_sql.py::TestUserVersion::test_to_int_invalid[-1-0]' '../hidden_tests/tests/unit/misc/test_sql.py::TestUserVersion::test_to_int_invalid[0--1]' '../hidden_tests/tests/unit/misc/test_sql.py::TestUserVersion::test_to_int_invalid[0-65536]' '../hidden_tests/tests/unit/misc/test_sql.py::TestUserVersion::test_to_int_invalid[32768-0]' '../hidden_tests/tests/unit/misc/test_sql.py::TestUserVersion::test_from_int_hypothesis' '../hidden_tests/tests/unit/misc/test_sql.py::TestUserVersion::test_to_int_hypothesis'",
+        "hidden_compat_test_command": "bash ./run_tests_checked.sh 'tests/unit/misc/test_sql.py::test_sqlerror[KnownError]' 'tests/unit/misc/test_sql.py::test_sqlerror[BugError]' 'tests/unit/misc/test_sql.py::TestSqlError::test_known[5-KnownError]' 'tests/unit/misc/test_sql.py::TestSqlError::test_known[19-BugError]' 'tests/unit/misc/test_sql.py::TestSqlError::test_logging' 'tests/unit/misc/test_sql.py::TestSqlError::test_text[KnownError]' 'tests/unit/misc/test_sql.py::TestSqlError::test_text[BugError]' 'tests/unit/misc/test_sql.py::test_init' 'tests/unit/misc/test_sql.py::test_insert' 'tests/unit/misc/test_sql.py::test_insert_replace' 'tests/unit/misc/test_sql.py::test_insert_batch' 'tests/unit/misc/test_sql.py::test_insert_batch_replace' 'tests/unit/misc/test_sql.py::test_iter' 'tests/unit/misc/test_sql.py::test_select[rows0-a-asc-5-result0]' 'tests/unit/misc/test_sql.py::test_select[rows1-a-desc-3-result1]'",
+        "docker_image": "jefzda/sweap-images:qutebrowser.qutebrowser-qutebrowser__qutebrowser-fcfa069a06ade76d91bac38127f3235c13d78eb1-v5fc38aaf22415ab0b70567368332beee7955b",
+        "setup_commands": "true",
+        "caveat": "Hypothesis appears in the hidden command and must be installed; the augmented description promises immutability but the reference attrs class is not frozen, requiring semantic consistency review before promotion."
+      },
+      "exposure": {
+        "task_id_seen_in_any_audited_log": false,
+        "exact_reference_patch_seen_under_exposed_task_id": false
+      }
+    },
+    {
+      "task_id": "swepro_qutebrowser_ed19d7f5",
+      "classification": "cross_module",
+      "selection_role": "primary",
+      "rank_within_role": 1,
+      "behavior": "Carry an include-hidden flag from config-diff through its URL query into configuration dumping.",
+      "classification_reason": "Three production files must agree on the optional parameter across command, URL handler and configuration data layers; this is connected behavior, not mechanical multi-file cleanup.",
+      "module_areas": [
+        "configuration command dispatch",
+        "internal URL handling",
+        "configuration serialization"
+      ],
+      "production_files": [
+        {
+          "path": "qutebrowser/browser/qutescheme.py",
+          "added_lines": 4,
+          "deleted_lines": 3
+        },
+        {
+          "path": "qutebrowser/config/config.py",
+          "added_lines": 5,
+          "deleted_lines": 2
+        },
+        {
+          "path": "qutebrowser/config/configcommands.py",
+          "added_lines": 12,
+          "deleted_lines": 3
+        }
+      ],
+      "all_patch_files": [
+        {
+          "path": "doc/help/commands.asciidoc",
+          "added_lines": 5,
+          "deleted_lines": 0
+        },
+        {
+          "path": "qutebrowser/browser/qutescheme.py",
+          "added_lines": 4,
+          "deleted_lines": 3
+        },
+        {
+          "path": "qutebrowser/config/config.py",
+          "added_lines": 5,
+          "deleted_lines": 2
+        },
+        {
+          "path": "qutebrowser/config/configcommands.py",
+          "added_lines": 12,
+          "deleted_lines": 3
+        }
+      ],
+      "patch_size": {
+        "added_lines": 26,
+        "deleted_lines": 8,
+        "production_changed_lines": 29,
+        "definition": "Literal added/deleted diff lines, excluding diff headers; includes comments, blank lines and runtime YAML."
+      },
+      "reference_patch_sha256": "92c29b8678686a2ba846347e5fa922717fee4690a5cb49fd4cdfe8c0e829fb89",
+      "task_description_sha256": "831508d8e1f2e272085beb8d91a5836adad572829fec4398fbb26596128a255a",
+      "base_commit": "836221ecaf2bad121c741b0c41dff508049e8ca5",
+      "task_type": "feature",
+      "registry_status": "pr_task_verified",
+      "readiness": {
+        "selection_review": "passed",
+        "fresh_preflight": "pending; no tests run by this selection task",
+        "repo_directory_present": true,
+        "hidden_test_files_present": true,
+        "checked_runner_present": true,
+        "visible_test_command": "bash ./run_tests_checked.sh tests/unit/browser/test_qutescheme.py tests/unit/config/test_config.py tests/unit/config/test_configcommands.py -k 'not hypothesis'",
+        "hidden_semantic_test_command": "bash ./run_tests_checked.sh '../hidden_tests/tests/unit/browser/test_qutescheme.py::TestQuteConfigdiff::test_default_config[qute://configdiff/?include_hidden=true-chrome-devtools://*: content.javascript.enabled = true]' '../hidden_tests/tests/unit/config/test_config.py::TestConfig::test_dump_userconfig[True]' '../hidden_tests/tests/unit/config/test_config.py::TestConfig::test_dump_userconfig[False]' '../hidden_tests/tests/unit/config/test_configcommands.py::test_diff[True-qute://configdiff?include_hidden=true]' '../hidden_tests/tests/unit/config/test_configcommands.py::test_diff[False-qute://configdiff]'",
+        "hidden_compat_test_command": "bash ./run_tests_checked.sh tests/unit/browser/test_qutescheme.py::TestJavascriptHandler::test_qutejavascript_404 tests/unit/browser/test_qutescheme.py::TestJavascriptHandler::test_qutejavascript_empty_query tests/unit/browser/test_qutescheme.py::TestProcessHandler::test_invalid_pid tests/unit/browser/test_qutescheme.py::TestProcessHandler::test_missing_process tests/unit/browser/test_qutescheme.py::TestProcessHandler::test_existing_process 'tests/unit/browser/test_qutescheme.py::TestHistoryHandler::test_qutehistory_data[0-4]' 'tests/unit/browser/test_qutescheme.py::TestHistoryHandler::test_qutehistory_data[86400-4]' 'tests/unit/browser/test_qutescheme.py::TestHistoryHandler::test_qutehistory_data[172800-4]' 'tests/unit/browser/test_qutescheme.py::TestHistoryHandler::test_qutehistory_data[259200-0]' tests/unit/browser/test_qutescheme.py::TestHistoryHandler::test_exclude tests/unit/browser/test_qutescheme.py::TestHistoryHandler::test_qute_history_benchmark tests/unit/browser/test_qutescheme.py::TestHelpHandler::test_unknown_file_type tests/unit/browser/test_qutescheme.py::TestPDFJSHandler::test_existing_resource",
+        "docker_image": "jefzda/sweap-images:qutebrowser.qutebrowser-qutebrowser__qutebrowser-ed19d7f58b2664bb310c7cb6b52c5b9a06ea60b2-v059c6fdc75567943479b23ebca7c07b5e9a7f",
+        "setup_commands": "true",
+        "caveat": "Hidden command explicitly covers browser handler, configuration dump, and command URL construction."
+      },
+      "exposure": {
+        "task_id_seen_in_any_audited_log": false,
+        "exact_reference_patch_seen_under_exposed_task_id": false
+      }
+    },
+    {
+      "task_id": "swepro_qutebrowser_0fc6d110",
+      "classification": "cross_module",
+      "selection_role": "primary",
+      "rank_within_role": 2,
+      "behavior": "Add filesystem path suggestions and favorite paths to the open-command completion categories.",
+      "classification_reason": "A new Qt list model must integrate into the existing URL completion aggregator and the configuration schema; success requires coordinated behavior across these components.",
+      "module_areas": [
+        "completion category model",
+        "URL completion integration",
+        "configuration schema"
+      ],
+      "production_files": [
+        {
+          "path": "qutebrowser/completion/models/filepathcategory.py",
+          "added_lines": 83,
+          "deleted_lines": 0
+        },
+        {
+          "path": "qutebrowser/completion/models/urlmodel.py",
+          "added_lines": 6,
+          "deleted_lines": 2
+        },
+        {
+          "path": "qutebrowser/config/configdata.yml",
+          "added_lines": 11,
+          "deleted_lines": 1
+        }
+      ],
+      "all_patch_files": [
+        {
+          "path": "doc/help/settings.asciidoc",
+          "added_lines": 12,
+          "deleted_lines": 0
+        },
+        {
+          "path": "qutebrowser/completion/models/filepathcategory.py",
+          "added_lines": 83,
+          "deleted_lines": 0
+        },
+        {
+          "path": "qutebrowser/completion/models/urlmodel.py",
+          "added_lines": 6,
+          "deleted_lines": 2
+        },
+        {
+          "path": "qutebrowser/config/configdata.yml",
+          "added_lines": 11,
+          "deleted_lines": 1
+        }
+      ],
+      "patch_size": {
+        "added_lines": 112,
+        "deleted_lines": 3,
+        "production_changed_lines": 103,
+        "definition": "Literal added/deleted diff lines, excluding diff headers; includes comments, blank lines and runtime YAML."
+      },
+      "reference_patch_sha256": "cdda522fd63410f552d72e368afc5a991482f5946939d0c259bcab71a82c031f",
+      "task_description_sha256": "1f2ea2c6ea9772e6edcadb55192ecb9256a0b8a6f9216bbba108cffcbbb99f6e",
+      "base_commit": "21b20116f5872490bfbba4cf9cbdc8410a8a1d7d",
+      "task_type": "feature",
+      "registry_status": "pr_task_verified",
+      "readiness": {
+        "selection_review": "passed",
+        "fresh_preflight": "pending; no tests run by this selection task",
+        "repo_directory_present": true,
+        "hidden_test_files_present": true,
+        "checked_runner_present": true,
+        "visible_test_command": "bash ./run_tests_checked.sh tests/unit/completion/test_models.py",
+        "hidden_semantic_test_command": "bash ./run_tests_checked.sh '../hidden_tests/tests/unit/completion/test_models.py::test_filesystem_completion' '../hidden_tests/tests/unit/completion/test_models.py::test_default_filesystem_completion' '../hidden_tests/tests/unit/completion/test_models.py::test_url_completion_no_quickmarks' '../hidden_tests/tests/unit/completion/test_models.py::test_url_completion_no_bookmarks'",
+        "hidden_compat_test_command": "bash ./run_tests_checked.sh 'tests/unit/completion/test_models.py::test_command_completion' 'tests/unit/completion/test_models.py::test_help_completion' 'tests/unit/completion/test_models.py::test_open_categories' 'tests/unit/completion/test_models.py::test_open_categories_remove_all' 'tests/unit/completion/test_models.py::test_open_categories_remove_one' 'tests/unit/completion/test_models.py::test_quickmark_completion' 'tests/unit/completion/test_models.py::test_quickmark_completion_delete[0-aw]' 'tests/unit/completion/test_models.py::test_quickmark_completion_delete[1-wiki]' 'tests/unit/completion/test_models.py::test_quickmark_completion_delete[2-ddg]' 'tests/unit/completion/test_models.py::test_bookmark_completion' 'tests/unit/completion/test_models.py::test_bookmark_completion_delete[0-https://github.com]' 'tests/unit/completion/test_models.py::test_bookmark_completion_delete[1-https://python.org]' 'tests/unit/completion/test_models.py::test_bookmark_completion_delete[2-http://qutebrowser.org]' 'tests/unit/completion/test_models.py::test_url_completion' 'tests/unit/completion/test_models.py::test_search_only_default'",
+        "docker_image": "jefzda/sweap-images:qutebrowser.qutebrowser-qutebrowser__qutebrowser-0fc6d1109d041c69a68a896db87cf1b8c194cef7-v2ef375ac784985212b1805e1d0431dc8f1b3c",
+        "setup_commands": "true",
+        "caveat": "Hidden command covers integrated filesystem/default completion and absence of bookmarks/quickmarks. The task is Python plus repository-native YAML, with no new programming language."
+      },
+      "exposure": {
+        "task_id_seen_in_any_audited_log": false,
+        "exact_reference_patch_seen_under_exposed_task_id": false
+      }
+    },
+    {
+      "task_id": "swepro_qutebrowser_35168ade",
+      "classification": "cross_module",
+      "selection_role": "backup",
+      "rank_within_role": 1,
+      "behavior": "Discover configuration variables in templates, validate them, and update stylesheets only for relevant configuration changes.",
+      "classification_reason": "Template AST analysis in the Jinja utility is consumed by the configuration observer and validated through a configuration interface in a second production module.",
+      "module_areas": [
+        "Jinja template analysis",
+        "configuration validation",
+        "stylesheet update observer"
+      ],
+      "production_files": [
+        {
+          "path": "qutebrowser/config/config.py",
+          "added_lines": 26,
+          "deleted_lines": 12
+        },
+        {
+          "path": "qutebrowser/utils/jinja.py",
+          "added_lines": 38,
+          "deleted_lines": 0
+        }
+      ],
+      "all_patch_files": [
+        {
+          "path": "qutebrowser/config/config.py",
+          "added_lines": 26,
+          "deleted_lines": 12
+        },
+        {
+          "path": "qutebrowser/utils/jinja.py",
+          "added_lines": 38,
+          "deleted_lines": 0
+        }
+      ],
+      "patch_size": {
+        "added_lines": 64,
+        "deleted_lines": 12,
+        "production_changed_lines": 76,
+        "definition": "Literal added/deleted diff lines, excluding diff headers; includes comments, blank lines and runtime YAML."
+      },
+      "reference_patch_sha256": "a34e66d913743c02f128d80164125bf6b4fea0ddbd807bc19446cfb7386d9072",
+      "task_description_sha256": "40ee2b9c126950819900d5be9149213a48fb10eb703fb37aa6b6a9db6761ade6",
+      "base_commit": "04c65bb2b72542b239de2491c9242d8f641636db",
+      "task_type": "feature",
+      "registry_status": "pr_task_verified",
+      "readiness": {
+        "selection_review": "passed",
+        "fresh_preflight": "pending; no tests run by this selection task",
+        "repo_directory_present": true,
+        "hidden_test_files_present": true,
+        "checked_runner_present": true,
+        "visible_test_command": "bash ./run_tests_checked.sh tests/unit/utils/test_jinja.py",
+        "hidden_semantic_test_command": "bash ./run_tests_checked.sh '../hidden_tests/tests/unit/utils/test_jinja.py::test_template_config_variables[{{ func1(conf.aliases) }} {{ func2(conf.backend) }}-expected0]' '../hidden_tests/tests/unit/utils/test_jinja.py::test_template_config_variables[{{ conf.aliases[\"a\"].propname }}-expected1]' '../hidden_tests/tests/unit/utils/test_jinja.py::test_template_config_variables[{{ conf.auto_save.interval + conf.hints.min_chars }}-expected2]' '../hidden_tests/tests/unit/utils/test_jinja.py::test_template_config_variables[{{ notconf.a.b.c }}-expected3]' '../hidden_tests/tests/unit/utils/test_jinja.py::test_template_config_variables_no_option[{{ func1(conf.aaa) }}]' '../hidden_tests/tests/unit/utils/test_jinja.py::test_template_config_variables_no_option[{{ conf.bbb[\"a\"].propname }}]' '../hidden_tests/tests/unit/utils/test_jinja.py::test_template_config_variables_no_option[{{ conf.ccc + 1 }}]'",
+        "hidden_compat_test_command": "bash ./run_tests_checked.sh 'tests/unit/utils/test_jinja.py::test_simple_template' 'tests/unit/utils/test_jinja.py::test_resource_url' 'tests/unit/utils/test_jinja.py::test_data_url' 'tests/unit/utils/test_jinja.py::test_not_found' 'tests/unit/utils/test_jinja.py::test_utf8' 'tests/unit/utils/test_jinja.py::test_undefined_function' 'tests/unit/utils/test_jinja.py::test_attribute_error' 'tests/unit/utils/test_jinja.py::test_autoescape[True]' 'tests/unit/utils/test_jinja.py::test_autoescape[False]'",
+        "docker_image": "jefzda/sweap-images:qutebrowser.qutebrowser-qutebrowser__qutebrowser-35168ade46184d7e5b91dfa04ca42fe2abd82717-v363c8a7e5ccdf6968fc7ab84a2053ac780366",
+        "setup_commands": "true",
+        "caveat": "Hidden tests focus on template analysis and invalid options; observer end-to-end behavior is primarily part of the reference change, so coverage must be checked before promotion."
+      },
+      "exposure": {
+        "task_id_seen_in_any_audited_log": false,
+        "exact_reference_patch_seen_under_exposed_task_id": false
+      }
+    },
+    {
+      "task_id": "swepro_qutebrowser_1943fa07",
+      "classification": "cross_module",
+      "selection_role": "backup",
+      "rank_within_role": 2,
+      "behavior": "Move pinned-state ownership to each tab and propagate notifications to UI and restore/clone paths across windows.",
+      "classification_reason": "Five production files span state ownership, signals, command callers, UI listeners and saved-session restoration; this is a real ownership/interface migration.",
+      "module_areas": [
+        "browser tab state",
+        "browser commands",
+        "window/tab UI",
+        "session restoration"
+      ],
+      "production_files": [
+        {
+          "path": "qutebrowser/browser/browsertab.py",
+          "added_lines": 6,
+          "deleted_lines": 0
+        },
+        {
+          "path": "qutebrowser/browser/commands.py",
+          "added_lines": 3,
+          "deleted_lines": 2
+        },
+        {
+          "path": "qutebrowser/mainwindow/tabbedbrowser.py",
+          "added_lines": 9,
+          "deleted_lines": 2
+        },
+        {
+          "path": "qutebrowser/mainwindow/tabwidget.py",
+          "added_lines": 1,
+          "deleted_lines": 13
+        },
+        {
+          "path": "qutebrowser/misc/sessions.py",
+          "added_lines": 1,
+          "deleted_lines": 2
+        }
+      ],
+      "all_patch_files": [
+        {
+          "path": "qutebrowser/browser/browsertab.py",
+          "added_lines": 6,
+          "deleted_lines": 0
+        },
+        {
+          "path": "qutebrowser/browser/commands.py",
+          "added_lines": 3,
+          "deleted_lines": 2
+        },
+        {
+          "path": "qutebrowser/mainwindow/tabbedbrowser.py",
+          "added_lines": 9,
+          "deleted_lines": 2
+        },
+        {
+          "path": "qutebrowser/mainwindow/tabwidget.py",
+          "added_lines": 1,
+          "deleted_lines": 13
+        },
+        {
+          "path": "qutebrowser/misc/sessions.py",
+          "added_lines": 1,
+          "deleted_lines": 2
+        }
+      ],
+      "patch_size": {
+        "added_lines": 20,
+        "deleted_lines": 19,
+        "production_changed_lines": 39,
+        "definition": "Literal added/deleted diff lines, excluding diff headers; includes comments, blank lines and runtime YAML."
+      },
+      "reference_patch_sha256": "59660217481a4479ba1bf270d4c0a1b2a194ebc60511666348a8370f7c6d9fcf",
+      "task_description_sha256": "cd0da549e2d07544c27d4b3515c593408cbd792c1f5a6d0b3259db6ddea78a87",
+      "base_commit": "1e473c4bc01da1d7f1c4386d8b7b887e00fbf385",
+      "task_type": "feature",
+      "registry_status": "pr_task_verified",
+      "readiness": {
+        "selection_review": "passed",
+        "fresh_preflight": "pending; no tests run by this selection task",
+        "repo_directory_present": true,
+        "hidden_test_files_present": true,
+        "checked_runner_present": false,
+        "visible_test_command": "xvfb-run -a env QT_QPA_PLATFORM=offscreen python -m pytest -p no:xvfb --override-ini=addopts= tests/unit/mainwindow/test_tabwidget.py",
+        "hidden_semantic_test_command": "xvfb-run -a env QT_QPA_PLATFORM=offscreen python -m pytest -p no:xvfb --override-ini=addopts= '../hidden_tests/tests/unit/mainwindow/test_tabwidget.py::TestTabWidget::test_pinned_size[True-True]' '../hidden_tests/tests/unit/mainwindow/test_tabwidget.py::TestTabWidget::test_pinned_size[True-False]' '../hidden_tests/tests/unit/mainwindow/test_tabwidget.py::TestTabWidget::test_pinned_size[False-True]' '../hidden_tests/tests/unit/mainwindow/test_tabwidget.py::TestTabWidget::test_pinned_size[False-False]'",
+        "hidden_compat_test_command": "xvfb-run -a env QT_QPA_PLATFORM=offscreen python -m pytest -p no:xvfb --override-ini=addopts= 'tests/unit/mainwindow/test_tabwidget.py::TestTabWidget::test_small_icon_doesnt_crash' 'tests/unit/mainwindow/test_tabwidget.py::TestTabWidget::test_tab_size_same' 'tests/unit/mainwindow/test_tabwidget.py::TestTabWidget::test_update_tab_titles_benchmark[4]' 'tests/unit/mainwindow/test_tabwidget.py::TestTabWidget::test_update_tab_titles_benchmark[10]' 'tests/unit/mainwindow/test_tabwidget.py::TestTabWidget::test_update_tab_titles_benchmark[50]' 'tests/unit/mainwindow/test_tabwidget.py::TestTabWidget::test_update_tab_titles_benchmark[100]' 'tests/unit/mainwindow/test_tabwidget.py::TestTabWidget::test_tab_min_width' 'tests/unit/mainwindow/test_tabwidget.py::TestTabWidget::test_tab_max_width' 'tests/unit/mainwindow/test_tabwidget.py::TestTabWidget::test_tab_stays_hidden' 'tests/unit/mainwindow/test_tabwidget.py::TestTabWidget::test_add_remove_tab_benchmark[True-4]' 'tests/unit/mainwindow/test_tabwidget.py::TestTabWidget::test_add_remove_tab_benchmark[True-70]' 'tests/unit/mainwindow/test_tabwidget.py::TestTabWidget::test_add_remove_tab_benchmark[False-4]' 'tests/unit/mainwindow/test_tabwidget.py::TestTabWidget::test_add_remove_tab_benchmark[False-70]' 'tests/unit/mainwindow/test_tabwidget.py::TestTabWidget::test_tab_pinned_benchmark'",
+        "docker_image": "jefzda/sweap-images:qutebrowser.qutebrowser-qutebrowser__qutebrowser-1943fa072ec3df5a87e18a23b0916f134c131016-vafb3e8e01b31319c66c4e666b8a3b1d8ba55d",
+        "setup_commands": "true",
+        "caveat": "Hidden command covers pinned tab-widget sizing only, which is weaker than the complete restore-between-windows behavior; mark as backup pending coverage review."
+      },
+      "exposure": {
+        "task_id_seen_in_any_audited_log": false,
+        "exact_reference_patch_seen_under_exposed_task_id": false
+      }
+    }
+  ],
+  "validity_limits": [
+    "Unexposed means absent from the audited experiment logs, not guaranteed absent from model pretraining or other unrecorded use.",
+    "Imported SWE-bench Pro descriptions include augmented requirements and explicit interfaces; this is an adapted benchmark, not a claim of matching the original benchmark protocol.",
+    "Runtime preflight and reference correctness must be verified by the parent before final selection freeze and any agent outcomes."
+  ]
+}

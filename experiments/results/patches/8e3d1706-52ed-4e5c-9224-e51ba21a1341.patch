@@ -1,0 +1,105 @@
+diff --git a/freezegun/api.py b/freezegun/api.py
+index 0f11e0c113f328fb4ce71329cf8e6b35ab58a3fe..d333f2984eaf4e9710ce57fe6bf7e234ee1ecd7a 100644
+--- a/freezegun/api.py
++++ b/freezegun/api.py
+@@ -531,10 +531,10 @@ class FrozenDateTimeFactory:
+     def __call__(self) -> datetime.datetime:
+         return self.time_to_freeze
+ 
+-    def tick(self, delta: Union[datetime.timedelta, int]=datetime.timedelta(seconds=1)) -> datetime.datetime:
++    def tick(self, delta: Union[datetime.timedelta, numbers.Real]=datetime.timedelta(seconds=1)) -> datetime.datetime:
+         if isinstance(delta, numbers.Real):
+             # noinspection PyTypeChecker
+-            self.time_to_freeze += datetime.timedelta(seconds=delta)
++            self.time_to_freeze += datetime.timedelta(seconds=float(delta))
+         else:
+             self.time_to_freeze += delta  # type: ignore
+         return self.time_to_freeze
+@@ -557,9 +557,11 @@ class StepTickTimeFactory:
+         self.tick()
+         return return_time
+ 
+-    def tick(self, delta: Union[datetime.timedelta, int, None]=None) -> datetime.datetime:
+-        if not delta:
++    def tick(self, delta: Union[datetime.timedelta, numbers.Real, None]=None) -> datetime.datetime:
++        if delta is None:
+             delta = datetime.timedelta(seconds=self.step_width)
++        elif isinstance(delta, numbers.Real):
++            delta = datetime.timedelta(seconds=float(delta))
+         self.time_to_freeze += delta  # type: ignore
+         return self.time_to_freeze
+ 
+diff --git a/tests/test_tick_delta_numeric.py b/tests/test_tick_delta_numeric.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..0a3b7f89f97db7061e70ee4c0a4f598493f1c73a
+--- /dev/null
++++ b/tests/test_tick_delta_numeric.py
+@@ -0,0 +1,68 @@
++import datetime
++
++from fractions import Fraction
++
++from freezegun import freeze_time
++
++
++START = datetime.datetime(2012, 1, 14, 12, 0, 0)
++
++
++def test_frozen_factory_int_delta():
++    with freeze_time(START) as ft:
++        result = ft.tick(1)
++        assert result == datetime.datetime(2012, 1, 14, 12, 0, 1)
++        assert ft() == result
++
++
++def test_frozen_factory_float_delta():
++    with freeze_time(START) as ft:
++        result = ft.tick(1.5)
++        assert result == datetime.datetime(2012, 1, 14, 12, 0, 1, 500000)
++        assert ft() == result
++
++
++def test_frozen_factory_fraction_delta():
++    with freeze_time(START) as ft:
++        result = ft.tick(Fraction(3, 2))
++        assert result == datetime.datetime(2012, 1, 14, 12, 0, 1, 500000)
++        assert ft() == result
++
++
++def test_frozen_factory_timedelta_delta():
++    with freeze_time(START) as ft:
++        result = ft.tick(datetime.timedelta(seconds=2))
++        assert result == datetime.datetime(2012, 1, 14, 12, 0, 2)
++        assert ft() == result
++
++
++def test_step_factory_int_delta():
++    with freeze_time(START, auto_tick_seconds=1) as ft:
++        result = ft.tick(2)
++        assert result == datetime.datetime(2012, 1, 14, 12, 0, 2)
++        assert ft() == datetime.datetime(2012, 1, 14, 12, 0, 2)
++        assert ft() == datetime.datetime(2012, 1, 14, 12, 0, 3)
++
++
++def test_step_factory_float_delta():
++    with freeze_time(START, auto_tick_seconds=1) as ft:
++        result = ft.tick(1.5)
++        assert result == datetime.datetime(2012, 1, 14, 12, 0, 1, 500000)
++        assert ft() == datetime.datetime(2012, 1, 14, 12, 0, 1, 500000)
++        assert ft() == datetime.datetime(2012, 1, 14, 12, 0, 2, 500000)
++
++
++def test_step_factory_fraction_delta():
++    with freeze_time(START, auto_tick_seconds=1) as ft:
++        result = ft.tick(Fraction(3, 2))
++        assert result == datetime.datetime(2012, 1, 14, 12, 0, 1, 500000)
++        assert ft() == datetime.datetime(2012, 1, 14, 12, 0, 1, 500000)
++        assert ft() == datetime.datetime(2012, 1, 14, 12, 0, 2, 500000)
++
++
++def test_step_factory_timedelta_delta():
++    with freeze_time(START, auto_tick_seconds=1) as ft:
++        result = ft.tick(datetime.timedelta(seconds=2))
++        assert result == datetime.datetime(2012, 1, 14, 12, 0, 2)
++        assert ft() == datetime.datetime(2012, 1, 14, 12, 0, 2)
++        assert ft() == datetime.datetime(2012, 1, 14, 12, 0, 3)

@@ -1,0 +1,23 @@
+diff --git a/tests/test_precision0_float.py b/tests/test_precision0_float.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..a6471106f176b5710f41e3273b1ddeaef3ce4c8e
+--- /dev/null
++++ b/tests/test_precision0_float.py
+@@ -0,0 +1,17 @@
++from parse import parse
++
++
++def test_precision0_float_without_decimal_point():
++    result = parse("a {:.0f} b", "a 12 b")
++    assert result is not None
++    assert result[0] == 12.0
++
++
++def test_precision0_float_with_width_and_padding():
++    result = parse("foo_{:02.0f}t", "foo_20t")
++    assert result is not None
++    assert result[0] == 20.0
++
++
++def test_precision0_float_rejects_decimal_point():
++    assert parse("a {:.0f} b", "a 12.0 b") is None

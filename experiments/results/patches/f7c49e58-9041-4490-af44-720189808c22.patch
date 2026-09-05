@@ -1,0 +1,165 @@
+diff --git a/tenacity/wait.py b/tenacity/wait.py
+index b28b788658e881f442b159e27e664e201f26a8ac..59f8454375554f215e3fe003d66ed08d99d8e247 100644
+--- a/tenacity/wait.py
++++ b/tenacity/wait.py
+@@ -17,6 +17,7 @@
+ import abc
+ import random
+ import typing
++import datetime
+ 
+ from tenacity import _utils
+ 
+@@ -240,26 +241,31 @@ class wait_random_exponential(wait_exponential):
+ class wait_exponential_jitter(wait_base):
+     """Wait strategy that applies exponential backoff and jitter.
+ 
+-    It allows for a customized initial wait, maximum wait and jitter.
++    It allows for a customized initial wait, maximum wait, jitter, and minimum wait.
++    The ``min``, ``max``, and ``jitter`` parameters accept either plain numbers (seconds)
++    or :class:`datetime.timedelta` instances.
+ 
+     This implements the strategy described here:
+     https://cloud.google.com/storage/docs/retry-strategy
+ 
+-    The wait time is min(initial * 2**n + random.uniform(0, jitter), maximum)
+-    where n is the retry count.
++    The wait time is bounded between ``min`` and ``max``; specifically the result
++    is ``min(max(initial * exp_base**n + random.uniform(0, jitter), min), max)``
++    where ``n`` is the retry count.
+     """
+ 
+     def __init__(
+         self,
+         initial: float = 1,
+-        max: float = _utils.MAX_WAIT,
++        max: _utils.time_unit_type = _utils.MAX_WAIT,
+         exp_base: float = 2,
+-        jitter: float = 1,
++        jitter: _utils.time_unit_type = 1,
++        min: _utils.time_unit_type = 0,
+     ) -> None:
+         self.initial = initial
+-        self.max = max
++        self.min = _utils.to_seconds(min)
++        self.max = _utils.to_seconds(max)
+         self.exp_base = exp_base
+-        self.jitter = jitter
++        self.jitter = _utils.to_seconds(jitter)
+ 
+     def __call__(self, retry_state: "RetryCallState") -> float:
+         jitter = random.uniform(0, self.jitter)
+@@ -268,4 +274,4 @@ class wait_exponential_jitter(wait_base):
+             result = self.initial * exp + jitter
+         except OverflowError:
+             result = self.max
+-        return max(0, min(result, self.max))
++        return max(max(0, self.min), min(result, self.max))
+diff --git a/tests/test_wait_exponential_jitter.py b/tests/test_wait_exponential_jitter.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..d8ab9e9f40a893b0b919201f5df4d8cb388efcd4
+--- /dev/null
++++ b/tests/test_wait_exponential_jitter.py
+@@ -0,0 +1,44 @@
++import datetime
++import random
++
++from tenacity import wait_exponential_jitter
++from tenacity._utils import to_seconds
++
++
++class DummyRetryState:
++    def __init__(self, attempt_number):
++        self.attempt_number = attempt_number
++
++
++def test_min_bound_enforced(monkeypatch):
++    # Force jitter to zero so the bare exponential value is deterministic
++    monkeypatch.setattr(random, "uniform", lambda a, b: 0.0)
++    w = wait_exponential_jitter(initial=1, exp_base=2, jitter=1, min=5, max=100)
++    # Attempt 1: exp=1*2**0=1 +0 < min => returns min
++    assert w(DummyRetryState(attempt_number=1)) == 5.0
++    # Attempt 4: exp=1*2**3=8 +0 > min => returns the exp value
++    assert w(DummyRetryState(attempt_number=4)) == 8.0
++
++
++def test_timedelta_support(monkeypatch):
++    # Force jitter to its maximum for deterministic total
++    monkeypatch.setattr(random, "uniform", lambda a, b: b)
++    initial = 1
++    exp_base = 2
++    jitter_td = datetime.timedelta(seconds=3)
++    min_td = datetime.timedelta(seconds=2)
++    max_td = datetime.timedelta(seconds=20)
++    w = wait_exponential_jitter(
++        initial=initial,
++        exp_base=exp_base,
++        jitter=jitter_td,
++        min=min_td,
++        max=max_td,
++    )
++    # Attempt 1: exp=1*2**0=1 + jitter 3 = 4 => between min=2 and max=20
++    assert w(DummyRetryState(attempt_number=1)) == 4.0
++    # Attempt 4: exp=1*2**3=8 + jitter 3 = 11 => still within bounds
++    assert w(DummyRetryState(attempt_number=4)) == 11.0
++    # Very large attempt -> exp overflows to inf -> clipped to max
++    result = w(DummyRetryState(attempt_number=1000))
++    assert result == to_seconds(max_td)
+diff --git a/tests/test_wait_exponential_jitter_timedelta_bounds.py b/tests/test_wait_exponential_jitter_timedelta_bounds.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..f105dd17598e50d736ff697931ff3a63011354c1
+--- /dev/null
++++ b/tests/test_wait_exponential_jitter_timedelta_bounds.py
+@@ -0,0 +1,52 @@
++import datetime
++import tenacity.wait as wait_module
++import pytest
++
++
++def test_wait_exponential_jitter_timedelta_conversion_and_bounds(monkeypatch):
++    # Stub out random.uniform to inspect its args and return a fixed jitter
++    def stub_uniform(a, b):
++        # a should be 0.0
++        assert isinstance(a, float) and a == 0.0
++        # jitter (b) must have been converted from timedelta to float seconds
++        assert isinstance(b, float) and b == 2.0
++        return 1.5
++
++    monkeypatch.setattr(wait_module.random, 'uniform', stub_uniform)
++
++    w = wait_module.wait_exponential_jitter(
++        initial=1,
++        exp_base=3,
++        jitter=datetime.timedelta(seconds=2),
++        min=datetime.timedelta(seconds=5),
++        max=datetime.timedelta(seconds=10),
++    )
++
++    class DummyState:
++        pass
++
++    # attempt_number=2: 1*3^1 + 1.5 = 4.5 -> lower bound to 5.0
++    DummyState.attempt_number = 2
++    assert w(DummyState) == 5.0
++
++    # attempt_number=3: 1*3^2 + 1.5 = 10.5 -> upper bound to 10.0
++    DummyState.attempt_number = 3
++    assert w(DummyState) == 10.0
++
++
++def test_wait_exponential_jitter_timedelta_smoke(monkeypatch):
++    # Verify timedelta args don't cause type errors and result is float within bounds
++    wait_module.random.seed(0)
++
++    w = wait_module.wait_exponential_jitter(
++        jitter=datetime.timedelta(seconds=0.5),
++        min=datetime.timedelta(seconds=0.1),
++        max=datetime.timedelta(seconds=2.0),
++    )
++
++    class DummyState:
++        attempt_number = 1
++
++    val = w(DummyState)
++    assert isinstance(val, float)
++    assert 0.1 <= val <= 2.0

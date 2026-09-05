@@ -1,0 +1,16 @@
+{
+  "checked_at": "2026-09-04T21:11:56.836396+00:00",
+  "historical_snapshot": "experiments/results/sessions/kernel_v2_ds_v4_flash_0731_nitro_low_core_small_v4/sweep.json",
+  "baseline_harness_tree_sha256": "9ccfc8d1757d3c3ebfef7f94d0a6f892929c9dd6c9a6d32f85dee8559bf7b695",
+  "harness_sources_match_baseline": true,
+  "resolved_configs_match_baseline": true,
+  "selected_task_inputs_match_baseline": true,
+  "replicate_configs_identical": true,
+  "replicate_task_inputs_identical": true,
+  "limitations": [
+    "Two workers share the same host; timings are not directly comparable with the historical sequential run.",
+    "Order seeds shuffle architecture order only; they are not model RNG seeds.",
+    "This is a repeatability experiment on an exposed task set.",
+    "The snapshot does not pin fresh pip dependency resolution; compare saved dependency manifests when reporting results."
+  ]
+}

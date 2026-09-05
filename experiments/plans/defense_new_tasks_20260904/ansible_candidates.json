@@ -1,0 +1,436 @@
+{
+  "schema_version": 1,
+  "created_at_utc": "2026-09-04T20:55:06.879158+00:00",
+  "repository": "ansible/ansible",
+  "purpose": "Outcome-blind selection for the new kernel/v2 defense experiment",
+  "selection_rule": [
+    "Start with registry task IDs for ansible absent from every runs.jsonl, sweep_attempts.jsonl and infrastructure_failures.jsonl record, and task_status pr_task_verified.",
+    "Localized candidates: exactly one lib/**/*.py production file and 25-80 added/deleted production-file lines. Cross-module candidates: 3-6 production Python files, 30-140 added/deleted production-file lines, and a behavior requiring agreement between interacting components.",
+    "Order numerically eligible task IDs lexicographically; inspect task description and reference patch semantics before any model outcome. The first two eligible candidates per class are primary and the next two backups.",
+    "Avoid selecting multiple variants of the same bug/API within a class; selected primary tasks have distinct behavior families.",
+    "Class labels describe reference change scope, not intrinsic difficulty. Patch line counts include comments/docstrings/embedded module documentation; they are a scope filter, not a direct difficulty score.",
+    "Use backups only for documented preflight/environment/specification issues, never based on a benchmark LLM result."
+  ],
+  "unattempted_ansible_count": 87,
+  "unattempted_verified_ansible_count": 85,
+  "exposure_journal_snapshots": [
+    {
+      "path": "experiments/results/runs.jsonl",
+      "sha256": "f38a553df0af5d9ac215191c7e448bddcc8a77718423bc6218b32421673c9fcc",
+      "bytes": 5212171
+    },
+    {
+      "path": "experiments/results/sweep_attempts.jsonl",
+      "sha256": "ce1e2de7515fe7302830749bfa047d4889211bcb6fd392ae8363c73384290685",
+      "bytes": 126185
+    },
+    {
+      "path": "experiments/results/infrastructure_failures.jsonl",
+      "sha256": "cde29601a680cb0a055595f3dfaffba880df092b3ff85ea6a33cb9102af52a7c",
+      "bytes": 33173
+    }
+  ],
+  "test_execution_performed": false,
+  "model_calls_performed": false,
+  "candidate_tasks": [
+    {
+      "task_id": "swepro_ansible_1ee70fc2",
+      "classification": "localized",
+      "selection_status": "primary",
+      "rank_within_status_and_class": 1,
+      "unattempted_in_all_three_journals": true,
+      "task_status": "pr_task_verified",
+      "intended_behavior": "Make identifier validation consistent across Python 2 and 3, rejecting non-ASCII strings and reserved keywords.",
+      "module_areas": [
+        "variable identifier validation"
+      ],
+      "classification_reason": "The behavior and reference implementation are confined to one utility module; no repository-module API migration is needed.",
+      "touched_production_files": [
+        "lib/ansible/utils/vars.py"
+      ],
+      "production_patch_lines": 63,
+      "production_patch_details": {
+        "lib/ansible/utils/vars.py": {
+          "added": 48,
+          "deleted": 15
+        }
+      },
+      "whole_patch_files": 1,
+      "whole_patch_lines": 63,
+      "reference_patch_path": "repositories/tasks/swepro_ansible_1ee70fc2/reference.patch",
+      "reference_patch_sha256": "d18eb125a6c7b2f87b9c51f285b7becb5556c7d28404abc4d4792c9d5c1d95b3",
+      "task_file_path": "repositories/tasks/swepro_ansible_1ee70fc2/task.md",
+      "task_file_sha256": "e2401497e0ef0c8bf2e99316aa5fbedf53850cffdd1229a70295d0c32e57b28a",
+      "base_commit": "9281148b623d4e2e8302778d91af3e84ab9579a9",
+      "docker_image": "jefzda/sweap-images:ansible.ansible-ansible__ansible-1ee70fc272aff6bf3415357c6e13c5de5b928d9b-v1055803c3a812189a1133297f7f5468579283f86",
+      "visible_test_command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest test/units/utils --deselect=test/units/utils/display/test_warning.py::test_warning_no_color --ignore=test/units/utils/test_encrypt.py --deselect=test/units/utils/test_display.py::test_get_text_width_no_locale",
+      "hidden_semantic_test_command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest ../hidden_tests/test/units/utils/test_isidentifier.py::test_non_ascii",
+      "hidden_compat_test_command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest 'test/units/utils/test_isidentifier.py::test_invalid_identifier[no-dashed-names-for-you]' 'test/units/utils/test_isidentifier.py::test_invalid_identifier[pass]' 'test/units/utils/test_isidentifier.py::test_invalid_identifier[1234]' 'test/units/utils/test_isidentifier.py::test_invalid_identifier[1234abc]' test/units/utils/test_isidentifier.py::test_invalid_identifier 'test/units/utils/test_isidentifier.py::test_invalid_identifier[]' 'test/units/utils/test_isidentifier.py::test_valid_identifier[foo]' test/units/utils/test_isidentifier.py::test_keywords_not_in_PY2 'test/units/utils/test_isidentifier.py::test_valid_identifier[foo1_23]'",
+      "setup_commands": "true",
+      "readiness_notes": [
+        "Hidden semantic command contains one non-ASCII regression test; compatibility includes keyword and valid/invalid identifier cases. Python 2 behavior is specified but may not run in the image. Requirements contain a version-sensitive print example; retain original task text.",
+        "Registry status is pr_task_verified, but no tests or Docker image checks were run during this read-only selection.",
+        "Task text, reference patch and hidden test assets were inspected by the selector, not supplied to the benchmark LLM."
+      ]
+    },
+    {
+      "task_id": "swepro_ansible_3889ddeb",
+      "classification": "localized",
+      "selection_status": "primary",
+      "rank_within_status_and_class": 2,
+      "unattempted_in_all_three_journals": true,
+      "task_status": "pr_task_verified",
+      "intended_behavior": "Add idempotent user-defined iptables chain creation and deletion, including check mode.",
+      "module_areas": [
+        "iptables module"
+      ],
+      "classification_reason": "Parameter handling, chain existence checks, command construction, and execution stay within one production module.",
+      "touched_production_files": [
+        "lib/ansible/modules/iptables.py"
+      ],
+      "production_patch_lines": 59,
+      "production_patch_details": {
+        "lib/ansible/modules/iptables.py": {
+          "added": 57,
+          "deleted": 2
+        }
+      },
+      "whole_patch_files": 2,
+      "whole_patch_lines": 61,
+      "reference_patch_path": "repositories/tasks/swepro_ansible_3889ddeb/reference.patch",
+      "reference_patch_sha256": "eb1fbd12a550c009ee958cd0f635ef1dc18f2dc4b166cae4d7f8cfb55c78626c",
+      "task_file_path": "repositories/tasks/swepro_ansible_3889ddeb/task.md",
+      "task_file_sha256": "10b6e4385ec01594e3464442dd7b83c1185ff2c2a7f1bcf32733f3dc97abbcfc",
+      "base_commit": "d5a740ddca57ed344d1d023383d4aff563657424",
+      "docker_image": "jefzda/sweap-images:ansible.ansible-ansible__ansible-3889ddeb4b780ab4bac9ca2e75f8c1991bcabe83-v0f01c69f1e2528b935359cfe578530722bca2c59",
+      "visible_test_command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest test/units/modules/test_iptables.py",
+      "hidden_semantic_test_command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest ../hidden_tests/test/units/modules/test_iptables.py::TestIptables::test_append_rule ../hidden_tests/test/units/modules/test_iptables.py::TestIptables::test_append_rule_check_mode ../hidden_tests/test/units/modules/test_iptables.py::TestIptables::test_chain_creation ../hidden_tests/test/units/modules/test_iptables.py::TestIptables::test_chain_creation_check_mode ../hidden_tests/test/units/modules/test_iptables.py::TestIptables::test_chain_deletion ../hidden_tests/test/units/modules/test_iptables.py::TestIptables::test_chain_deletion_check_mode ../hidden_tests/test/units/modules/test_iptables.py::TestIptables::test_insert_rule ../hidden_tests/test/units/modules/test_iptables.py::TestIptables::test_insert_rule_change_false",
+      "hidden_compat_test_command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest test/units/modules/test_iptables.py::TestIptables::test_comment_position_at_end test/units/modules/test_iptables.py::TestIptables::test_destination_ports test/units/modules/test_iptables.py::TestIptables::test_flush_table_check_true test/units/modules/test_iptables.py::TestIptables::test_flush_table_without_chain test/units/modules/test_iptables.py::TestIptables::test_insert_jump_reject_with_reject test/units/modules/test_iptables.py::TestIptables::test_insert_rule_with_wait test/units/modules/test_iptables.py::TestIptables::test_insert_with_reject test/units/modules/test_iptables.py::TestIptables::test_iprange test/units/modules/test_iptables.py::TestIptables::test_jump_tee_gateway test/units/modules/test_iptables.py::TestIptables::test_jump_tee_gateway_negative test/units/modules/test_iptables.py::TestIptables::test_log_level test/units/modules/test_iptables.py::TestIptables::test_match_set test/units/modules/test_iptables.py::TestIptables::test_policy_table test/units/modules/test_iptables.py::TestIptables::test_policy_table_changed_false test/units/modules/test_iptables.py::TestIptables::test_policy_table_no_change",
+      "setup_commands": "true",
+      "readiness_notes": [
+        "Eight hidden semantic IDs cover append/insert and chain creation/deletion, including check mode. Uses mocked module tests; verify base/reference polarity in the pinned image.",
+        "Registry status is pr_task_verified, but no tests or Docker image checks were run during this read-only selection.",
+        "Task text, reference patch and hidden test assets were inspected by the selector, not supplied to the benchmark LLM."
+      ]
+    },
+    {
+      "task_id": "swepro_ansible_3db08adb",
+      "classification": "localized",
+      "selection_status": "backup",
+      "rank_within_status_and_class": 1,
+      "unattempted_in_all_three_journals": true,
+      "task_status": "pr_task_verified",
+      "intended_behavior": "Allow min/max filters to forward attribute and case_sensitive options to supported Jinja filters, with legacy fallback.",
+      "module_areas": [
+        "math filters"
+      ],
+      "classification_reason": "Only the math filter module changes production behavior; external Jinja compatibility is not an internal multi-module change.",
+      "touched_production_files": [
+        "lib/ansible/plugins/filter/mathstuff.py"
+      ],
+      "production_patch_lines": 32,
+      "production_patch_details": {
+        "lib/ansible/plugins/filter/mathstuff.py": {
+          "added": 26,
+          "deleted": 6
+        }
+      },
+      "whole_patch_files": 3,
+      "whole_patch_lines": 46,
+      "reference_patch_path": "repositories/tasks/swepro_ansible_3db08adb/reference.patch",
+      "reference_patch_sha256": "5539e95ab1878711fe7764e6ba2e6f3ce924b6d9ebeed396bc2a1155e596ebc1",
+      "task_file_path": "repositories/tasks/swepro_ansible_3db08adb/task.md",
+      "task_file_sha256": "1ac23bd18e0c3d5d737299f74ca613d28b741b8bc8ce213b5d83b8abd3419723",
+      "base_commit": "709484969c8a4ffd74b839a673431a8c5caa6457",
+      "docker_image": "jefzda/sweap-images:ansible.ansible-ansible__ansible-3db08adbb1cc6aa9941be5e0fc810132c6e1fa4b-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5",
+      "visible_test_command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest test/units/plugins/filter/test_mathstuff.py",
+      "hidden_semantic_test_command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest ../hidden_tests/test/units/plugins/filter/test_mathstuff.py::TestMax::test_max ../hidden_tests/test/units/plugins/filter/test_mathstuff.py::TestMin::test_min",
+      "hidden_compat_test_command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest 'test/units/plugins/filter/test_mathstuff.py::TestUnique::test_unhashable[data0-expected0]' 'test/units/plugins/filter/test_mathstuff.py::TestUnique::test_hashable[data0-expected0]' 'test/units/plugins/filter/test_mathstuff.py::TestUnique::test_hashable[data3-expected3]' 'test/units/plugins/filter/test_mathstuff.py::TestIntersect::test_unhashable[dataset10-dataset20-expected0]' 'test/units/plugins/filter/test_mathstuff.py::TestUnique::test_unhashable[data2-expected2]' 'test/units/plugins/filter/test_mathstuff.py::TestDifference::test_unhashable[dataset11-dataset21-expected1]' 'test/units/plugins/filter/test_mathstuff.py::TestIntersect::test_hashable[dataset10-dataset20-expected0]' test/units/plugins/filter/test_mathstuff.py::TestPower::test_power_non_number test/units/plugins/filter/test_mathstuff.py::TestLogarithm::test_log_two 'test/units/plugins/filter/test_mathstuff.py::TestDifference::test_unhashable[dataset10-dataset20-expected0]' 'test/units/plugins/filter/test_mathstuff.py::TestIntersect::test_unhashable[dataset12-dataset22-expected2]' test/units/plugins/filter/test_mathstuff.py::TestRekeyOnMember::test_fail_rekey_on_member 'test/units/plugins/filter/test_mathstuff.py::TestIntersect::test_unhashable[dataset11-dataset21-expected1]' 'test/units/plugins/filter/test_mathstuff.py::TestDifference::test_unhashable[dataset12-dataset22-expected2]' 'test/units/plugins/filter/test_mathstuff.py::TestUnique::test_unhashable[data1-expected1]'",
+      "setup_commands": "true",
+      "readiness_notes": [
+        "Two hidden semantic IDs cover min/max; pinned Jinja version matters for environmentfilter support.",
+        "Registry status is pr_task_verified, but no tests or Docker image checks were run during this read-only selection.",
+        "Task text, reference patch and hidden test assets were inspected by the selector, not supplied to the benchmark LLM."
+      ]
+    },
+    {
+      "task_id": "swepro_ansible_5f4e332e",
+      "classification": "localized",
+      "selection_status": "backup",
+      "rank_within_status_and_class": 2,
+      "unattempted_in_all_three_journals": true,
+      "task_status": "pr_task_verified",
+      "intended_behavior": "Restore removal of one matching outer quote pair for string configuration values originating in INI files.",
+      "module_areas": [
+        "configuration manager"
+      ],
+      "classification_reason": "Origin tracking and type conversion are both in the same configuration manager module.",
+      "touched_production_files": [
+        "lib/ansible/config/manager.py"
+      ],
+      "production_patch_lines": 50,
+      "production_patch_details": {
+        "lib/ansible/config/manager.py": {
+          "added": 30,
+          "deleted": 20
+        }
+      },
+      "whole_patch_files": 2,
+      "whole_patch_lines": 52,
+      "reference_patch_path": "repositories/tasks/swepro_ansible_5f4e332e/reference.patch",
+      "reference_patch_sha256": "001ff6c8cff0214b005e792a707e1b981860739bba357f418c8982edccfcdab6",
+      "task_file_path": "repositories/tasks/swepro_ansible_5f4e332e/task.md",
+      "task_file_sha256": "969c07b192211860df4398e3ed06424bd76ddb6be27281c6f32a820940ab644f",
+      "base_commit": "a870e7d0c6368dbc4c8f1f088f540e8be07223e1",
+      "docker_image": "jefzda/sweap-images:ansible.ansible-ansible__ansible-5f4e332e3762999d94af27746db29ff1729252c1-v0f01c69f1e2528b935359cfe578530722bca2c59",
+      "visible_test_command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest test/units/config/test_manager.py",
+      "hidden_semantic_test_command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest ../hidden_tests/test/units/config/test_manager.py::TestConfigManager::test_ensure_type_unquoting",
+      "hidden_compat_test_command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest 'test/units/config/test_manager.py::TestConfigManager::test_ensure_type[a,b-list-list]' 'test/units/config/test_manager.py::TestConfigManager::test_ensure_type[value1-list-list]' 'test/units/config/test_manager.py::TestConfigManager::test_ensure_type[y-bool-bool]' 'test/units/config/test_manager.py::TestConfigManager::test_ensure_type[yes-bool-bool]' 'test/units/config/test_manager.py::TestConfigManager::test_ensure_type[on-bool-bool]' 'test/units/config/test_manager.py::TestConfigManager::test_ensure_type[1-bool-bool0]' 'test/units/config/test_manager.py::TestConfigManager::test_ensure_type[true-bool-bool]' 'test/units/config/test_manager.py::TestConfigManager::test_ensure_type[t-bool-bool]' 'test/units/config/test_manager.py::TestConfigManager::test_ensure_type[1-bool-bool1]' 'test/units/config/test_manager.py::TestConfigManager::test_ensure_type[1.0-bool-bool]' 'test/units/config/test_manager.py::TestConfigManager::test_ensure_type[True-bool-bool]' 'test/units/config/test_manager.py::TestConfigManager::test_ensure_type[n-bool-bool]' 'test/units/config/test_manager.py::TestConfigManager::test_ensure_type[no-bool-bool]' 'test/units/config/test_manager.py::TestConfigManager::test_ensure_type[off-bool-bool]' 'test/units/config/test_manager.py::TestConfigManager::test_ensure_type[0-bool-bool0]'",
+      "setup_commands": "true",
+      "readiness_notes": [
+        "Hidden semantic command targets parameterized unquoting tests. Task requirements contain a conflicting final sentence about all origins; reference patch specifically gates unquoting on INI origin. Prefer earlier localized candidates; flag ambiguity before any substitution.",
+        "Registry status is pr_task_verified, but no tests or Docker image checks were run during this read-only selection.",
+        "Task text, reference patch and hidden test assets were inspected by the selector, not supplied to the benchmark LLM."
+      ]
+    },
+    {
+      "task_id": "swepro_ansible_1b70260d",
+      "classification": "cross-module",
+      "selection_status": "primary",
+      "rank_within_status_and_class": 1,
+      "unattempted_in_all_three_journals": true,
+      "task_status": "pr_task_verified",
+      "intended_behavior": "Prevent tagged dependency roles from being rerun by representing role completion explicitly and consistently through compilation and execution.",
+      "module_areas": [
+        "play iterator",
+        "playbook blocks and role compiler",
+        "strategy base and linear strategy"
+      ],
+      "classification_reason": "Role compilation emits a completion task, block serialization removes the old flag, iterator state no longer owns that flag, and strategies execute completion per host. These components exchange the same task/state protocol.",
+      "touched_production_files": [
+        "lib/ansible/executor/play_iterator.py",
+        "lib/ansible/playbook/block.py",
+        "lib/ansible/playbook/role/__init__.py",
+        "lib/ansible/plugins/strategy/__init__.py",
+        "lib/ansible/plugins/strategy/linear.py"
+      ],
+      "production_patch_lines": 53,
+      "production_patch_details": {
+        "lib/ansible/executor/play_iterator.py": {
+          "added": 5,
+          "deleted": 10
+        },
+        "lib/ansible/playbook/block.py": {
+          "added": 0,
+          "deleted": 6
+        },
+        "lib/ansible/playbook/role/__init__.py": {
+          "added": 20,
+          "deleted": 3
+        },
+        "lib/ansible/plugins/strategy/__init__.py": {
+          "added": 7,
+          "deleted": 0
+        },
+        "lib/ansible/plugins/strategy/linear.py": {
+          "added": 1,
+          "deleted": 1
+        }
+      },
+      "whole_patch_files": 6,
+      "whole_patch_lines": 55,
+      "reference_patch_path": "repositories/tasks/swepro_ansible_1b70260d/reference.patch",
+      "reference_patch_sha256": "232d5cb1ad632976d0ac33df5006a9679cfbbae2b972a1621cb9bb1e85732041",
+      "task_file_path": "repositories/tasks/swepro_ansible_1b70260d/task.md",
+      "task_file_sha256": "b14ee260b858b1cb588320a2d02b6789e3c7e669b527a2b37a16ae81a4568245",
+      "base_commit": "252685092cacdd0f8b485ed6f105ec7acc29c7a4",
+      "docker_image": "jefzda/sweap-images:ansible.ansible-ansible__ansible-1b70260d5aa2f6c9782fd2b848e8d16566e50d85-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5",
+      "visible_test_command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest test/units/playbook/role/test_include_role.py test/units/executor/test_play_iterator.py",
+      "hidden_semantic_test_command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest ../hidden_tests/test/units/executor/test_play_iterator.py::TestPlayIterator::test_play_iterator",
+      "hidden_compat_test_command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest test/units/playbook/role/test_include_role.py::TestIncludeRole::test_nested_alt_files test/units/playbook/role/test_include_role.py::TestIncludeRole::test_simple test/units/playbook/role/test_include_role.py::TestIncludeRole::test_simple_alt_files test/units/playbook/role/test_include_role.py::TestIncludeRole::test_nested test/units/executor/test_play_iterator.py::TestPlayIterator::test_host_state test/units/executor/test_play_iterator.py::TestPlayIterator::test_play_iterator_add_tasks test/units/executor/test_play_iterator.py::TestPlayIterator::test_play_iterator_nested_blocks",
+      "setup_commands": "true",
+      "readiness_notes": [
+        "One hidden semantic method loads a real playbook with a role and nested blocks, exercising role compilation and iteration; visible tests also cover include-role. The narrow hidden suite does not prove all tagged multi-host integration behavior.",
+        "Registry status is pr_task_verified, but no tests or Docker image checks were run during this read-only selection.",
+        "Task text, reference patch and hidden test assets were inspected by the selector, not supplied to the benchmark LLM."
+      ]
+    },
+    {
+      "task_id": "swepro_ansible_1bd7dcf3",
+      "classification": "cross-module",
+      "selection_status": "primary",
+      "rank_within_status_and_class": 2,
+      "unattempted_in_all_three_journals": true,
+      "task_status": "pr_task_verified",
+      "intended_behavior": "Propagate the requested BCrypt ident through password hashing filters, lookup parameter/persistence handling, and crypt/passlib backends.",
+      "module_areas": [
+        "password hash filter",
+        "password lookup plugin",
+        "hashing utility backends"
+      ],
+      "classification_reason": "The ident parameter must cross public filter/lookup interfaces into shared hashing implementations while preserving defaults and persisted metadata.",
+      "touched_production_files": [
+        "lib/ansible/plugins/filter/core.py",
+        "lib/ansible/plugins/lookup/password.py",
+        "lib/ansible/utils/encrypt.py"
+      ],
+      "production_patch_lines": 120,
+      "production_patch_details": {
+        "lib/ansible/plugins/filter/core.py": {
+          "added": 3,
+          "deleted": 17
+        },
+        "lib/ansible/plugins/lookup/password.py": {
+          "added": 26,
+          "deleted": 4
+        },
+        "lib/ansible/utils/encrypt.py": {
+          "added": 47,
+          "deleted": 23
+        }
+      },
+      "whole_patch_files": 5,
+      "whole_patch_lines": 137,
+      "reference_patch_path": "repositories/tasks/swepro_ansible_1bd7dcf3/reference.patch",
+      "reference_patch_sha256": "c1dea5045780700be9ce8c767b82c746408317e5878366a81d80abf29f96834c",
+      "task_file_path": "repositories/tasks/swepro_ansible_1bd7dcf3/task.md",
+      "task_file_sha256": "716fa2e1b4f0925ffafc72ef37b38081b01664a442939042202fbc7e992d5e55",
+      "base_commit": "20ef733ee02ba688757998404c1926381356b031",
+      "docker_image": "jefzda/sweap-images:ansible.ansible-ansible__ansible-1bd7dcf339dd8b6c50bc16670be2448a206f4fdb-vba6da65a0f3baefda7a058ebbd0a8dcafb8512f5",
+      "visible_test_command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest test/units/utils/test_encrypt.py test/units/plugins/lookup/test_password.py",
+      "hidden_semantic_test_command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest ../hidden_tests/test/units/utils/test_encrypt.py::test_password_hash_filter_passlib ../hidden_tests/test/units/utils/test_encrypt.py::test_do_encrypt_passlib ../hidden_tests/test/units/utils/test_encrypt.py::test_passlib_bcrypt_salt ../hidden_tests/test/units/utils/test_encrypt.py::test_encrypt_with_ident ../hidden_tests/test/units/plugins/lookup/test_password.py::TestParseParameters::test",
+      "hidden_compat_test_command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest test/units/utils/test_encrypt.py::test_random_salt test/units/utils/test_encrypt.py::test_password_hash_filter_no_passlib test/units/utils/test_encrypt.py::test_invalid_crypt_salt test/units/utils/test_encrypt.py::test_do_encrypt_no_passlib test/units/utils/test_encrypt.py::test_encrypt_with_rounds_no_passlib test/units/utils/test_encrypt.py::test_encrypt_default_rounds_no_passlib test/units/utils/test_encrypt.py::test_encrypt_default_rounds test/units/utils/test_encrypt.py::test_encrypt_with_rounds test/units/plugins/lookup/test_password.py::TestRandomPassword::test_free_will test/units/plugins/lookup/test_password.py::TestReadPasswordFile::test_no_password_file test/units/plugins/lookup/test_password.py::TestRandomPassword::test_default test/units/plugins/lookup/test_password.py::TestFormatContent::test_no_encrypt_no_salt test/units/plugins/lookup/test_password.py::TestRandomPassword::test_just_a_common test/units/plugins/lookup/test_password.py::TestParseContent::test_empty_password_file test/units/plugins/lookup/test_password.py::TestRandomPassword::test_unicode",
+      "setup_commands": "true",
+      "readiness_notes": [
+        "Five hidden semantic IDs exercise hash filter, encryption helpers, BCrypt variants and lookup parameter parsing. Several tests skip without passlib: preflight must verify meaningful tests actually execute. There may be related password tasks in older sessions; this exact task ID is unattempted, not a claim of an unseen API family.",
+        "Registry status is pr_task_verified, but no tests or Docker image checks were run during this read-only selection.",
+        "Task text, reference patch and hidden test assets were inspected by the selector, not supplied to the benchmark LLM."
+      ]
+    },
+    {
+      "task_id": "swepro_ansible_1c06c46c",
+      "classification": "cross-module",
+      "selection_status": "backup",
+      "rank_within_status_and_class": 1,
+      "unattempted_in_all_three_journals": true,
+      "task_status": "pr_task_verified",
+      "intended_behavior": "Preserve YAML trust/origin metadata and serialize undecryptable vault values or raise the required errors according to dump options.",
+      "module_areas": [
+        "YAML constructor and dumper",
+        "internal collection predicates",
+        "public YAML filters"
+      ],
+      "classification_reason": "Public filters must select instrumented parsing, preserve markers and route lazy/tagged objects to dumper representations, using internal mapping/iterable rules. Some reference changes are annotations, but substantive behavior spans filter and dumper modules.",
+      "touched_production_files": [
+        "lib/ansible/_internal/_yaml/_constructor.py",
+        "lib/ansible/_internal/_yaml/_dumper.py",
+        "lib/ansible/module_utils/_internal/__init__.py",
+        "lib/ansible/plugins/filter/core.py"
+      ],
+      "production_patch_lines": 71,
+      "production_patch_details": {
+        "lib/ansible/_internal/_yaml/_constructor.py": {
+          "added": 4,
+          "deleted": 4
+        },
+        "lib/ansible/_internal/_yaml/_dumper.py": {
+          "added": 28,
+          "deleted": 6
+        },
+        "lib/ansible/module_utils/_internal/__init__.py": {
+          "added": 7,
+          "deleted": 4
+        },
+        "lib/ansible/plugins/filter/core.py": {
+          "added": 7,
+          "deleted": 11
+        }
+      },
+      "whole_patch_files": 4,
+      "whole_patch_lines": 71,
+      "reference_patch_path": "repositories/tasks/swepro_ansible_1c06c46c/reference.patch",
+      "reference_patch_sha256": "9c52d257688763186d77b9942aa1eb8bfb98769e91b058e2681809c0f00eae07",
+      "task_file_path": "repositories/tasks/swepro_ansible_1c06c46c/task.md",
+      "task_file_sha256": "b34621a6c4ebe5f990953b42d522d528c2c2f1b8f1a65bcc966d82bb519eaaa3",
+      "base_commit": "6198c7377f545207218fe8eb2e3cfa9673ff8f5e",
+      "docker_image": "jefzda/sweap-images:ansible.ansible-ansible__ansible-1c06c46cc14324df35ac4f39a45fb3ccd602195d-v0f01c69f1e2528b935359cfe578530722bca2c59",
+      "visible_test_command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest test/units/plugins/filter/test_core.py",
+      "hidden_semantic_test_command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest '../hidden_tests/test/units/plugins/filter/test_core.py::test_from_yaml_trust[True]' ../hidden_tests/test/units/plugins/filter/test_core.py::test_from_yaml_origin '../hidden_tests/test/units/_internal/_yaml/test_dumper.py::test_yaml_dump[to_yaml-True]' '../hidden_tests/test/units/_internal/_yaml/test_dumper.py::test_yaml_dump[to_nice_yaml-True]'",
+      "hidden_compat_test_command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest 'test/units/plugins/filter/test_core.py::test_to_uuid_default_namespace[example.com-ae780c3a-a3ab-53c2-bfb4-098da300b3fe]' 'test/units/plugins/filter/test_core.py::test_to_uuid_default_namespace[test.example-8e437a35-c7c5-50ea-867c-5c254848dbc2]' 'test/units/plugins/filter/test_core.py::test_to_uuid[361E6D51-FAEC-444A-9079-341386DA8E2E-example.com-ae780c3a-a3ab-53c2-bfb4-098da300b3fe]' 'test/units/plugins/filter/test_core.py::test_to_uuid[361E6D51-FAEC-444A-9079-341386DA8E2E-test.example-8e437a35-c7c5-50ea-867c-5c254848dbc2]' 'test/units/plugins/filter/test_core.py::test_to_uuid[11111111-2222-3333-4444-555555555555-example.com-e776faa5-5299-55dc-9057-7a00e6be2364]' test/units/plugins/filter/test_core.py::test_to_uuid_invalid_namespace 'test/units/plugins/filter/test_core.py::test_to_bool_deprecation[None]' 'test/units/plugins/filter/test_core.py::test_to_bool_deprecation[nope]' 'test/units/plugins/filter/test_core.py::test_to_bool_deprecation[1.1]' 'test/units/plugins/filter/test_core.py::test_from_yaml_trust[False]' 'test/units/_internal/_yaml/test_dumper.py::test_yaml_dump[to_yaml-False]' 'test/units/_internal/_yaml/test_dumper.py::test_yaml_dump[to_yaml-None]' 'test/units/_internal/_yaml/test_dumper.py::test_yaml_dump[to_nice_yaml-False]' 'test/units/_internal/_yaml/test_dumper.py::test_yaml_dump[to_nice_yaml-None]' test/units/_internal/_yaml/test_dumper.py::test_yaml_dump_undefined",
+      "setup_commands": "true",
+      "readiness_notes": [
+        "Four hidden semantic IDs cover filter trust/origin and both YAML output filters. Requires its recent ansible-core snapshot and pinned image; readiness not tested.",
+        "Registry status is pr_task_verified, but no tests or Docker image checks were run during this read-only selection.",
+        "Task text, reference patch and hidden test assets were inspected by the selector, not supplied to the benchmark LLM."
+      ]
+    },
+    {
+      "task_id": "swepro_ansible_3b823d90",
+      "classification": "cross-module",
+      "selection_status": "backup",
+      "rank_within_status_and_class": 2,
+      "unattempted_in_all_three_journals": true,
+      "task_status": "pr_task_verified",
+      "intended_behavior": "Restore vaulted-file caching without making inventory refresh and noncached reads stale.",
+      "module_areas": [
+        "data loader",
+        "inventory plugins",
+        "host/group vars plugin",
+        "variable manager"
+      ],
+      "classification_reason": "The loader cache policy changes from boolean to none/all/vaulted; callers across inventory and variable retrieval choose different policies and must agree with the new API.",
+      "touched_production_files": [
+        "lib/ansible/parsing/dataloader.py",
+        "lib/ansible/plugins/inventory/__init__.py",
+        "lib/ansible/plugins/inventory/auto.py",
+        "lib/ansible/plugins/inventory/yaml.py",
+        "lib/ansible/plugins/vars/host_group_vars.py",
+        "lib/ansible/vars/manager.py"
+      ],
+      "production_patch_lines": 43,
+      "production_patch_details": {
+        "lib/ansible/parsing/dataloader.py": {
+          "added": 22,
+          "deleted": 9
+        },
+        "lib/ansible/plugins/inventory/__init__.py": {
+          "added": 1,
+          "deleted": 1
+        },
+        "lib/ansible/plugins/inventory/auto.py": {
+          "added": 1,
+          "deleted": 1
+        },
+        "lib/ansible/plugins/inventory/yaml.py": {
+          "added": 1,
+          "deleted": 1
+        },
+        "lib/ansible/plugins/vars/host_group_vars.py": {
+          "added": 1,
+          "deleted": 1
+        },
+        "lib/ansible/vars/manager.py": {
+          "added": 2,
+          "deleted": 2
+        }
+      },
+      "whole_patch_files": 7,
+      "whole_patch_lines": 45,
+      "reference_patch_path": "repositories/tasks/swepro_ansible_3b823d90/reference.patch",
+      "reference_patch_sha256": "0b44c156f5faa56fe381fcc2a65d9e2a0f1296923376e7291d92b14c0f72ae6f",
+      "task_file_path": "repositories/tasks/swepro_ansible_3b823d90/task.md",
+      "task_file_sha256": "4b13dd119013efa3020b577a0f695de4392cf7806471aa8dd5e85a38cc210fcd",
+      "base_commit": "92df66480613d0f3c1f11ab27146e3162d2a5bd5",
+      "docker_image": "jefzda/sweap-images:ansible.ansible-ansible__ansible-3b823d908e8a5d17674f8c26d337d3114b7493b1-v0f01c69f1e2528b935359cfe578530722bca2c59",
+      "visible_test_command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest test/units/parsing/test_dataloader.py",
+      "hidden_semantic_test_command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest ../hidden_tests/test/units/parsing/test_dataloader.py::TestDataLoaderWithVault::test_parse_from_vault_1_1_file",
+      "hidden_compat_test_command": "PYTHONPATH=/workspace/lib:/workspace/test/lib python -m pytest test/units/parsing/test_dataloader.py::TestDataLoader::test__is_role test/units/parsing/test_dataloader.py::TestDataLoader::test_get_file_contents_non_existent_path test/units/parsing/test_dataloader.py::TestDataLoader::test_get_file_contents_none_path test/units/parsing/test_dataloader.py::TestDataLoader::test_get_real_file test/units/parsing/test_dataloader.py::TestDataLoader::test_is_directory_positive test/units/parsing/test_dataloader.py::TestDataLoader::test_is_file test/units/parsing/test_dataloader.py::TestDataLoader::test_parse_fail_from_file test/units/parsing/test_dataloader.py::TestDataLoader::test_parse_json_from_file test/units/parsing/test_dataloader.py::TestDataLoader::test_parse_yaml_from_file test/units/parsing/test_dataloader.py::TestDataLoader::test_path_dwim_home test/units/parsing/test_dataloader.py::TestDataLoader::test_path_dwim_relative test/units/parsing/test_dataloader.py::TestDataLoader::test_path_dwim_root test/units/parsing/test_dataloader.py::TestDataLoader::test_path_dwim_tilde_slash test/units/parsing/test_dataloader.py::TestDataLoader::test_tab_error test/units/parsing/test_dataloader.py::TestPathDwimRelativeDataLoader::test_all_slash",
+      "setup_commands": "true",
+      "readiness_notes": [
+        "Reference behavior is cross-module, but hidden semantic test only directly checks DataLoader cache behavior. Therefore it is a weak fallback for claims about experimentally verified cross-module completeness; document this or use another prevalidated backup.",
+        "Registry status is pr_task_verified, but no tests or Docker image checks were run during this read-only selection.",
+        "Task text, reference patch and hidden test assets were inspected by the selector, not supplied to the benchmark LLM."
+      ]
+    }
+  ]
+}

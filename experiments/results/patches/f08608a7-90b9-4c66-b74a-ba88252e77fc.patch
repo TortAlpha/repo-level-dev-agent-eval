@@ -1,0 +1,85 @@
+diff --git a/freezegun/api.py b/freezegun/api.py
+index 0f11e0c113f328fb4ce71329cf8e6b35ab58a3fe..d333f2984eaf4e9710ce57fe6bf7e234ee1ecd7a 100644
+--- a/freezegun/api.py
++++ b/freezegun/api.py
+@@ -531,10 +531,10 @@ class FrozenDateTimeFactory:
+     def __call__(self) -> datetime.datetime:
+         return self.time_to_freeze
+ 
+-    def tick(self, delta: Union[datetime.timedelta, int]=datetime.timedelta(seconds=1)) -> datetime.datetime:
++    def tick(self, delta: Union[datetime.timedelta, numbers.Real]=datetime.timedelta(seconds=1)) -> datetime.datetime:
+         if isinstance(delta, numbers.Real):
+             # noinspection PyTypeChecker
+-            self.time_to_freeze += datetime.timedelta(seconds=delta)
++            self.time_to_freeze += datetime.timedelta(seconds=float(delta))
+         else:
+             self.time_to_freeze += delta  # type: ignore
+         return self.time_to_freeze
+@@ -557,9 +557,11 @@ class StepTickTimeFactory:
+         self.tick()
+         return return_time
+ 
+-    def tick(self, delta: Union[datetime.timedelta, int, None]=None) -> datetime.datetime:
+-        if not delta:
++    def tick(self, delta: Union[datetime.timedelta, numbers.Real, None]=None) -> datetime.datetime:
++        if delta is None:
+             delta = datetime.timedelta(seconds=self.step_width)
++        elif isinstance(delta, numbers.Real):
++            delta = datetime.timedelta(seconds=float(delta))
+         self.time_to_freeze += delta  # type: ignore
+         return self.time_to_freeze
+ 
+diff --git a/tests/test_tick_numeric.py b/tests/test_tick_numeric.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..eaf7d5b2b180bbe78809ab57e7595c9783f2db72
+--- /dev/null
++++ b/tests/test_tick_numeric.py
+@@ -0,0 +1,48 @@
++import datetime
++from fractions import Fraction
++
++import pytest
++
++from freezegun import freeze_time
++
++
++@pytest.mark.parametrize("delta,seconds_ahead", [
++    (61, 61),
++    (61.5, 61.5),
++    (Fraction(61, 2), 30.5),
++])
++def test_frozen_factory_numeric_delta(delta, seconds_ahead):
++    with freeze_time("2012-01-14 23:59:59") as frozen_datetime:
++        new_time = frozen_datetime.tick(delta=delta)
++    expected = datetime.datetime(2012, 1, 14, 23, 59, 59) + datetime.timedelta(seconds=seconds_ahead)
++    assert new_time == expected
++
++
++def test_frozen_factory_fraction_delta_in_place():
++    with freeze_time("2012-01-14 23:59:59") as frozen_datetime:
++        frozen_datetime.tick(delta=Fraction(61, 2))
++        assert frozen_datetime() == datetime.datetime(2012, 1, 14, 23, 59, 59) + datetime.timedelta(seconds=30.5)
++
++
++@pytest.mark.parametrize("delta,seconds_ahead", [
++    (61, 61),
++    (61.5, 61.5),
++    (Fraction(61, 2), 30.5),
++])
++def test_step_tick_factory_numeric_delta(delta, seconds_ahead):
++    with freeze_time("2012-01-14 23:59:59", auto_tick_seconds=1) as ft:
++        new_time = ft.tick(delta=delta)
++    expected = datetime.datetime(2012, 1, 14, 23, 59, 59) + datetime.timedelta(seconds=seconds_ahead)
++    assert new_time == expected
++
++
++def test_step_tick_factory_default_step():
++    with freeze_time("2012-01-14 23:59:59", auto_tick_seconds=1) as ft:
++        new_time = ft.tick()
++    assert new_time == datetime.datetime(2012, 1, 14, 23, 59, 59) + datetime.timedelta(seconds=1)
++
++
++def test_step_tick_factory_timedelta():
++    with freeze_time("2012-01-14 23:59:59", auto_tick_seconds=1) as ft:
++        new_time = ft.tick(delta=datetime.timedelta(minutes=2))
++    assert new_time == datetime.datetime(2012, 1, 14, 23, 59, 59) + datetime.timedelta(minutes=2)

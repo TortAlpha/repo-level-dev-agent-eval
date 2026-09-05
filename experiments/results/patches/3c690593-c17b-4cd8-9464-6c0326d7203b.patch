@@ -1,0 +1,75 @@
+diff --git a/src/humanize/filesize.py b/src/humanize/filesize.py
+index c495fed3ee9e724755800a0352c975335a9b1465..dca25c6e6cb1bff64aacedb6ebdf0a0597030a83 100644
+--- a/src/humanize/filesize.py
++++ b/src/humanize/filesize.py
+@@ -2,6 +2,8 @@
+ 
+ from __future__ import annotations
+ 
++import re
++
+ from math import log
+ 
+ from humanize.i18n import _gettext as _
+@@ -34,6 +36,15 @@ suffixes = {
+     "gnu": "KMGTPEZYRQ",
+ }
+ 
++_FORMAT_DECIMAL_RE = re.compile(r"\.(\d+)[fF]")
++
++
++def _format_decimals(fmt: str) -> int | None:
++    match = _FORMAT_DECIMAL_RE.search(fmt)
++    if match:
++        return int(match.group(1))
++    return None
++
+ 
+ def naturalsize(
+     value: float | str,
+@@ -97,6 +108,13 @@ def naturalsize(
+         return f"{int(bytes_)}B" if gnu else _("%d Bytes") % int(bytes_)
+ 
+     exp = int(min(log(abs_bytes, base), len(suffix)))
++    num = bytes_ / (base**exp)
++    decimals = _format_decimals(format)
++    if decimals is not None:
++        rounded = round(num, decimals)
++        if abs(rounded) >= base and exp < len(suffix):
++            exp += 1
++            num = bytes_ / (base**exp)
+     space = "" if gnu else " "
+-    ret: str = format % (bytes_ / (base**exp)) + space + _(suffix[exp - 1])
++    ret: str = format % num + space + _(suffix[exp - 1])
+     return ret
+diff --git a/tests/test_filesize_rounding.py b/tests/test_filesize_rounding.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..0f878fc339713931091afa58cf1312e5982e06c9
+--- /dev/null
++++ b/tests/test_filesize_rounding.py
+@@ -0,0 +1,25 @@
++import humanize
++
++
++def _boundary_bytes(base: float) -> float:
++    """Return a value just below the square of the base that still rounds up."""
++
++    return (base ** 2) - (0.05 * base)
++
++
++def test_naturalsize_decimal_rounds_up_to_next_suffix() -> None:
++    bytes_ = _boundary_bytes(1000)
++    assert humanize.naturalsize(bytes_) == "1.0 MB"
++    assert humanize.naturalsize(-bytes_) == "-1.0 MB"
++
++
++def test_naturalsize_binary_rounds_up_to_next_suffix() -> None:
++    bytes_ = _boundary_bytes(1024)
++    assert humanize.naturalsize(bytes_, True) == "1.0 MiB"
++    assert humanize.naturalsize(-bytes_, True) == "-1.0 MiB"
++
++
++def test_naturalsize_gnu_rounds_up_to_next_suffix() -> None:
++    bytes_ = _boundary_bytes(1024)
++    assert humanize.naturalsize(bytes_, False, True) == "1.0M"
++    assert humanize.naturalsize(-bytes_, False, True) == "-1.0M"

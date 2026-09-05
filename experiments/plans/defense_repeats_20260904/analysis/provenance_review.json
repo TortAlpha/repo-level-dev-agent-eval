@@ -1,0 +1,1507 @@
+{
+  "scope": {
+    "baseline": [
+      "kernel_v2_ds_v4_flash_0731_nitro_low_core_small_v4",
+      "kernel_v2_ds_v4_flash_0731_nitro_low_core_small_v4_tenacity_pin"
+    ],
+    "r1": [
+      "kernel_v2_ds_defense_repeat_20260904_r1"
+    ],
+    "r2": [
+      "kernel_v2_ds_defense_repeat_20260904_r2"
+    ]
+  },
+  "n_comparison_runs": 72,
+  "n_pairwise_repeat_to_baseline_comparisons": 48,
+  "all_compared_provenance_fields_match": true,
+  "comparison_fields": [
+    "task_content_sha256",
+    "source_repository",
+    "system_prompts",
+    "tool_schemas",
+    "runtime_dependencies",
+    "model_routes",
+    "policy_configuration",
+    "policy_kernel_sources",
+    "frozen_scoring_oracle_tree",
+    "frozen_dependency_environment_tree",
+    "frozen_setup_artifact_tree",
+    "frozen_pytest_bootstrap_tree"
+  ],
+  "comparison_results": [
+    {
+      "task_id": "cachetools_pr_57d2e48",
+      "agent_mode": "multi-graph",
+      "repetition": "r1",
+      "baseline_run_id": "4c409183-54aa-4908-82e9-99fb7328571e",
+      "repeat_run_id": "8326955e-e033-4329-a664-b61566895d74",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "cachetools_pr_57d2e48",
+      "agent_mode": "multi-graph",
+      "repetition": "r2",
+      "baseline_run_id": "4c409183-54aa-4908-82e9-99fb7328571e",
+      "repeat_run_id": "1f5c39c4-61e2-4639-907e-7ae4f6725c8c",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "cachetools_pr_57d2e48",
+      "agent_mode": "single",
+      "repetition": "r1",
+      "baseline_run_id": "9f0e6f52-2d80-4681-bbfa-e716b4ae8bfc",
+      "repeat_run_id": "8a9e5065-31b1-4612-bad3-ea5e36b77168",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "cachetools_pr_57d2e48",
+      "agent_mode": "single",
+      "repetition": "r2",
+      "baseline_run_id": "9f0e6f52-2d80-4681-bbfa-e716b4ae8bfc",
+      "repeat_run_id": "d439421c-bf5a-465b-9f59-97d6fdc1682a",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "croniter_pr_235",
+      "agent_mode": "multi-graph",
+      "repetition": "r1",
+      "baseline_run_id": "9365b2bc-aeca-4cd0-8e6d-7a009087f321",
+      "repeat_run_id": "f9363862-bb88-4af3-8505-0d4f492c5ba1",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "croniter_pr_235",
+      "agent_mode": "multi-graph",
+      "repetition": "r2",
+      "baseline_run_id": "9365b2bc-aeca-4cd0-8e6d-7a009087f321",
+      "repeat_run_id": "e28513fb-d1f7-4e56-9435-7f1f8db72046",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "croniter_pr_235",
+      "agent_mode": "single",
+      "repetition": "r1",
+      "baseline_run_id": "888b6766-6b65-4ae7-8205-21ad3ec93b4f",
+      "repeat_run_id": "d1d1d10e-13d4-48aa-9279-e3f4c40f7866",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "croniter_pr_235",
+      "agent_mode": "single",
+      "repetition": "r2",
+      "baseline_run_id": "888b6766-6b65-4ae7-8205-21ad3ec93b4f",
+      "repeat_run_id": "f5d6e584-37bb-402d-b267-1083d198b613",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "freezegun_pr_546",
+      "agent_mode": "multi-graph",
+      "repetition": "r1",
+      "baseline_run_id": "50274142-e72e-4c1a-ad89-d2f8d8be047b",
+      "repeat_run_id": "8e3d1706-52ed-4e5c-9224-e51ba21a1341",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "freezegun_pr_546",
+      "agent_mode": "multi-graph",
+      "repetition": "r2",
+      "baseline_run_id": "50274142-e72e-4c1a-ad89-d2f8d8be047b",
+      "repeat_run_id": "17a3b4fd-0144-4f18-abbd-cd08fb354718",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "freezegun_pr_546",
+      "agent_mode": "single",
+      "repetition": "r1",
+      "baseline_run_id": "5e710fed-b21a-4e9b-9821-f564694f8906",
+      "repeat_run_id": "f08608a7-90b9-4c66-b74a-ba88252e77fc",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "freezegun_pr_546",
+      "agent_mode": "single",
+      "repetition": "r2",
+      "baseline_run_id": "5e710fed-b21a-4e9b-9821-f564694f8906",
+      "repeat_run_id": "4aaf2194-b0a3-467f-996d-20ce92d22943",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "h11_pr_181",
+      "agent_mode": "multi-graph",
+      "repetition": "r1",
+      "baseline_run_id": "a9705042-4b58-4f72-975b-b118e4678769",
+      "repeat_run_id": "28447801-2a9c-4166-b42a-0130ae27b677",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "h11_pr_181",
+      "agent_mode": "multi-graph",
+      "repetition": "r2",
+      "baseline_run_id": "a9705042-4b58-4f72-975b-b118e4678769",
+      "repeat_run_id": "1cc49be0-6769-4453-be61-1ca4b37c8009",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "h11_pr_181",
+      "agent_mode": "single",
+      "repetition": "r1",
+      "baseline_run_id": "869c0c67-fefa-4261-b809-fa9815cf81e3",
+      "repeat_run_id": "8f5a1566-238e-4443-86fd-ac2424d72a0e",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "h11_pr_181",
+      "agent_mode": "single",
+      "repetition": "r2",
+      "baseline_run_id": "869c0c67-fefa-4261-b809-fa9815cf81e3",
+      "repeat_run_id": "f0e8d6c7-4415-4da4-a26a-a4d986376446",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "humanize_pr_329",
+      "agent_mode": "multi-graph",
+      "repetition": "r1",
+      "baseline_run_id": "a563be0b-571b-4f9a-9820-440975dff774",
+      "repeat_run_id": "f28a4d63-f675-4307-b695-5c5e49914066",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "humanize_pr_329",
+      "agent_mode": "multi-graph",
+      "repetition": "r2",
+      "baseline_run_id": "a563be0b-571b-4f9a-9820-440975dff774",
+      "repeat_run_id": "798e4861-663c-4e22-90e0-08bd3bce1788",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "humanize_pr_329",
+      "agent_mode": "single",
+      "repetition": "r1",
+      "baseline_run_id": "7f20fb4b-526d-4d05-aa9c-d6554e6ddf20",
+      "repeat_run_id": "51e6844a-54ff-4f98-88bd-33b3d6a66a2e",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "humanize_pr_329",
+      "agent_mode": "single",
+      "repetition": "r2",
+      "baseline_run_id": "7f20fb4b-526d-4d05-aa9c-d6554e6ddf20",
+      "repeat_run_id": "c179db22-4fff-48cd-9109-fda9a4ed4b85",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "parse_pr_165",
+      "agent_mode": "multi-graph",
+      "repetition": "r1",
+      "baseline_run_id": "e950c308-41aa-44e7-984a-53227afc3709",
+      "repeat_run_id": "7c041ca9-e528-435e-9ec3-3f21dd0fd8ef",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "parse_pr_165",
+      "agent_mode": "multi-graph",
+      "repetition": "r2",
+      "baseline_run_id": "e950c308-41aa-44e7-984a-53227afc3709",
+      "repeat_run_id": "3d2f8673-980f-4cac-9c4e-d462c786ce76",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "parse_pr_165",
+      "agent_mode": "single",
+      "repetition": "r1",
+      "baseline_run_id": "b7e18ace-3a5d-4ba0-bed0-64cb898cde42",
+      "repeat_run_id": "c590fe64-6df6-4ec4-84c0-db886f708a60",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "parse_pr_165",
+      "agent_mode": "single",
+      "repetition": "r2",
+      "baseline_run_id": "b7e18ace-3a5d-4ba0-bed0-64cb898cde42",
+      "repeat_run_id": "640bcacd-881e-44ca-848d-de750a89e6b3",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "parse_pr_227",
+      "agent_mode": "multi-graph",
+      "repetition": "r1",
+      "baseline_run_id": "9c18de3c-9e5a-4d1e-aed0-89761a4f44af",
+      "repeat_run_id": "ef26c60f-1a0f-408f-bd4c-eb4eb2e32b9d",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "parse_pr_227",
+      "agent_mode": "multi-graph",
+      "repetition": "r2",
+      "baseline_run_id": "9c18de3c-9e5a-4d1e-aed0-89761a4f44af",
+      "repeat_run_id": "fd2e094f-6ddc-42c8-ac03-7a72fa093360",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "parse_pr_227",
+      "agent_mode": "single",
+      "repetition": "r1",
+      "baseline_run_id": "45248dc8-4c92-4060-bb29-bef3dbfadf12",
+      "repeat_run_id": "3cdf6e04-e18e-4fb3-bd66-d68b83651736",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "parse_pr_227",
+      "agent_mode": "single",
+      "repetition": "r2",
+      "baseline_run_id": "45248dc8-4c92-4060-bb29-bef3dbfadf12",
+      "repeat_run_id": "2937a613-0f7b-4129-9fa7-05f563d53671",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "pluggy_pr_646",
+      "agent_mode": "multi-graph",
+      "repetition": "r1",
+      "baseline_run_id": "a24314fc-c8cc-4f76-9fe4-955e6b40a494",
+      "repeat_run_id": "8aa4f996-3a5e-48fb-a39a-227537fc4557",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "pluggy_pr_646",
+      "agent_mode": "multi-graph",
+      "repetition": "r2",
+      "baseline_run_id": "a24314fc-c8cc-4f76-9fe4-955e6b40a494",
+      "repeat_run_id": "e43f7975-ac49-4535-a516-dd15c14e3a31",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "pluggy_pr_646",
+      "agent_mode": "single",
+      "repetition": "r1",
+      "baseline_run_id": "4bc3fd1c-9f67-4a5e-a7af-d6ae3b443d93",
+      "repeat_run_id": "edc5c33b-a240-4de9-b2b7-bc50e6d68f45",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "pluggy_pr_646",
+      "agent_mode": "single",
+      "repetition": "r2",
+      "baseline_run_id": "4bc3fd1c-9f67-4a5e-a7af-d6ae3b443d93",
+      "repeat_run_id": "41ef4a96-14fe-40f5-a133-1cd983cea10a",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "python_dotenv_pr_640",
+      "agent_mode": "multi-graph",
+      "repetition": "r1",
+      "baseline_run_id": "b1cd8609-c2cb-4382-9ecf-e268622e236b",
+      "repeat_run_id": "4b09277b-ebcd-42d8-8cd0-d51761ab509e",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "python_dotenv_pr_640",
+      "agent_mode": "multi-graph",
+      "repetition": "r2",
+      "baseline_run_id": "b1cd8609-c2cb-4382-9ecf-e268622e236b",
+      "repeat_run_id": "2f8b85ff-01ee-44df-825b-47550b434abe",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "python_dotenv_pr_640",
+      "agent_mode": "single",
+      "repetition": "r1",
+      "baseline_run_id": "d3f37f9e-27a0-4ed0-b582-48e43b6a53d0",
+      "repeat_run_id": "8a26cbf7-2fce-4ac4-9e84-73ac9e5129ff",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "python_dotenv_pr_640",
+      "agent_mode": "single",
+      "repetition": "r2",
+      "baseline_run_id": "d3f37f9e-27a0-4ed0-b582-48e43b6a53d0",
+      "repeat_run_id": "7aa7da23-30d2-49e9-adf5-d7a4ca1e77e3",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "tenacity_pr_628",
+      "agent_mode": "multi-graph",
+      "repetition": "r1",
+      "baseline_run_id": "7859b591-8bfb-41de-b589-568fbaa95551",
+      "repeat_run_id": "93760416-9162-41bc-9cb3-1a6ebdbf264c",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "tenacity_pr_628",
+      "agent_mode": "multi-graph",
+      "repetition": "r2",
+      "baseline_run_id": "7859b591-8bfb-41de-b589-568fbaa95551",
+      "repeat_run_id": "f73d6677-3205-469d-b9c3-ceaa50b7070c",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "tenacity_pr_628",
+      "agent_mode": "single",
+      "repetition": "r1",
+      "baseline_run_id": "5bf74c73-940b-425a-ad38-7dd6662a1158",
+      "repeat_run_id": "1bf5aed3-078c-464f-bfa7-194f79e10e30",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "tenacity_pr_628",
+      "agent_mode": "single",
+      "repetition": "r2",
+      "baseline_run_id": "5bf74c73-940b-425a-ad38-7dd6662a1158",
+      "repeat_run_id": "9e85e6aa-9211-4a88-bf8b-d3a655ae354c",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "tinydb_pr_616",
+      "agent_mode": "multi-graph",
+      "repetition": "r1",
+      "baseline_run_id": "f0355c81-9119-442d-9e81-6ea760153001",
+      "repeat_run_id": "e2e45ef2-1b1e-4bb8-82b9-34e3d556fc6a",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "tinydb_pr_616",
+      "agent_mode": "multi-graph",
+      "repetition": "r2",
+      "baseline_run_id": "f0355c81-9119-442d-9e81-6ea760153001",
+      "repeat_run_id": "9e6a5c95-92cc-4a50-8917-cabb44d8dfef",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "tinydb_pr_616",
+      "agent_mode": "single",
+      "repetition": "r1",
+      "baseline_run_id": "bbb3495d-56b5-41ce-982d-5c61c519f20c",
+      "repeat_run_id": "47931864-1e00-4720-9e5c-a9bf7a62e474",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "tinydb_pr_616",
+      "agent_mode": "single",
+      "repetition": "r2",
+      "baseline_run_id": "bbb3495d-56b5-41ce-982d-5c61c519f20c",
+      "repeat_run_id": "3f5ff88c-4b8f-4278-ac95-fde40e14cd82",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "w3lib_pr_272",
+      "agent_mode": "multi-graph",
+      "repetition": "r1",
+      "baseline_run_id": "b8663fb7-676f-419a-8897-dbd8784ddcfe",
+      "repeat_run_id": "6642fefb-8024-489d-b574-d5e4b3cfb8a3",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "w3lib_pr_272",
+      "agent_mode": "multi-graph",
+      "repetition": "r2",
+      "baseline_run_id": "b8663fb7-676f-419a-8897-dbd8784ddcfe",
+      "repeat_run_id": "eb35465b-2acd-490b-ac60-6aa37f6f1bbb",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "w3lib_pr_272",
+      "agent_mode": "single",
+      "repetition": "r1",
+      "baseline_run_id": "5a1ef1ab-1e02-4b6d-b11d-3b06e417db0b",
+      "repeat_run_id": "b0205312-ef60-43cb-a2ee-d021d367674f",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    },
+    {
+      "task_id": "w3lib_pr_272",
+      "agent_mode": "single",
+      "repetition": "r2",
+      "baseline_run_id": "5a1ef1ab-1e02-4b6d-b11d-3b06e417db0b",
+      "repeat_run_id": "c7794d3e-c73d-47f8-89f9-c1c523ec818a",
+      "matches": {
+        "task_content_sha256": true,
+        "source_repository": true,
+        "system_prompts": true,
+        "tool_schemas": true,
+        "runtime_dependencies": true,
+        "model_routes": true,
+        "policy_configuration": true,
+        "policy_kernel_sources": true,
+        "frozen_scoring_oracle_tree": true,
+        "frozen_dependency_environment_tree": true,
+        "frozen_setup_artifact_tree": true,
+        "frozen_pytest_bootstrap_tree": true
+      }
+    }
+  ],
+  "archived_setup_artifact_directories": [
+    {
+      "run_id": "a9705042-4b58-4f72-975b-b118e4678769",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "869c0c67-fefa-4261-b809-fa9815cf81e3",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "a563be0b-571b-4f9a-9820-440975dff774",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "7f20fb4b-526d-4d05-aa9c-d6554e6ddf20",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "a24314fc-c8cc-4f76-9fe4-955e6b40a494",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "4bc3fd1c-9f67-4a5e-a7af-d6ae3b443d93",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "b8663fb7-676f-419a-8897-dbd8784ddcfe",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "5a1ef1ab-1e02-4b6d-b11d-3b06e417db0b",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "e950c308-41aa-44e7-984a-53227afc3709",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "b7e18ace-3a5d-4ba0-bed0-64cb898cde42",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "9c18de3c-9e5a-4d1e-aed0-89761a4f44af",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "45248dc8-4c92-4060-bb29-bef3dbfadf12",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "4c409183-54aa-4908-82e9-99fb7328571e",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "9f0e6f52-2d80-4681-bbfa-e716b4ae8bfc",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "bbb3495d-56b5-41ce-982d-5c61c519f20c",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "f0355c81-9119-442d-9e81-6ea760153001",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "d3f37f9e-27a0-4ed0-b582-48e43b6a53d0",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "b1cd8609-c2cb-4382-9ecf-e268622e236b",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "5e710fed-b21a-4e9b-9821-f564694f8906",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "50274142-e72e-4c1a-ad89-d2f8d8be047b",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "888b6766-6b65-4ae7-8205-21ad3ec93b4f",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "9365b2bc-aeca-4cd0-8e6d-7a009087f321",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "7859b591-8bfb-41de-b589-568fbaa95551",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "5bf74c73-940b-425a-ad38-7dd6662a1158",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "28447801-2a9c-4166-b42a-0130ae27b677",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "8f5a1566-238e-4443-86fd-ac2424d72a0e",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "f28a4d63-f675-4307-b695-5c5e49914066",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "51e6844a-54ff-4f98-88bd-33b3d6a66a2e",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "8aa4f996-3a5e-48fb-a39a-227537fc4557",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "edc5c33b-a240-4de9-b2b7-bc50e6d68f45",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "b0205312-ef60-43cb-a2ee-d021d367674f",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "6642fefb-8024-489d-b574-d5e4b3cfb8a3",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "7c041ca9-e528-435e-9ec3-3f21dd0fd8ef",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "c590fe64-6df6-4ec4-84c0-db886f708a60",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "ef26c60f-1a0f-408f-bd4c-eb4eb2e32b9d",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "3cdf6e04-e18e-4fb3-bd66-d68b83651736",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "8326955e-e033-4329-a664-b61566895d74",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "8a9e5065-31b1-4612-bad3-ea5e36b77168",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "e2e45ef2-1b1e-4bb8-82b9-34e3d556fc6a",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "47931864-1e00-4720-9e5c-a9bf7a62e474",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "8a26cbf7-2fce-4ac4-9e84-73ac9e5129ff",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "4b09277b-ebcd-42d8-8cd0-d51761ab509e",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "93760416-9162-41bc-9cb3-1a6ebdbf264c",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "1bf5aed3-078c-464f-bfa7-194f79e10e30",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "f08608a7-90b9-4c66-b74a-ba88252e77fc",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "8e3d1706-52ed-4e5c-9224-e51ba21a1341",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "d1d1d10e-13d4-48aa-9279-e3f4c40f7866",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "f9363862-bb88-4af3-8505-0d4f492c5ba1",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "1cc49be0-6769-4453-be61-1ca4b37c8009",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "f0e8d6c7-4415-4da4-a26a-a4d986376446",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "798e4861-663c-4e22-90e0-08bd3bce1788",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "c179db22-4fff-48cd-9109-fda9a4ed4b85",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "41ef4a96-14fe-40f5-a133-1cd983cea10a",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "e43f7975-ac49-4535-a516-dd15c14e3a31",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "eb35465b-2acd-490b-ac60-6aa37f6f1bbb",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "c7794d3e-c73d-47f8-89f9-c1c523ec818a",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "640bcacd-881e-44ca-848d-de750a89e6b3",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "3d2f8673-980f-4cac-9c4e-d462c786ce76",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "2937a613-0f7b-4129-9fa7-05f563d53671",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "fd2e094f-6ddc-42c8-ac03-7a72fa093360",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "d439421c-bf5a-465b-9f59-97d6fdc1682a",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "1f5c39c4-61e2-4639-907e-7ae4f6725c8c",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "9e6a5c95-92cc-4a50-8917-cabb44d8dfef",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "3f5ff88c-4b8f-4278-ac95-fde40e14cd82",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "7aa7da23-30d2-49e9-adf5-d7a4ca1e77e3",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "2f8b85ff-01ee-44df-825b-47550b434abe",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "f73d6677-3205-469d-b9c3-ceaa50b7070c",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "9e85e6aa-9211-4a88-bf8b-d3a655ae354c",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "4aaf2194-b0a3-467f-996d-20ce92d22943",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "17a3b4fd-0144-4f18-abbd-cd08fb354718",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "e28513fb-d1f7-4e56-9435-7f1f8db72046",
+      "exists": true,
+      "matches_recorded_identity": true
+    },
+    {
+      "run_id": "f5d6e584-37bb-402d-b267-1083d198b613",
+      "exists": true,
+      "matches_recorded_identity": true
+    }
+  ],
+  "retained_run_workspaces": 0,
+  "all_archived_setup_artifacts_match": true,
+  "quality_scores_nonnull": 0,
+  "all_provider_cost_and_usage_complete": true,
+  "per_run_setup_commands_by_task": {
+    "h11_pr_181": [
+      "python -m pip install -q -e .",
+      "python -m pip install -q pytest"
+    ],
+    "humanize_pr_329": [
+      "SETUPTOOLS_SCM_PRETEND_VERSION=4.9.0 python -m pip install -q -e .",
+      "python -m pip install -q pytest pytest-benchmark freezegun"
+    ],
+    "pluggy_pr_646": [
+      "SETUPTOOLS_SCM_PRETEND_VERSION=1.6.0 python -m pip install -q -e .",
+      "python -m pip install -q pytest"
+    ],
+    "w3lib_pr_272": [
+      "python -m pip install -q -e .",
+      "python -m pip install -q pytest"
+    ],
+    "parse_pr_165": [
+      "python -m pip install -q -e .",
+      "python -m pip install -q pytest"
+    ],
+    "parse_pr_227": [
+      "python -m pip install -q -e .",
+      "python -m pip install -q pytest"
+    ],
+    "cachetools_pr_57d2e48": [
+      "python -m pip install -q -e .",
+      "python -m pip install -q pytest"
+    ],
+    "tinydb_pr_616": [
+      "python -m pip install -q -e .",
+      "python -m pip install -q pytest pytest-cov"
+    ],
+    "python_dotenv_pr_640": [
+      "python -m pip install -q -e .",
+      "python -m pip install -q pytest click ipython sh"
+    ],
+    "freezegun_pr_546": [
+      "python -m pip install -q -e .",
+      "python -m pip install -q pytest"
+    ],
+    "croniter_pr_235": [
+      "python -m pip install -q -e .",
+      "python -m pip install -q pytest pytz"
+    ],
+    "tenacity_pr_628": [
+      "SETUPTOOLS_SCM_PRETEND_VERSION=9.1.2 python -m pip install -q -e .",
+      "python -m pip install -q 'pytest<9' typeguard"
+    ]
+  },
+  "frozen_dependency_identity_by_task": {
+    "h11_pr_181": {
+      "sha256": "3c46f806c0141ddf534e35e78ebe12bd41fa99cc4d0a9a91a50b7658aac5b662",
+      "file_count": 510
+    },
+    "humanize_pr_329": {
+      "sha256": "b43b44f562bc39b3e2c4c5889d1add705d825973c43c8bb2d7246b1ee87f9f1f",
+      "file_count": 592
+    },
+    "pluggy_pr_646": {
+      "sha256": "55828d45a9d4b46492ba93c6d6e642d5db8a22d00c4b88869ddcb74df365dad9",
+      "file_count": 494
+    },
+    "w3lib_pr_272": {
+      "sha256": "34fde26c5a7de9aaf0823ffa37954bbb057891686d4c63055a11cec97ff76670",
+      "file_count": 508
+    },
+    "parse_pr_165": {
+      "sha256": "ddb2087d656c9a33545a139f5862277fce5bcea7dfbfcc8a02a555d4fd4b2aa7",
+      "file_count": 510
+    },
+    "parse_pr_227": {
+      "sha256": "a9a5cb018ca99b30170ae804c7a50703be064256f35068f5c1fb8f500d622098",
+      "file_count": 510
+    },
+    "cachetools_pr_57d2e48": {
+      "sha256": "22837a4a4c64a7a4369889a2d6d43aec6bbd2a810c370af90b960b95a197b21f",
+      "file_count": 509
+    },
+    "tinydb_pr_616": {
+      "sha256": "66640c4c0cdec9a2324fb6d4c85473a7fa81dd572a3baf277e75476bb4e20e8b",
+      "file_count": 585
+    },
+    "python_dotenv_pr_640": {
+      "sha256": "84b05e35e6fdf2376815aa607d7a4b46ef522bd4785ffe8adc064f4a2d3a3497",
+      "file_count": 6765
+    },
+    "freezegun_pr_546": {
+      "sha256": "d533528240658a8c78cad8a517bcecf60b4a4000874e5088e71b908a71f9511e",
+      "file_count": 544
+    },
+    "croniter_pr_235": {
+      "sha256": "3f3fb321804ada18b47450b52b59883995f6b1fd658c1c97f7eaf1a0ee96d829",
+      "file_count": 1159
+    },
+    "tenacity_pr_628": {
+      "sha256": "8b91a74d9b50f08b57a7f45afd6330d3c2446cf20f36b797165d1545d6bff8a9",
+      "file_count": 527
+    }
+  }
+}

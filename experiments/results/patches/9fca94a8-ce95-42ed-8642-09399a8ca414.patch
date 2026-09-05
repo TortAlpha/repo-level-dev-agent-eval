@@ -1,0 +1,25 @@
+diff --git a/tests/test_cachedmethod_autospec.py b/tests/test_cachedmethod_autospec.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..7c38337eb354256ecf481963b881765cadf854d5
+--- /dev/null
++++ b/tests/test_cachedmethod_autospec.py
+@@ -0,0 +1,18 @@
++import warnings
++from unittest.mock import create_autospec
++
++from cachetools import cachedmethod
++
++
++def test_create_autospec_class_with_cachedmethod_no_warnings():
++    class C:
++        @cachedmethod(lambda self, x: x)
++        def f(self, x):
++            return x
++
++    with warnings.catch_warnings(record=True) as caught:
++        warnings.simplefilter("always")
++        spec = create_autospec(C, instance=True)
++
++    assert not caught, f"Unexpected warnings: {caught}"
++    assert hasattr(spec, "f")
+\ No newline at end of file

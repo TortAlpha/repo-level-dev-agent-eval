@@ -1,0 +1,74 @@
+{
+  "status": "preparation_only_no_model_runs",
+  "reason": "Fast repeated core task block started while new task environment compatibility remains unresolved.",
+  "task_selection_before_model_outcomes": true,
+  "strict_preflight_executed": false,
+  "original_validator_results": {
+    "swepro_openlibrary_c05ccf2c": {
+      "verified": false,
+      "visible_on_base": null,
+      "error": "Timed out while starting Docker sandbox:\nUnable to find image 'jefzda/sweap-images:internetarchive.openlibrary-internetarchive__openlibrary-c05ccf2cd8baa81609434e0e35c4a63bc0da5a25-v0f5aece3601a5b4419f7ccec1dbda' locally"
+    },
+    "swepro_qutebrowser_e64622cd": {
+      "verified": true,
+      "visible_on_base": true,
+      "error": null
+    },
+    "swepro_qutebrowser_6dd402c0": {
+      "verified": false,
+      "visible_on_base": false,
+      "error": null
+    },
+    "swepro_qutebrowser_0fc6d110": {
+      "verified": false,
+      "visible_on_base": false,
+      "error": null
+    },
+    "swepro_ansible_1bd7dcf3": {
+      "verified": true,
+      "visible_on_base": true,
+      "error": null
+    },
+    "swepro_openlibrary_5c6c22f3": {
+      "verified": false,
+      "visible_on_base": null,
+      "error": "Timed out while starting Docker sandbox:\nUnable to find image 'jefzda/sweap-images:internetarchive.openlibrary-internetarchive__openlibrary-5c6c22f3d2edf2f1b10f5dc335e32cb6a5f40341-v76304ecdb3a5954fcf13feb710e8c' locally"
+    },
+    "swepro_ansible_1b70260d": {
+      "verified": true,
+      "visible_on_base": true,
+      "error": null
+    },
+    "swepro_openlibrary_0dc5b20f": {
+      "verified": false,
+      "visible_on_base": null,
+      "error": "Timed out while starting Docker sandbox:\nUnable to find image 'jefzda/sweap-images:internetarchive.openlibrary-internetarchive__openlibrary-0dc5b20fa186f9714f8a838178597e69f549d026-v2d9a6c849c60ed19fd0858ce9e40b' locally"
+    },
+    "swepro_ansible_3889ddeb": {
+      "verified": true,
+      "visible_on_base": true,
+      "error": null
+    },
+    "swepro_qutebrowser_ed19d7f5": {
+      "verified": true,
+      "visible_on_base": true,
+      "error": null
+    },
+    "swepro_ansible_1ee70fc2": {
+      "verified": true,
+      "visible_on_base": true,
+      "error": null
+    },
+    "swepro_openlibrary_08ac40d0": {
+      "verified": false,
+      "visible_on_base": null,
+      "error": "Timed out while starting Docker sandbox:\nUnable to find image 'jefzda/sweap-images:internetarchive.openlibrary-internetarchive__openlibrary-08ac40d050a64e1d2646ece4959af0c42bf6b7b5-v0f5aece3601a5b4419f7ccec1dbda' locally"
+    }
+  },
+  "limitations": [
+    "Original validator booleans do not meet kernel/v2 evidence requirements.",
+    "OpenLibrary images not downloaded because the available-disk guard failed.",
+    "Two Qutebrowser tasks failed DBus environment startup.",
+    "Sanitized image and strict preflight scripts are prepared but not executed."
+  ]
+}

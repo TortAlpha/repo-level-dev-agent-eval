@@ -1,0 +1,136 @@
+diff --git a/freezegun/api.py b/freezegun/api.py
+index 0f11e0c113f328fb4ce71329cf8e6b35ab58a3fe..ceed2a1202ace70a96661c077650587d2dc955aa 100644
+--- a/freezegun/api.py
++++ b/freezegun/api.py
+@@ -14,6 +14,7 @@ import platform
+ import warnings
+ import types
+ import numbers
++from numbers import Real
+ import inspect
+ from typing import TYPE_CHECKING, overload
+ from typing import Any, Awaitable, Callable, Dict, Iterator, List, Optional, Set, Type, TypeVar, Tuple, Union
+@@ -531,12 +532,13 @@ class FrozenDateTimeFactory:
+     def __call__(self) -> datetime.datetime:
+         return self.time_to_freeze
+ 
+-    def tick(self, delta: Union[datetime.timedelta, int]=datetime.timedelta(seconds=1)) -> datetime.datetime:
+-        if isinstance(delta, numbers.Real):
+-            # noinspection PyTypeChecker
+-            self.time_to_freeze += datetime.timedelta(seconds=delta)
+-        else:
+-            self.time_to_freeze += delta  # type: ignore
++    def tick(self, delta: Union[Real, datetime.timedelta] = 1) -> datetime.datetime:
++        # Accept real numbers as seconds and timedeltas directly.
++        if isinstance(delta, Real):
++            delta = datetime.timedelta(seconds=float(delta))
++        elif not isinstance(delta, datetime.timedelta):
++            raise TypeError(f"delta must be a real number or timedelta, got {delta!r}")
++        self.time_to_freeze += delta
+         return self.time_to_freeze
+ 
+     def move_to(self, target_datetime: _Freezable) -> None:
+@@ -548,23 +550,37 @@ class FrozenDateTimeFactory:
+ 
+ class StepTickTimeFactory:
+ 
+-    def __init__(self, time_to_freeze: datetime.datetime, step_width: float):
++    def __init__(
++        self,
++        time_to_freeze: datetime.datetime,
++        auto_tick_seconds: Union[Real, datetime.timedelta] = 1,
++    ) -> None:
++        """Initialize with a default tick increment of a real number of seconds or a timedelta."""
+         self.time_to_freeze = time_to_freeze
+-        self.step_width = step_width
++        self.auto_tick_seconds = auto_tick_seconds
+ 
+     def __call__(self) -> datetime.datetime:
+         return_time = self.time_to_freeze
+         self.tick()
+         return return_time
+ 
+-    def tick(self, delta: Union[datetime.timedelta, int, None]=None) -> datetime.datetime:
+-        if not delta:
+-            delta = datetime.timedelta(seconds=self.step_width)
++    def tick(
++        self,
++        delta: Optional[Union[Real, datetime.timedelta]] = None
++    ) -> datetime.datetime:
++        """Advance the frozen clock by the given delta (or auto_tick_seconds if None)."""
++        if delta is None:
++            delta = self.auto_tick_seconds
++        if isinstance(delta, Real):
++            delta = datetime.timedelta(seconds=float(delta))
++        elif not isinstance(delta, datetime.timedelta):
++            raise TypeError(f"delta must be a real number or timedelta, got {delta!r}")
+         self.time_to_freeze += delta  # type: ignore
+         return self.time_to_freeze
+ 
+-    def update_step_width(self, step_width: float) -> None:
+-        self.step_width = step_width
++    def update_step_width(self, auto_tick_seconds: Union[Real, datetime.timedelta]) -> None:
++        """Update the default tick increment."""
++        self.auto_tick_seconds = auto_tick_seconds
+ 
+     def move_to(self, target_datetime: _Freezable) -> None:
+         """Moves frozen date to the given ``target_datetime``"""
+diff --git a/tests/test_ticking_numeric_delta.py b/tests/test_ticking_numeric_delta.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..592f4a3196f9a509c5d8bdabfe1d023013781bcc
+--- /dev/null
++++ b/tests/test_ticking_numeric_delta.py
+@@ -0,0 +1,53 @@
++import datetime
++from fractions import Fraction
++import pytest
++from freezegun import freeze_time
++from freezegun.api import StepTickTimeFactory
++
++
++def test_tick_fraction_seconds():
++    dt = datetime.datetime(2010, 1, 1)
++    with freeze_time(dt) as frozen:
++        ts = frozen.tick(Fraction(1, 2))
++        # Expect half a second
++        assert ts == dt + datetime.timedelta(seconds=0.5)
++
++
++def test_tick_float_seconds():
++    dt = datetime.datetime(2010, 1, 1)
++    with freeze_time(dt) as frozen:
++        ts = frozen.tick(1.5)
++        # Expect one and a half seconds
++        assert ts == dt + datetime.timedelta(seconds=1.5)
++
++
++def test_tick_zero_seconds():
++    dt = datetime.datetime(2010, 1, 1)
++    with freeze_time(dt) as frozen:
++        ts = frozen.tick(0)
++        # Zero seconds should leave time unchanged
++        assert ts == dt
++
++
++def test_auto_tick_fraction_seconds():
++    dt = datetime.datetime(2010, 1, 1)
++    stf = StepTickTimeFactory(dt, Fraction(3, 2))
++    ts = stf.tick()
++    # Expect one and a half seconds
++    assert ts == dt + datetime.timedelta(seconds=1.5)
++
++
++def test_auto_tick_float_seconds():
++    dt = datetime.datetime(2010, 1, 1)
++    stf = StepTickTimeFactory(dt, 2.75)
++    ts = stf.tick()
++    # Expect two and three-quarter seconds
++    assert ts == dt + datetime.timedelta(seconds=2.75)
++
++
++def test_auto_tick_zero_seconds():
++    dt = datetime.datetime(2010, 1, 1)
++    stf = StepTickTimeFactory(dt, 0)
++    ts = stf.tick()
++    # Zero seconds should leave time unchanged
++    assert ts == dt

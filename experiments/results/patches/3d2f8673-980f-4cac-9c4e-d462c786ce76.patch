@@ -1,0 +1,112 @@
+diff --git a/parse.py b/parse.py
+index 8f73fb5aef7751fec7cfe78e530ab42679e86687..e3ed0fc9d040dbaa07fb761ca46a2e3687f4b252 100644
+--- a/parse.py
++++ b/parse.py
+@@ -5,7 +5,7 @@ __version__ = "1.19.1"
+ # yes, I now have two problems
+ import re
+ import sys
+-from datetime import datetime, time, tzinfo, timedelta
++from datetime import datetime, date, time, tzinfo, timedelta
+ from decimal import Decimal
+ from functools import partial
+ import logging
+@@ -271,6 +271,71 @@ def date_convert(
+     return d
+ 
+ 
++_STRFTIME_DATE_DIRECTIVES = set("%Y%y%m%d%j%U%W%a%A%b%B%x%c")
++_STRFTIME_TIME_DIRECTIVES = set("%H%M%S%I%p%X%c")
++
++_STRFTIME_REGEX = {
++    "%Y": r"\d{4}",
++    "%y": r"\d{2}",
++    "%m": r"\d{2}",
++    "%d": r"\d{2}",
++    "%H": r"\d{2}",
++    "%M": r"\d{2}",
++    "%S": r"\d{2}",
++    "%f": r"\d{6}",
++    "%z": r"[+-]\d{4}|[+-]\d{2}:\d{2}",
++    "%Z": r"[A-Za-z]+(?:\s[A-Za-z]+)*",
++    "%a": r"[A-Za-z]{3}",
++    "%A": r"[A-Za-z]+",
++    "%b": r"[A-Za-z]{3}",
++    "%B": r"[A-Za-z]+",
++    "%p": r"[AP]M",
++    "%I": r"\d{2}",
++    "%j": r"\d{3}",
++    "%U": r"\d{2}",
++    "%W": r"\d{2}",
++    "%c": r".+?",
++    "%x": r".+?",
++    "%X": r".+?",
++    "%%": r"%",
++}
++
++
++def _strftime_to_regex(format):
++    """Convert a strftime format string to a regular expression pattern."""
++    parts = []
++    i = 0
++    while i < len(format):
++        ch = format[i]
++        if ch == "%":
++            if i + 1 >= len(format):
++                raise ValueError("trailing %% in strftime format")
++            directive = format[i : i + 2]
++            if directive not in _STRFTIME_REGEX:
++                raise ValueError("unsupported strftime directive %r" % directive)
++            parts.append(_STRFTIME_REGEX[directive])
++            i += 2
++        else:
++            j = i
++            while j < len(format) and format[j] != "%":
++                j += 1
++            parts.append(re.escape(format[i:j]))
++            i = j
++    return "".join(parts)
++
++
++def _strftime_convert(string, match, format):
++    """Convert a matched string using strptime, returning date/datetime/time."""
++    value = datetime.strptime(string, format)
++    has_date = any(d in format for d in _STRFTIME_DATE_DIRECTIVES)
++    has_time = any(d in format for d in _STRFTIME_TIME_DIRECTIVES)
++    if has_date and has_time:
++        return value
++    if has_date:
++        return value.date()
++    return value.time()
++
++
+ class TooManyFields(ValueError):
+     pass
+ 
+diff --git a/tests/test_strftime.py b/tests/test_strftime.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..e767b7960dd205774bd5e0d2a9be7079b343c9c0
+--- /dev/null
++++ b/tests/test_strftime.py
+@@ -0,0 +1,21 @@
++import datetime
++from parse import parse
++
++
++def test_strftime_date():
++    assert parse("a {:%Y-%m-%d} b", "a 1997-07-16 b")[0] == datetime.date(1997, 7, 16)
++    assert parse("a {:%Y-%b-%d} b", "a 1997-Feb-16 b")[0] == datetime.date(1997, 2, 16)
++
++
++def test_strftime_datetime_with_tz():
++    result = parse("{:%Y-%m-%d %H:%M:%S %z}", "2020-01-02 03:04:05 +0000")[0]
++    assert result == datetime.datetime(2020, 1, 2, 3, 4, 5, tzinfo=datetime.timezone.utc)
++
++
++def test_strftime_time():
++    assert parse("{:%H:%M:%S}", "12:34:56")[0] == datetime.time(12, 34, 56)
++
++
++def test_strftime_mixed_with_other_fields():
++    assert parse("{:%Y-%m-%d} {}", "2020-01-02 hello")[0] == datetime.date(2020, 1, 2)
++    assert parse("{:%Y-%m-%d} {}", "2020-01-02 hello")[1] == "hello"

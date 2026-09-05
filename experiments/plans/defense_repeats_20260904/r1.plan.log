@@ -1,0 +1,25 @@
+Sweep plan: 24 run(s), order=task-major, seed=20260904, session=kernel_v2_ds_defense_repeat_20260904_r1, task_set=final-v1
+001 h11_pr_181 · multi-graph · deepseek/deepseek-v4-flash-0731:nitro
+002 h11_pr_181 · single · deepseek/deepseek-v4-flash-0731:nitro
+003 humanize_pr_329 · multi-graph · deepseek/deepseek-v4-flash-0731:nitro
+004 humanize_pr_329 · single · deepseek/deepseek-v4-flash-0731:nitro
+005 pluggy_pr_646 · multi-graph · deepseek/deepseek-v4-flash-0731:nitro
+006 pluggy_pr_646 · single · deepseek/deepseek-v4-flash-0731:nitro
+007 w3lib_pr_272 · single · deepseek/deepseek-v4-flash-0731:nitro
+008 w3lib_pr_272 · multi-graph · deepseek/deepseek-v4-flash-0731:nitro
+009 parse_pr_165 · multi-graph · deepseek/deepseek-v4-flash-0731:nitro
+010 parse_pr_165 · single · deepseek/deepseek-v4-flash-0731:nitro
+011 parse_pr_227 · multi-graph · deepseek/deepseek-v4-flash-0731:nitro
+012 parse_pr_227 · single · deepseek/deepseek-v4-flash-0731:nitro
+013 cachetools_pr_57d2e48 · multi-graph · deepseek/deepseek-v4-flash-0731:nitro
+014 cachetools_pr_57d2e48 · single · deepseek/deepseek-v4-flash-0731:nitro
+015 tinydb_pr_616 · multi-graph · deepseek/deepseek-v4-flash-0731:nitro
+016 tinydb_pr_616 · single · deepseek/deepseek-v4-flash-0731:nitro
+017 python_dotenv_pr_640 · single · deepseek/deepseek-v4-flash-0731:nitro
+018 python_dotenv_pr_640 · multi-graph · deepseek/deepseek-v4-flash-0731:nitro
+019 tenacity_pr_628 · multi-graph · deepseek/deepseek-v4-flash-0731:nitro
+020 tenacity_pr_628 · single · deepseek/deepseek-v4-flash-0731:nitro
+021 freezegun_pr_546 · single · deepseek/deepseek-v4-flash-0731:nitro
+022 freezegun_pr_546 · multi-graph · deepseek/deepseek-v4-flash-0731:nitro
+023 croniter_pr_235 · single · deepseek/deepseek-v4-flash-0731:nitro
+024 croniter_pr_235 · multi-graph · deepseek/deepseek-v4-flash-0731:nitro

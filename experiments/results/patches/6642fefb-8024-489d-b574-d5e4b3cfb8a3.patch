@@ -1,0 +1,44 @@
+diff --git a/tests/test_urlsplit_ipv6_fragment.py b/tests/test_urlsplit_ipv6_fragment.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..8388c8da91b693d6002b58a995ee8a9d557cff73
+--- /dev/null
++++ b/tests/test_urlsplit_ipv6_fragment.py
+@@ -0,0 +1,25 @@
++import pytest
++
++from w3lib._url import _urlsplit
++from w3lib.url import canonicalize_url
++
++
++def test_urlsplit_ipv6_query_fragment_not_folded():
++    # IPv6 netloc, query, and fragment: the '#' must stay a fragment,
++    # not become part of the query.
++    url = "http://[::1]/path?q=1#frag"
++    split = _urlsplit(url)
++    assert split.netloc == "[::1]"
++    assert split.path == "/path"
++    assert split.query == "q=1"
++    assert split.fragment == "frag"
++
++
++def test_canonicalize_url_removes_ipv6_fragment():
++    # Public canonicalization must drop the fragment even when the
++    # host is an IPv6 literal and a query is present.
++    url = "http://[::1]/path?q=1#frag"
++    result = canonicalize_url(url, keep_fragments=False)
++    assert result == "http://[::1]/path?q=1"
++    # sanity: with keep_fragments=True it should be preserved
++    assert canonicalize_url(url, keep_fragments=True) == "http://[::1]/path?q=1#frag"
+diff --git a/w3lib/_url.py b/w3lib/_url.py
+index 0fc540d0ce1fa76712a635caa90cef7e0b20eaa5..c81ee69bf935761b48e04bc59979d9339e189dbb 100644
+--- a/w3lib/_url.py
++++ b/w3lib/_url.py
+@@ -658,7 +658,7 @@ def _urlsplit(  # pylint: disable=too-many-locals,too-many-statements
+             open_br_pos = idx
+         elif char == "]" and closing_br_pos == -1:
+             closing_br_pos = idx
+-        if slash_pos != question_pos != hash_pos != open_br_pos != closing_br_pos != -1:
++        if -1 not in (slash_pos, question_pos, hash_pos, open_br_pos, closing_br_pos):
+             break
+ 
+     if url[:2] == "//":

@@ -1,0 +1,93 @@
+diff --git a/src/humanize/filesize.py b/src/humanize/filesize.py
+index c495fed3ee9e724755800a0352c975335a9b1465..39adb05db837e9c750ad9a833c05e1c7a96f65ca 100644
+--- a/src/humanize/filesize.py
++++ b/src/humanize/filesize.py
+@@ -97,6 +97,15 @@ def naturalsize(
+         return f"{int(bytes_)}B" if gnu else _("%d Bytes") % int(bytes_)
+ 
+     exp = int(min(log(abs_bytes, base), len(suffix)))
++    mantissa = bytes_ / (base**exp)
++    formatted = format % mantissa
++    if abs(mantissa) >= base - 0.05 - 1e-6 or abs(float(formatted)) >= base:
++        if exp < len(suffix):
++            exp += 1
++            mantissa = bytes_ / (base**exp)
++            formatted = format % mantissa
++        elif abs(float(formatted)) < base:
++            formatted = format % (base * (1 if mantissa >= 0 else -1))
+     space = "" if gnu else " "
+-    ret: str = format % (bytes_ / (base**exp)) + space + _(suffix[exp - 1])
++    ret: str = formatted + space + _(suffix[exp - 1])
+     return ret
+diff --git a/tests/test_filesize_rounding.py b/tests/test_filesize_rounding.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..72dc4e5cdcabc5d968afc0544fc4a7f3c71671c4
+--- /dev/null
++++ b/tests/test_filesize_rounding.py
+@@ -0,0 +1,40 @@
++#!/usr/bin/env python
++
++"""Tests for naturalsize rounding carry-over at unit boundaries."""
++
++from __future__ import annotations
++
++import pytest
++
++import humanize
++
++
++@pytest.mark.parametrize(
++    "test_args, expected",
++    [
++        # Decimal: value that rounds up to next unit
++        ([999950000], "1.0 GB"),
++        ([999950], "1.0 MB"),
++        ([1000**2 - 1], "1.0 MB"),
++        # Binary: value that rounds up to next unit
++        ([1024**2 - 1, True], "1.0 MiB"),
++        ([1024**3 - 1, True], "1.0 GiB"),
++        # GNU binary
++        ([1024**2 - 1, False, True], "1.0M"),
++        ([1024**3 - 1, False, True], "1.0G"),
++        # Values not crossing a rounded boundary keep behavior
++        ([999940000], "999.9 MB"),
++        ([1024**2 - 100, True], "1023.9 KiB"),
++        # At largest suffix, do not advance when rounding reaches base
++        ([10**33 * 0.99995], "1000.0 QB"),
++        ([1024**11, True], "1024.0 QiB"),
++    ],
++)
++def test_naturalsize_rounding_boundary(test_args: list[int] | list[int | bool], expected: str) -> None:
++    assert humanize.naturalsize(*test_args) == expected
++
++    # Retest with negative input when it's an int
++    if isinstance(test_args[0], int):
++        neg_args = list(test_args)
++        neg_args[0] *= -1
++        assert humanize.naturalsize(*neg_args) == "-" + expected
+diff --git a/tests/test_naturalsize_rounding_boundary_correct.py b/tests/test_naturalsize_rounding_boundary_correct.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..1966303b85e227727e45495118c779fc1366015c
+--- /dev/null
++++ b/tests/test_naturalsize_rounding_boundary_correct.py
+@@ -0,0 +1,20 @@
++import humanize
++
++def test_naturalsize_rounding_at_largest_suffix_decimal():
++    # A value that truly rounds to 1000.0 at the largest QB suffix should
++    # stay at QB (no next suffix).  10**33 - 1 / 1000**10 = 999.999... -> 1000.0
++    assert humanize.naturalsize(10**33 - 1) == "1000.0 QB"
++
++def test_naturalsize_rounding_at_largest_suffix_binary():
++    # 1024**11 - 1 / 1024**10 = 1023.999... -> 1024.0 QiB
++    assert humanize.naturalsize(1024**11 - 1, binary=True) == "1024.0 QiB"
++
++def test_naturalsize_rounding_carry_over_decimal():
++    assert humanize.naturalsize(999950000) == "1.0 GB"
++
++def test_naturalsize_rounding_carry_over_binary():
++    assert humanize.naturalsize(1024**3 - 1, binary=True) == "1.0 GiB"
++
++
++def test_naturalsize_rounding_carry_over_gnu():
++    assert humanize.naturalsize(1024**3 - 1, gnu=True) == "1.0G"

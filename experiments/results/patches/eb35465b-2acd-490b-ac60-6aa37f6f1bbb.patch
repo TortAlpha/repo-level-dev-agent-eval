@@ -1,0 +1,36 @@
+diff --git a/tests/test_fragment_ipv6_regression.py b/tests/test_fragment_ipv6_regression.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3c4176d6d447245f00ec0f57ffa46fe519ac16ad
+--- /dev/null
++++ b/tests/test_fragment_ipv6_regression.py
+@@ -0,0 +1,17 @@
++import pytest
++
++from w3lib._url import _urlsplit
++from w3lib.url import canonicalize_url
++
++
++def test_urlsplit_ipv6_query_fragment():
++    result = _urlsplit("http://[::1]/path?query#frag")
++    assert result.path == "/path"
++    assert result.query == "query"
++    assert result.fragment == "frag"
++
++
++def test_canonicalize_url_removes_fragment_with_ipv6_and_query():
++    result = canonicalize_url("http://[::1]/path?query#frag")
++    assert "#frag" not in result
++    assert result.startswith("http://[::1]/path?")
+diff --git a/w3lib/_url.py b/w3lib/_url.py
+index 0fc540d0ce1fa76712a635caa90cef7e0b20eaa5..e83fb1f76cfe63ea7d1ba264465c97045fb07a07 100644
+--- a/w3lib/_url.py
++++ b/w3lib/_url.py
+@@ -658,7 +658,7 @@ def _urlsplit(  # pylint: disable=too-many-locals,too-many-statements
+             open_br_pos = idx
+         elif char == "]" and closing_br_pos == -1:
+             closing_br_pos = idx
+-        if slash_pos != question_pos != hash_pos != open_br_pos != closing_br_pos != -1:
++        if all(p != -1 for p in (slash_pos, question_pos, hash_pos, open_br_pos, closing_br_pos)):
+             break
+ 
+     if url[:2] == "//":

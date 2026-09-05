@@ -1,0 +1,56 @@
+diff --git a/src/humanize/filesize.py b/src/humanize/filesize.py
+index c495fed3ee9e724755800a0352c975335a9b1465..e444db85e53aa23add12b7d21e0f18908b52b035 100644
+--- a/src/humanize/filesize.py
++++ b/src/humanize/filesize.py
+@@ -97,6 +97,14 @@ def naturalsize(
+         return f"{int(bytes_)}B" if gnu else _("%d Bytes") % int(bytes_)
+ 
+     exp = int(min(log(abs_bytes, base), len(suffix)))
++    if isinstance(format, str):
++        try:
++            rounded = float(format % (bytes_ / (base**exp)))
++        except Exception:
++            pass
++        else:
++            if abs(rounded) >= base and exp < len(suffix):
++                exp += 1
+     space = "" if gnu else " "
+     ret: str = format % (bytes_ / (base**exp)) + space + _(suffix[exp - 1])
+     return ret
+diff --git a/tests/test_naturalsize_rounding_boundary.py b/tests/test_naturalsize_rounding_boundary.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..61361a8bf93d250e24d14463fe13159e9123a0b7
+--- /dev/null
++++ b/tests/test_naturalsize_rounding_boundary.py
+@@ -0,0 +1,31 @@
++"""Tests for naturalsize rounding up to the next unit at unit boundaries."""
++
++import pytest
++import humanize
++
++@pytest.mark.parametrize(
++    "value, binary, gnu, expected",
++    [
++        # Decimal mode: just below 1 MB boundary (1_000_000 bytes)
++        (10**6 - 1, False, False, "1.0 MB"),
++        # Binary mode: just below 1 MiB boundary (1024**2 bytes)
++        (1024**2 - 1, True, False, "1.0 MiB"),
++        # GNU mode: just below 1M boundary (1024**2 bytes)
++        (1024**2 - 1, False, True, "1.0M"),
++    ],
++)
++def test_rounding_bumps_unit(value, binary, gnu, expected):
++    assert humanize.naturalsize(value, binary=binary, gnu=gnu) == expected
++    # Negative input should match with a leading minus
++    assert humanize.naturalsize(-value, binary=binary, gnu=gnu) == "-" + expected
++
++@pytest.mark.parametrize(
++    "value, fmt, expected",
++    [
++        # Decimal custom format: 999950 bytes -> rounds to 1000 kB -> bump to MB -> "1 MB"
++        (10**6 - 50, "%.0f", "1 MB"),
++    ],
++)
++def test_rounding_bumps_unit_with_custom_format(value, fmt, expected):
++    assert humanize.naturalsize(value, False, False, fmt) == expected
++    assert humanize.naturalsize(-value, False, False, fmt) == "-" + expected

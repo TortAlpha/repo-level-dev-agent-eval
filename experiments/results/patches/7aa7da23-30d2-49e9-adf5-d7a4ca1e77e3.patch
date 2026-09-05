@@ -1,0 +1,44 @@
+diff --git a/src/dotenv/parser.py b/src/dotenv/parser.py
+index eb100b478cc1383eeaad53c6fbf39b9cf7c6b2be..58d3f49f130e226ae001723793035492834b9a5f 100644
+--- a/src/dotenv/parser.py
++++ b/src/dotenv/parser.py
+@@ -69,6 +69,8 @@ class Error(Exception):
+ class Reader:
+     def __init__(self, stream: IO[str]) -> None:
+         self.string = stream.read()
++        if self.string.startswith("\ufeff"):
++            self.string = self.string[1:]
+         self.position = Position.start()
+         self.mark = Position.start()
+ 
+diff --git a/tests/test_bom.py b/tests/test_bom.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..5e54a90fbed8d26e0815f8238caad7d85fb12378
+--- /dev/null
++++ b/tests/test_bom.py
+@@ -0,0 +1,25 @@
++import io
++
++from dotenv import dotenv_values
++from dotenv.parser import Binding, Original, parse_stream
++
++
++def test_dotenv_values_strips_leading_bom():
++    stream = io.StringIO("\ufeffFIRST=value1\nSECOND=value2\n")
++    assert dotenv_values(stream=stream) == {"FIRST": "value1", "SECOND": "value2"}
++
++
++def test_parse_stream_strips_leading_bom():
++    result = parse_stream(io.StringIO("\ufeffFIRST=value1\nSECOND=value2\n"))
++    assert list(result) == [
++        Binding(key="FIRST", value="value1", original=Original(string="FIRST=value1\n", line=1), error=False),
++        Binding(key="SECOND", value="value2", original=Original(string="SECOND=value2\n", line=2), error=False),
++    ]
++
++
++def test_parse_stream_preserves_internal_bom():
++    result = parse_stream(io.StringIO("FIRST=\ufeffvalue1\nSECOND=value2\n"))
++    assert list(result) == [
++        Binding(key="FIRST", value="\ufeffvalue1", original=Original(string="FIRST=\ufeffvalue1\n", line=1), error=False),
++        Binding(key="SECOND", value="value2", original=Original(string="SECOND=value2\n", line=2), error=False),
++    ]

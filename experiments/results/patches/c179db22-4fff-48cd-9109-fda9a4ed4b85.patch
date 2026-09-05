@@ -1,0 +1,50 @@
+diff --git a/src/humanize/filesize.py b/src/humanize/filesize.py
+index c495fed3ee9e724755800a0352c975335a9b1465..3e971c8c180abf4b47ecc9e6d4c4a02fb86187b0 100644
+--- a/src/humanize/filesize.py
++++ b/src/humanize/filesize.py
+@@ -98,5 +98,12 @@ def naturalsize(
+ 
+     exp = int(min(log(abs_bytes, base), len(suffix)))
+     space = "" if gnu else " "
+-    ret: str = format % (bytes_ / (base**exp)) + space + _(suffix[exp - 1])
++    mantissa = bytes_ / (base**exp)
++    formatted_mantissa = format % mantissa
++    # If rounding pushes the mantissa up to the next unit, advance the suffix.
++    while exp < len(suffix) and abs(float(formatted_mantissa)) >= base:
++        exp += 1
++        mantissa = bytes_ / (base**exp)
++        formatted_mantissa = format % mantissa
++    ret: str = formatted_mantissa + space + _(suffix[exp - 1])
+     return ret
+diff --git a/tests/test_filesize_regression.py b/tests/test_filesize_regression.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..6dac5e68d845615d9b097b22952c9e297416b054
+--- /dev/null
++++ b/tests/test_filesize_regression.py
+@@ -0,0 +1,26 @@
++#!/usr/bin/env python
++
++"""Regression tests for naturalsize rounding at unit boundaries."""
++
++from __future__ import annotations
++
++import pytest
++
++import humanize
++
++
++@pytest.mark.parametrize(
++    "args, expected",
++    [
++        ([999999.95], "1.0 MB"),
++        ([1048575.95, True], "1.0 MiB"),
++        ([1048575.95, False, True], "1.0M"),
++    ],
++)
++def test_naturalsize_rounding_carryover(args: list[float | int | bool], expected: str) -> None:
++    assert humanize.naturalsize(*args) == expected
++
++
++def test_naturalsize_negative_rounding_carryover() -> None:
++    assert humanize.naturalsize(-999999.95) == "-1.0 MB"
++    assert humanize.naturalsize(-1048575.95, True) == "-1.0 MiB"

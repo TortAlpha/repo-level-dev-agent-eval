@@ -1,0 +1,16 @@
+diff --git a/src/dotenv/parser.py b/src/dotenv/parser.py
+index eb100b478cc1383eeaad53c6fbf39b9cf7c6b2be..ed40cb9a46b85314142a120ad7d111b5001ed711 100644
+--- a/src/dotenv/parser.py
++++ b/src/dotenv/parser.py
+@@ -68,7 +68,10 @@ class Error(Exception):
+ 
+ class Reader:
+     def __init__(self, stream: IO[str]) -> None:
+-        self.string = stream.read()
++        raw = stream.read()
++        if raw.startswith("\ufeff"):
++            raw = raw[1:]
++        self.string = raw
+         self.position = Position.start()
+         self.mark = Position.start()
+ 

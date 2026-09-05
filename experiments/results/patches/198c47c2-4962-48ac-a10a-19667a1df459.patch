@@ -1,0 +1,114 @@
+diff --git a/DIFF.patch b/DIFF.patch
+new file mode 100644
+index 0000000000000000000000000000000000000000..96947ccd530f27c7254cec83cd519dfd0389f897
+--- /dev/null
++++ b/DIFF.patch
+@@ -0,0 +1,51 @@
++diff --git a/w3lib/_url.py b/w3lib/_url.py
++index e80f9e7..a1b2c3d 100644
++--- a/w3lib/_url.py
+++++ b/w3lib/_url.py
++@@ -274,7 +274,7 @@ def _urlsplit(url, allow_fragments=False):
++-        if slash_pos != question_pos != hash_pos != open_br_pos != closing_br_pos != -1:
++-            break
+++        if slash_pos != -1 and question_pos != -1 and hash_pos != -1 and ((open_br_pos != -1) == (closing_br_pos != -1)):
+++            break
++diff --git a/tests/test_url_ipv6_fragment.py b/tests/test_url_ipv6_fragment.py
++new file mode 100644
++--- /dev/null
+++++ b/tests/test_url_ipv6_fragment.py
++@@ -0,0 +1,100 @@
+++import pytest
+++
+++from w3lib.url import _urlsplit, canonicalize_url
+++
+++@pytest.mark.parametrize(
+++    "url, expected",
+++    [
+++        ("//[::1]?a=1#b=2", ("", "[::1]", "", "a=1", "b=2")),
+++        ("//[2001:db8::1]/path?x=1#y=2", ("", "2001:db8::1", "/path", "x=1", "y=2")),
+++        ("//[::1]?q=only", ("", "[::1]", "", "q=only", "")),
+++        ("//[::1]#f=only", ("", "[::1]", "", "", "f=only")),
+++        ("//host?x=1#y=2", ("", "host", "", "x=1", "y=2")),
+++    ],
+++)
+++def test_urlsplit_ipv6_with_query_and_fragment(url, expected):
+++    assert _urlsplit(url, allow_fragments=True) == expected
+++
+++@pytest.mark.parametrize(
+++    "url, expected",
+++    [
+++        ("http://[::1]?a=1#b=2", "http://[::1]?a=1"),
+++        ("http://[::1]/path?x=1#y=2", "http://[::1]/path?x=1"),
+++        ("http://[::1]?q=only", "http://[::1]?q=only"),
+++        ("http://[::1]#f=only", "http://[::1]"),
+++        ("http://host?x=1#y=2", "http://host?x=1"),
+++    ],
+++)
+++def test_canonicalize_url_ipv6_query_fragment(url, expected):
+++    assert canonicalize_url(url) == expected
+++
+++def test_urlsplit_ipv6_mismatched_brackets():
+++    with pytest.raises(ValueError):
+++        _urlsplit("//[::1", allow_fragments=True)
+++
+++def test_urlsplit_ipv6_mismatched_brackets2():
+++    with pytest.raises(ValueError):
+++        _urlsplit("//::1]", allow_fragments=True)
+diff --git a/tests/test_url_ipv6_fragment.py b/tests/test_url_ipv6_fragment.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..ae0c2d09f399273c946131297333c208efabe90d
+--- /dev/null
++++ b/tests/test_url_ipv6_fragment.py
+@@ -0,0 +1,38 @@
++import pytest
++from w3lib._url import _urlsplit
++from w3lib.url import canonicalize_url
++
++
++def test_urlsplit_ipv6_query_fragment():
++    url = '//[::1]?a=1#b=2'
++    scheme, netloc, path, query, fragment = _urlsplit(url, allow_fragments=True)
++    assert scheme == ''
++    assert netloc == '[::1]'
++    assert path == ''
++    assert query == 'a=1'
++    assert fragment == 'b=2'
++
++
++def test_canonicalize_url_ipv6_query_fragment():
++    url = 'http://[::1]?a=1#b=2'
++    canon = canonicalize_url(url)
++    assert canon == 'http://[::1]/?a=1'
++
++
++def test_urlsplit_ipv6_without_fragment():
++    url = '//[::1]?a=1'
++    scheme, netloc, path, query, fragment = _urlsplit(url, allow_fragments=True)
++    assert fragment == ''
++    assert query == 'a=1'
++
++
++def test_urlsplit_ipv6_without_query():
++    url = '//[::1]#b'
++    scheme, netloc, path, query, fragment = _urlsplit(url, allow_fragments=True)
++    assert query == ''
++    assert fragment == 'b'
++
++
++def test_urlsplit_ipv6_mismatched_brackets():
++    with pytest.raises(ValueError):
++        _urlsplit('//[::1?foo', allow_fragments=True)
+diff --git a/w3lib/_url.py b/w3lib/_url.py
+index 0fc540d0ce1fa76712a635caa90cef7e0b20eaa5..1c13315c8a7267b0bb04778ecc97cc1138bc6db4 100644
+--- a/w3lib/_url.py
++++ b/w3lib/_url.py
+@@ -658,7 +658,7 @@ def _urlsplit(  # pylint: disable=too-many-locals,too-many-statements
+             open_br_pos = idx
+         elif char == "]" and closing_br_pos == -1:
+             closing_br_pos = idx
+-        if slash_pos != question_pos != hash_pos != open_br_pos != closing_br_pos != -1:
++        if slash_pos != -1 and question_pos != -1 and hash_pos != -1 and ((open_br_pos != -1) == (closing_br_pos != -1)):
+             break
+ 
+     if url[:2] == "//":

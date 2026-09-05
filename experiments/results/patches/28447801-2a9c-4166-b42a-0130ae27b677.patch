@@ -1,0 +1,57 @@
+diff --git a/h11/_headers.py b/h11/_headers.py
+index b97d020b634a9f47f5ae6aa3b30e2bd13a6c48c4..4e3ba167dfeaf536c10aca11fb51e83916bb6384 100644
+--- a/h11/_headers.py
++++ b/h11/_headers.py
+@@ -68,6 +68,7 @@ except ImportError:
+ # Maybe a dict-of-lists would be better?
+ 
+ _content_length_re = re.compile(rb"[0-9]+")
++MAX_CONTENT_LENGTH_DIGITS = 20
+ _field_name_re = re.compile(field_name.encode("ascii"))
+ _field_value_re = re.compile(field_value.encode("ascii"))
+ 
+@@ -173,6 +174,8 @@ def normalize_and_validate(
+                 raise LocalProtocolError("conflicting Content-Length headers")
+             value = lengths.pop()
+             validate(_content_length_re, value, "bad Content-Length")
++            if len(value) > MAX_CONTENT_LENGTH_DIGITS:
++                raise LocalProtocolError("Content-Length too long")
+             if seen_content_length is None:
+                 seen_content_length = value
+                 new_headers.append((raw_name, name, value))
+diff --git a/h11/tests/test_content_length_too_long.py b/h11/tests/test_content_length_too_long.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..aaa1099b84e2133f44ded9d32a722d4fd839e946
+--- /dev/null
++++ b/h11/tests/test_content_length_too_long.py
+@@ -0,0 +1,30 @@
++import pytest
++
++from h11._headers import normalize_and_validate, MAX_CONTENT_LENGTH_DIGITS
++from h11._util import LocalProtocolError, RemoteProtocolError
++from h11._connection import Connection
++from h11._state import CLIENT
++
++
++def test_normalize_and_validate_rejects_too_long_content_length():
++    value = b"1" * (MAX_CONTENT_LENGTH_DIGITS + 1)
++    with pytest.raises(LocalProtocolError, match="Content-Length too long"):
++        normalize_and_validate([(b"content-length", value)])
++
++
++def test_normalize_and_validate_accepts_max_digits():
++    value = b"1" * MAX_CONTENT_LENGTH_DIGITS
++    headers = normalize_and_validate([(b"content-length", value)])
++    assert headers == [(b"content-length", value)]
++
++
++def test_receive_data_rejects_too_long_content_length():
++    conn = Connection(our_role=CLIENT)
++    value = b"1" * (MAX_CONTENT_LENGTH_DIGITS + 1)
++    data = (
++        b"HTTP/1.1 200 OK\r\n"
++        b"Content-Length: " + value + b"\r\n"
++        b"\r\n"
++    )
++    with pytest.raises(RemoteProtocolError, match="Content-Length too long"):
++        conn.receive_data(data)

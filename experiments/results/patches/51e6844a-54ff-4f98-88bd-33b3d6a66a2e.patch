@@ -1,0 +1,57 @@
+diff --git a/src/humanize/filesize.py b/src/humanize/filesize.py
+index c495fed3ee9e724755800a0352c975335a9b1465..ec23bdaed7ccbed4df663e87a56fb858b85da635 100644
+--- a/src/humanize/filesize.py
++++ b/src/humanize/filesize.py
+@@ -98,5 +98,10 @@ def naturalsize(
+ 
+     exp = int(min(log(abs_bytes, base), len(suffix)))
+     space = "" if gnu else " "
+-    ret: str = format % (bytes_ / (base**exp)) + space + _(suffix[exp - 1])
++    mantissa = bytes_ / (base**exp)
++    # If rounding pushes the mantissa up to the next unit, advance the suffix.
++    if exp < len(suffix) and abs(float(format % mantissa)) >= base:
++        exp += 1
++        mantissa = bytes_ / (base**exp)
++    ret: str = format % mantissa + space + _(suffix[exp - 1])
+     return ret
+diff --git a/tests/test_filesize_regression.py b/tests/test_filesize_regression.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..1c8fb02b199745a334c4b19db297c9ea79a9c43a
+--- /dev/null
++++ b/tests/test_filesize_regression.py
+@@ -0,0 +1,35 @@
++#!/usr/bin/env python
++"""Regression tests for naturalsize rounding at unit boundaries."""
++from __future__ import annotations
++
++import pytest
++
++import humanize
++
++
++@pytest.mark.parametrize(
++    "value, expected",
++    [
++        # just below a decimal boundary carries to the next unit
++        (999_949_999_999, "1.0 TB"),
++        (10**33 - 1, "1.0 QB"),
++        # just below a binary boundary carries to the next unit
++        (1024**4 - 1, "1.0 TiB"),
++        # just below a GNU boundary carries to the next unit
++        (1024**4 - 1, "1.0T"),
++    ],
++)
++def test_naturalsize_rounds_up_to_next_unit(value, expected):
++    kwargs = {}
++    if "T" in expected and "TiB" not in expected:
++        kwargs["gnu"] = True
++    elif "TiB" in expected:
++        kwargs["binary"] = True
++    assert humanize.naturalsize(value, **kwargs) == expected
++
++
++def test_naturalsize_largest_suffix_stays_in_place():
++    # A value in the largest supported suffix keeps its unit even if
++    # formatting round-pushes the mantissa toward the next (nonexistent) unit.
++    assert humanize.naturalsize(10**36 - 1) == "1000.0 QB"
++    assert humanize.naturalsize(10**33) == "1.0 QB"

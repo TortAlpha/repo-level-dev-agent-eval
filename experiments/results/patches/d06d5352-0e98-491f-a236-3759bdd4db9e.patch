@@ -1,0 +1,137 @@
+diff --git a/tests/test_update_remove_missing_ids.py b/tests/test_update_remove_missing_ids.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..cb0e05425609d0e8a3b2efe24057772e43ffe424
+--- /dev/null
++++ b/tests/test_update_remove_missing_ids.py
+@@ -0,0 +1,47 @@
++import pytest
++from tinydb import TinyDB
++from tinydb.storages import MemoryStorage
++
++
++def test_update_skip_missing_doc_ids():
++    db = TinyDB(storage=MemoryStorage)
++    table = db.table()
++    id1 = table.insert({'a': 1})
++    id2 = table.insert({'a': 2})
++
++    # Mix existing and missing IDs
++    processed = table.update({'a': 99}, doc_ids=[id1, id2 + 10])
++    assert processed == [id1]
++    assert table.get(doc_id=id1)['a'] == 99
++    assert table.get(doc_id=id2)['a'] == 2
++
++    # Missing ID before existing ID
++    processed = table.update({'a': 100}, doc_ids=[id2 + 11, id2])
++    assert processed == [id2]
++    assert table.get(doc_id=id2)['a'] == 100
++
++    # Only missing IDs
++    processed = table.update({'b': 42}, doc_ids=[id1 + 100])
++    assert processed == []
++
++
++def test_remove_skip_missing_doc_ids():
++    db = TinyDB(storage=MemoryStorage)
++    table = db.table()
++    id1 = table.insert({'a': 1})
++    id2 = table.insert({'a': 2})
++
++    # Mix existing and missing IDs
++    removed = table.remove(doc_ids=[id1, id2 + 10])
++    assert removed == [id1]
++    assert table.get(doc_id=id1) is None
++    assert table.get(doc_id=id2)['a'] == 2
++
++    # Missing ID before existing ID
++    removed = table.remove(doc_ids=[id2 + 11, id2])
++    assert removed == [id2]
++    assert table.get(doc_id=id2) is None
++
++    # Only missing IDs
++    removed = table.remove(doc_ids=[id1 + 100])
++    assert removed == []
+diff --git a/tinydb/database.py b/tinydb/database.py
+index b86fe72acdb7550192e162bfcfd51eb845e9a35c..4ba23bf6f1103df89318ebaa3fb02f62fd25a34c 100644
+--- a/tinydb/database.py
++++ b/tinydb/database.py
+@@ -108,7 +108,7 @@ class TinyDB(TableBase):
+ 
+         return '<{} {}>'.format(type(self).__name__, ', '.join(args))
+ 
+-    def table(self, name: str, **kwargs) -> Table:
++    def table(self, name: str = None, **kwargs) -> Table:
+         """
+         Get access to a specific table.
+ 
+@@ -120,10 +120,14 @@ class TinyDB(TableBase):
+         by default is :class:`~tinydb.table.Table`. Check its documentation
+         for further parameters you can pass.
+ 
+-        :param name: The name of the table.
++        :param name: The name of the table. If not provided, uses
++                     :attr:`~tinydb.database.TinyDB.default_table_name`.
+         :param kwargs: Keyword arguments to pass to the table class constructor
+         """
+ 
++        if name is None:
++            name = self.default_table_name
++
+         if name in self._tables:
+             return self._tables[name]
+ 
+diff --git a/tinydb/table.py b/tinydb/table.py
+index 5641d22df4c7568064ab8fe08a85489a000f17a9..f5838474c8fa92e894fd0f633d6a8c8d3aef44f2 100644
+--- a/tinydb/table.py
++++ b/tinydb/table.py
+@@ -438,17 +438,19 @@ class Table:
+             # Perform the update operation for documents specified by a list
+             # of document IDs
+ 
+-            updated_ids = list(doc_ids)
++            requested_ids = list(doc_ids)
++            processed_ids = []
+ 
+             def updater(table: dict):
+-                # Call the processing callback with all document IDs
+-                for doc_id in updated_ids:
+-                    perform_update(table, doc_id)
++                for doc_id in requested_ids:
++                    if doc_id in table:
++                        perform_update(table, doc_id)
++                        processed_ids.append(doc_id)
+ 
+             # Perform the update operation (see _update_table for details)
+             self._update_table(updater)
+ 
+-            return updated_ids
++            return processed_ids
+ 
+         elif cond is not None:
+             # Perform the update operation for documents specified by a query
+@@ -607,18 +609,15 @@ class Table:
+         :returns: a list containing the removed documents' ID
+         """
+         if doc_ids is not None:
+-            # This function returns the list of IDs for the documents that have
+-            # been removed. When removing documents identified by a set of
+-            # document IDs, it's this list of document IDs we need to return
+-            # later.
+-            # We convert the document ID iterator into a list, so we can both
+-            # use the document IDs to remove the specified documents and
+-            # to return the list of affected document IDs
+-            removed_ids = list(doc_ids)
++            # Skip missing documents, collect IDs of removed documents
++            requested_ids = list(doc_ids)
++            removed_ids = []
+ 
+             def updater(table: dict):
+-                for doc_id in removed_ids:
+-                    table.pop(doc_id)
++                for doc_id in requested_ids:
++                    if doc_id in table:
++                        table.pop(doc_id)
++                        removed_ids.append(doc_id)
+ 
+             # Perform the remove operation
+             self._update_table(updater)

@@ -1,0 +1,40 @@
+diff --git a/src/cachetools/_cachedmethod.py b/src/cachetools/_cachedmethod.py
+index cdf63d4f84671cc033bb7adcfd8180565ba042c8..c10b844aa8e9a4a24cc1a9c5a453d92ada3de75f 100644
+--- a/src/cachetools/_cachedmethod.py
++++ b/src/cachetools/_cachedmethod.py
+@@ -76,6 +76,8 @@ class _DescriptorBase:
+             )
+ 
+     def __get__(self, obj, objtype=None):
++        if obj is None:
++            return self.Wrapper(None)
+         wrapper = self.Wrapper(obj)
+         if self.__attrname is not None:
+             # replace descriptor instance with wrapper in instance dict
+diff --git a/tests/test_autospec_cachedmethod.py b/tests/test_autospec_cachedmethod.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4051df9f046b9745800efa8c9972d41a642fc09e
+--- /dev/null
++++ b/tests/test_autospec_cachedmethod.py
+@@ -0,0 +1,21 @@
++import unittest.mock
++import warnings
++
++import cachetools
++
++
++def test_create_autospec_cachedmethod_no_warnings():
++    class SomeClass:
++        def __init__(self):
++            self.cache = cachetools.LRUCache(maxsize=1)
++
++        @cachetools.cachedmethod(lambda self: self.cache)
++        def compute(self, x):
++            return x
++
++    with warnings.catch_warnings():
++        warnings.simplefilter("error")
++        mock = unittest.mock.create_autospec(SomeClass, instance=True)
++
++    assert mock.compute is not None
++    assert callable(mock.compute)

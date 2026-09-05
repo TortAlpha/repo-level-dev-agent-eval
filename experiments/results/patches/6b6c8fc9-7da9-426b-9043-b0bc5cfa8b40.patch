@@ -1,0 +1,47 @@
+diff --git a/freezegun/api.py b/freezegun/api.py
+index 0f11e0c113f328fb4ce71329cf8e6b35ab58a3fe..bcd266b989c8760e512c65ff0e5f93dbc8fa7e08 100644
+--- a/freezegun/api.py
++++ b/freezegun/api.py
+@@ -500,6 +500,12 @@ def _parse_tz_offset(tz_offset: Union[datetime.timedelta, float]) -> datetime.ti
+         return datetime.timedelta(hours=tz_offset)
+ 
+ 
++def _coerce_delta_to_timedelta(delta: Union[datetime.timedelta, numbers.Real]) -> datetime.timedelta:
++    if isinstance(delta, datetime.timedelta):
++        return delta
++    return datetime.timedelta(seconds=float(delta))
++
++
+ class TickingDateTimeFactory:
+ 
+     def __init__(self, time_to_freeze: datetime.datetime, start: datetime.datetime):
+@@ -531,12 +537,9 @@ class FrozenDateTimeFactory:
+     def __call__(self) -> datetime.datetime:
+         return self.time_to_freeze
+ 
+-    def tick(self, delta: Union[datetime.timedelta, int]=datetime.timedelta(seconds=1)) -> datetime.datetime:
+-        if isinstance(delta, numbers.Real):
+-            # noinspection PyTypeChecker
+-            self.time_to_freeze += datetime.timedelta(seconds=delta)
+-        else:
+-            self.time_to_freeze += delta  # type: ignore
++    def tick(self, delta: Union[datetime.timedelta, numbers.Real]=1) -> datetime.datetime:
++        delta = _coerce_delta_to_timedelta(delta)
++        self.time_to_freeze += delta  # type: ignore
+         return self.time_to_freeze
+ 
+     def move_to(self, target_datetime: _Freezable) -> None:
+@@ -557,9 +560,11 @@ class StepTickTimeFactory:
+         self.tick()
+         return return_time
+ 
+-    def tick(self, delta: Union[datetime.timedelta, int, None]=None) -> datetime.datetime:
+-        if not delta:
++    def tick(self, delta: Optional[Union[datetime.timedelta, numbers.Real]]=None) -> datetime.datetime:
++        if delta is None:
+             delta = datetime.timedelta(seconds=self.step_width)
++        else:
++            delta = _coerce_delta_to_timedelta(delta)
+         self.time_to_freeze += delta  # type: ignore
+         return self.time_to_freeze
+ 

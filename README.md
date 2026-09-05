@@ -22,6 +22,13 @@ protocol on the current harness resolves **29/36** core-small combinations
 against `final_v1`'s 33/36, at 2.6× the cost — see
 [Kernel v2 Re-measurement](#kernel-v2-re-measurement).
 
+The September 5 [defense materials](docs/defense/README.md) include the English
+presentation, speaker notes, and an audited DeepSeek repeatability extension.
+Across three attempts on the same 12 core-small tasks, graph produced **32/36**
+successful outcomes and single **29/36**; graph's provider cost per successful
+outcome was **20.5% higher**. These repeated outcomes remain separate from the
+historical `final_v1` study and are not 36 independent tasks per architecture.
+
 ## Result at a Glance
 
 The main benchmark contains **102 scored runs over 39 unique tasks**:

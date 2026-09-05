@@ -1,0 +1,41 @@
+diff --git a/src/cachetools/_cachedmethod.py b/src/cachetools/_cachedmethod.py
+index cdf63d4f84671cc033bb7adcfd8180565ba042c8..257613ba60a5fe779b91d7810b41124515aaf83b 100644
+--- a/src/cachetools/_cachedmethod.py
++++ b/src/cachetools/_cachedmethod.py
+@@ -76,6 +76,8 @@ class _DescriptorBase:
+             )
+ 
+     def __get__(self, obj, objtype=None):
++        if obj is None:
++            return self.Wrapper(None).__wrapped__
+         wrapper = self.Wrapper(obj)
+         if self.__attrname is not None:
+             # replace descriptor instance with wrapper in instance dict
+diff --git a/tests/test_cachedmethod_autospec.py b/tests/test_cachedmethod_autospec.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..5557da07925d670dfcc7090bd1a1fa93ca778ac8
+--- /dev/null
++++ b/tests/test_cachedmethod_autospec.py
+@@ -0,0 +1,22 @@
++import warnings
++from unittest import mock
++
++from cachetools import cachedmethod
++
++
++class SomeClass:
++    def __init__(self):
++        self.cache = {}
++
++    @cachedmethod(lambda self: self.cache)
++    def foo(self, x):
++        return x * 2
++
++
++def test_create_autospec_no_warnings_with_cachedmethod():
++    # Should not warn when autospec-ing a class whose methods use @cachedmethod
++    with warnings.catch_warnings():
++        warnings.simplefilter("error")
++        spec = mock.create_autospec(SomeClass, instance=True)
++    # Autospec should succeed and produce a foo attribute
++    assert hasattr(spec, 'foo'), "Autospec did not produce a foo attribute"

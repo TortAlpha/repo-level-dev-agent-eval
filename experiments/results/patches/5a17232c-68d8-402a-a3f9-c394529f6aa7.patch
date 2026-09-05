@@ -1,0 +1,41 @@
+diff --git a/freezegun/api.py b/freezegun/api.py
+index 0f11e0c113f328fb4ce71329cf8e6b35ab58a3fe..eb1190d2eccabea4f69f47e667cd784e46c151c2 100644
+--- a/freezegun/api.py
++++ b/freezegun/api.py
+@@ -531,12 +531,13 @@ class FrozenDateTimeFactory:
+     def __call__(self) -> datetime.datetime:
+         return self.time_to_freeze
+ 
+-    def tick(self, delta: Union[datetime.timedelta, int]=datetime.timedelta(seconds=1)) -> datetime.datetime:
++    def tick(self, delta: Union[datetime.timedelta, numbers.Real]=datetime.timedelta(seconds=1)) -> datetime.datetime:
+         if isinstance(delta, numbers.Real):
+             # noinspection PyTypeChecker
+-            self.time_to_freeze += datetime.timedelta(seconds=delta)
++            delta_td = datetime.timedelta(seconds=float(delta))
+         else:
+-            self.time_to_freeze += delta  # type: ignore
++            delta_td = delta
++        self.time_to_freeze += delta_td  # type: ignore
+         return self.time_to_freeze
+ 
+     def move_to(self, target_datetime: _Freezable) -> None:
+@@ -557,10 +558,15 @@ class StepTickTimeFactory:
+         self.tick()
+         return return_time
+ 
+-    def tick(self, delta: Union[datetime.timedelta, int, None]=None) -> datetime.datetime:
+-        if not delta:
+-            delta = datetime.timedelta(seconds=self.step_width)
+-        self.time_to_freeze += delta  # type: ignore
++    def tick(self, delta: Optional[Union[datetime.timedelta, numbers.Real]]=None) -> datetime.datetime:
++        if delta is None:
++            delta_td = datetime.timedelta(seconds=self.step_width)
++        elif isinstance(delta, numbers.Real):
++            # noinspection PyTypeChecker
++            delta_td = datetime.timedelta(seconds=float(delta))
++        else:
++            delta_td = delta
++        self.time_to_freeze += delta_td  # type: ignore
+         return self.time_to_freeze
+ 
+     def update_step_width(self, step_width: float) -> None:

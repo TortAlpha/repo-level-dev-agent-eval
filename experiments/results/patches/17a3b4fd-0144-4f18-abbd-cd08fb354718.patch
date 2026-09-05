@@ -1,0 +1,67 @@
+diff --git a/freezegun/api.py b/freezegun/api.py
+index 0f11e0c113f328fb4ce71329cf8e6b35ab58a3fe..28a18936ec0dcfee41b2ee76af6b965e389edc20 100644
+--- a/freezegun/api.py
++++ b/freezegun/api.py
+@@ -531,10 +531,10 @@ class FrozenDateTimeFactory:
+     def __call__(self) -> datetime.datetime:
+         return self.time_to_freeze
+ 
+-    def tick(self, delta: Union[datetime.timedelta, int]=datetime.timedelta(seconds=1)) -> datetime.datetime:
++    def tick(self, delta: Union[datetime.timedelta, numbers.Real]=datetime.timedelta(seconds=1)) -> datetime.datetime:
+         if isinstance(delta, numbers.Real):
+             # noinspection PyTypeChecker
+-            self.time_to_freeze += datetime.timedelta(seconds=delta)
++            self.time_to_freeze += datetime.timedelta(seconds=float(delta))
+         else:
+             self.time_to_freeze += delta  # type: ignore
+         return self.time_to_freeze
+@@ -557,9 +557,11 @@ class StepTickTimeFactory:
+         self.tick()
+         return return_time
+ 
+-    def tick(self, delta: Union[datetime.timedelta, int, None]=None) -> datetime.datetime:
++    def tick(self, delta: Union[datetime.timedelta, numbers.Real, None]=None) -> datetime.datetime:
+         if not delta:
+             delta = datetime.timedelta(seconds=self.step_width)
++        elif isinstance(delta, numbers.Real):
++            delta = datetime.timedelta(seconds=float(delta))
+         self.time_to_freeze += delta  # type: ignore
+         return self.time_to_freeze
+ 
+diff --git a/tests/test_numeric_ticks.py b/tests/test_numeric_ticks.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..0416ae967c246403a8d30e998e5866704b5299b9
+--- /dev/null
++++ b/tests/test_numeric_ticks.py
+@@ -0,0 +1,31 @@
++import datetime
++import fractions
++
++from freezegun import freeze_time
++
++
++def test_frozen_datetime_factory_tick_with_fraction():
++    with freeze_time("Jan 14th, 2012, 00:00:00") as ft:
++        ft.tick(fractions.Fraction(1, 2))
++        assert ft() == datetime.datetime(2012, 1, 14, 0, 0, 0, 500000)
++
++
++def test_step_tick_time_factory_tick_with_fraction():
++    with freeze_time("Jan 14th, 2012, 00:00:00", auto_tick_seconds=1) as ft:
++        # Access the factory directly (the `ft` object for auto_tick_seconds)
++        # In freezegun, auto_tick_seconds creates a StepTickTimeFactory.
++        # The object behaves like the factory, so `tick` accepts delta.
++        ft.tick(fractions.Fraction(1, 2))
++        assert ft() >= datetime.datetime(2012, 1, 14, 0, 0, 0, 500000)
++
++
++def test_step_tick_time_factory_tick_with_int():
++    with freeze_time("Jan 14th, 2012, 00:00:00", auto_tick_seconds=1) as ft:
++        ft.tick(2)
++        assert ft() >= datetime.datetime(2012, 1, 14, 0, 0, 2)
++
++
++def test_step_tick_time_factory_tick_with_float():
++    with freeze_time("Jan 14th, 2012, 00:00:00", auto_tick_seconds=1) as ft:
++        ft.tick(0.5)
++        assert ft() >= datetime.datetime(2012, 1, 14, 0, 0, 0, 500000)

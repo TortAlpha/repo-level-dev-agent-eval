@@ -1,0 +1,103 @@
+diff --git a/tests/test_update_remove_missing_doc_ids.py b/tests/test_update_remove_missing_doc_ids.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..f8cec4f7b65f93dec0e95f5014c47481cb9f9543
+--- /dev/null
++++ b/tests/test_update_remove_missing_doc_ids.py
+@@ -0,0 +1,34 @@
++from tinydb import where
++
++
++def test_update_ids_skips_missing_ids(db):
++    updated_ids = db.update({'int': 7}, doc_ids=[99, 3, 1])
++
++    assert updated_ids == [3, 1]
++    assert db.get(doc_id=3)['int'] == 7
++    assert db.get(doc_id=1)['int'] == 7
++    assert db.get(doc_id=2)['int'] == 1
++
++
++def test_update_ids_all_missing_returns_empty(db):
++    updated_ids = db.update({'int': 8}, doc_ids=[99, 100])
++
++    assert updated_ids == []
++    assert db.count(where('int') == 1) == 3
++
++
++def test_remove_ids_skips_missing_ids(db):
++    removed_ids = db.remove(doc_ids=[99, 3, 1])
++
++    assert removed_ids == [3, 1]
++    assert not db.contains(doc_id=1)
++    assert not db.contains(doc_id=3)
++    assert db.contains(doc_id=2)
++    assert len(db) == 1
++
++
++def test_remove_ids_all_missing_returns_empty(db):
++    removed_ids = db.remove(doc_ids=[99, 100])
++
++    assert removed_ids == []
++    assert len(db) == 3
+diff --git a/tinydb/table.py b/tinydb/table.py
+index 5641d22df4c7568064ab8fe08a85489a000f17a9..fb62196a4c5972e8dc4a8470b0659ffe21f384e0 100644
+--- a/tinydb/table.py
++++ b/tinydb/table.py
+@@ -419,8 +419,8 @@ class Table:
+         :param fields: the fields that the matching documents will have
+                        or a method that will update the documents
+         :param cond: which documents to update
+-        :param doc_ids: a list of document IDs
+-        :returns: a list containing the updated document's ID
++        :param doc_ids: a list of document IDs to update; missing IDs are ignored
++        :returns: a list containing the IDs of the documents that were actually updated
+         """
+ 
+         # Define the function that will perform the update
+@@ -438,12 +438,15 @@ class Table:
+             # Perform the update operation for documents specified by a list
+             # of document IDs
+ 
+-            updated_ids = list(doc_ids)
++            requested_ids = list(doc_ids)
++            updated_ids: List[int] = []
+ 
+             def updater(table: dict):
+                 # Call the processing callback with all document IDs
+-                for doc_id in updated_ids:
+-                    perform_update(table, doc_id)
++                for doc_id in requested_ids:
++                    if doc_id in table:
++                        perform_update(table, doc_id)
++                        updated_ids.append(doc_id)
+ 
+             # Perform the update operation (see _update_table for details)
+             self._update_table(updater)
+@@ -603,8 +606,8 @@ class Table:
+         Remove all matching documents.
+ 
+         :param cond: the condition to check against
+-        :param doc_ids: a list of document IDs
+-        :returns: a list containing the removed documents' ID
++        :param doc_ids: a list of document IDs to remove; missing IDs are ignored
++        :returns: a list containing the IDs of the documents that were actually removed
+         """
+         if doc_ids is not None:
+             # This function returns the list of IDs for the documents that have
+@@ -614,11 +617,14 @@ class Table:
+             # We convert the document ID iterator into a list, so we can both
+             # use the document IDs to remove the specified documents and
+             # to return the list of affected document IDs
+-            removed_ids = list(doc_ids)
++            requested_ids = list(doc_ids)
++            removed_ids: List[int] = []
+ 
+             def updater(table: dict):
+-                for doc_id in removed_ids:
+-                    table.pop(doc_id)
++                for doc_id in requested_ids:
++                    if doc_id in table:
++                        table.pop(doc_id)
++                        removed_ids.append(doc_id)
+ 
+             # Perform the remove operation
+             self._update_table(updater)

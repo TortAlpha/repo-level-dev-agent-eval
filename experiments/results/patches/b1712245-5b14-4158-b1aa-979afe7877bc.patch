@@ -1,0 +1,19 @@
+diff --git a/w3lib/_url.py b/w3lib/_url.py
+index 0fc540d0ce1fa76712a635caa90cef7e0b20eaa5..355cf53c5a437eca068326d53bfbcdfd193f6421 100644
+--- a/w3lib/_url.py
++++ b/w3lib/_url.py
+@@ -658,7 +658,13 @@ def _urlsplit(  # pylint: disable=too-many-locals,too-many-statements
+             open_br_pos = idx
+         elif char == "]" and closing_br_pos == -1:
+             closing_br_pos = idx
+-        if slash_pos != question_pos != hash_pos != open_br_pos != closing_br_pos != -1:
++        if (
++            slash_pos != -1
++            and question_pos != -1
++            and hash_pos != -1
++            and ((open_br_pos == -1 and closing_br_pos == -1)
++                 or (open_br_pos != -1 and closing_br_pos != -1))
++        ):
+             break
+ 
+     if url[:2] == "//":

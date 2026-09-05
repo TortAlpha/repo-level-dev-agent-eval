@@ -1,0 +1,124 @@
+diff --git a/parse.py b/parse.py
+index 8f73fb5aef7751fec7cfe78e530ab42679e86687..269f45967831c1454ffa2c78c134522fa0d59daf 100644
+--- a/parse.py
++++ b/parse.py
+@@ -271,6 +271,55 @@ def date_convert(
+     return d
+ 
+ 
++def _field_pattern_datetime(format_spec, name):
++    """Build regex pattern and converter for datetime fields with strftime-style format specifiers."""
++    directive_map = {
++        '%Y': r'\d{4}',
++        '%m': r'\d{1,2}',
++        '%d': r'\d{1,2}',
++        '%H': r'\d{1,2}',
++        '%M': r'\d{1,2}',
++        '%S': r'\d{1,2}',
++        '%f': r'\d{1,6}',
++        '%I': r'\d{1,2}',
++        '%p': r'(?:AM|PM)',
++        '%z': r'[+-]\d{2}(?:\d{2}|:\d{2})',
++        '%b': MONTHS_PAT,
++        '%B': ALL_MONTHS_PAT,
++    }
++    regex = ''
++    has_date = has_time = has_zone = False
++    i = 0
++    while i < len(format_spec):
++        if format_spec[i] == '%':
++            if i + 1 >= len(format_spec):
++                raise ValueError("Incomplete datetime format specifier %r" % format_spec)
++            code = format_spec[i:i+2]
++            if code not in directive_map:
++                raise ValueError("Unsupported datetime directive %r" % code)
++            regex += directive_map[code]
++            if code in ('%Y', '%m', '%d', '%b', '%B'):
++                has_date = True
++            if code in ('%H', '%I', '%M', '%S', '%f', '%p'):
++                has_time = True
++            if code == '%z':
++                has_time = True
++                has_zone = True
++            i += 2
++        else:
++            regex += re.escape(format_spec[i])
++            i += 1
++    pattern = r"(?P<%s>%s)" % (name, regex)
++    def conv(string, match, **kwargs):
++        value = match.group(name)
++        dt = datetime.strptime(value, format_spec)
++        if has_date and not has_time:
++            return dt.date()
++        if has_time and not has_date:
++            return dt.timetz() if has_zone else dt.time()
++        return dt
++    return pattern, conv
++
+ class TooManyFields(ValueError):
+     pass
+ 
+@@ -576,7 +625,7 @@ class Parser(object):
+         format = ""
+ 
+         if ":" in field:
+-            name, format = field.split(":")
++            name, format = field.split(":", 1)
+         else:
+             name = field
+ 
+diff --git a/tests/test_parse_datetime.py b/tests/test_parse_datetime.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..21007ba1257a1720d2c69fef5c585b36162531df
+--- /dev/null
++++ b/tests/test_parse_datetime.py
+@@ -0,0 +1,49 @@
++import pytest
++from datetime import date, time, datetime, timezone, timedelta
++from parse import parse
++
++@pytest.mark.parametrize("fmt, text, expected", [
++    ("%Y-%m-%d", "1997-07-16", date(1997, 7, 16)),
++    ("%Y-%b-%d", "1997-Feb-16", date(1997, 2, 16)),
++    ("%Y-%B-%d", "1997-February-16", date(1997, 2, 16)),
++])
++def test_date_only(fmt, text, expected):
++    result = parse(f"{{:{fmt}}}", text)[0]
++    assert result == expected
++    assert isinstance(result, date)
++
++@pytest.mark.parametrize("fmt, text, expected", [
++    ("%H:%M", "23:45", time(23, 45)),
++    ("%I:%M %p", "11:05 PM", time(23, 5)),
++    ("%H:%M:%S.%f", "00:00:01.234", time(0, 0, 1, 234000)),
++])
++def test_time_only(fmt, text, expected):
++    result = parse(f"{{:{fmt}}}", text)[0]
++    assert result == expected
++    assert isinstance(result, time)
++
++@pytest.mark.parametrize("fmt, text, expected", [
++    ("%Y-%m-%dT%H:%M%z", "2020-01-02T03:04+0500", datetime(2020, 1, 2, 3, 4, tzinfo=timezone(timedelta(hours=5)))),
++    ("%Y-%m-%d %H:%M%z", "2020-01-02 03:04-02:30", datetime(2020, 1, 2, 3, 4, tzinfo=timezone(timedelta(hours=-2, minutes=-30)))),
++    ("%Y-%m-%dT%H:%M%z", "2020-01-02T03:04+05:30", datetime(2020, 1, 2, 3, 4, tzinfo=timezone(timedelta(hours=5, minutes=30)))),
++])
++def test_datetime_with_timezone(fmt, text, expected):
++    result = parse(f"{{:{fmt}}}", text)[0]
++    assert result == expected
++    assert isinstance(result, datetime)
++
++def test_mixed_fields():
++    fmt = "User {name} logged in at {:%Y-%m-%d %H:%M}"
++    name, ts = parse(fmt, "User alice logged in at 2021-12-31 23:59")
++    assert name == "alice"
++    assert ts == datetime(2021, 12, 31, 23, 59)
++
++def test_multiple_datetime_fields():
++    fmt = "Start: {:%H:%M}, End: {:%H:%M}"
++    start, end = parse(fmt, "Start: 09:00, End: 17:30")
++    assert start == time(9, 0)
++    assert end == time(17, 30)
++
++def test_unsupported_directive():
++    with pytest.raises(ValueError):
++        parse("{:%Y-%m-%d %Z}", "2021-01-01 UTC")
