@@ -14,7 +14,7 @@ const PYTHON = process.env.PYTHON_EXECUTABLE ?? 'python3';
 if (!process.env.RUNTIME_NODE_MODULES) throw new Error('Set RUNTIME_NODE_MODULES to the runtime node_modules directory.');
 const {resolvePresentationFont, applyPresentationChartFont, finalizePresentation} = await import(path.join(SKILL, 'container_tools/artifact_tool_utils.mjs'));
 const FONT = 'Helvetica Neue';
-const REFERENCE = path.join(WORK, 'output', 'Repository_Level_Agent_Evaluation_Defense_EN_v7.pptx');
+const REFERENCE = path.join(WORK, 'output', 'Repository_Level_Agent_Evaluation_Defense_EN_v9.pptx');
 const REFERENCE_SHA = createHash('sha256').update(await fs.readFile(REFERENCE)).digest('hex');
 const REPO = path.resolve(ROOT, '../..');
 const REPEAT_SOURCE = path.join(REPO, 'experiments/plans/defense_repeats_20260904/analysis');
@@ -141,7 +141,16 @@ function chart(s, {cats,vals,labels,title,x,y,w,h,max=1,format='0%',colors=[C.bl
  text(s,'Behavioral diagnostics',678,406,530,43,29,{bold:true});
  text(s,'Tool-use validity\nRepair and visible/final gaps\nExplicitly defined proxy metrics',678,468,525,140,29,{color:C.muted});
 }
-// 08. Protocol and local pilot
+// Final PASS decision
+{
+ const s=newSlide('How final task PASS is decided', 'An external evaluator checks the final repository state after the agent stops. In the reported experiments, PASS requires all four conditions on this slide. First, the visible suite is rerun and must pass. Second, every required hidden or withheld suite must pass; optional suites do not determine the combined hidden verdict. Third, the evaluator compares passing visible-test identifiers before and after the run. A baseline test that is no longer recorded as passing counts as a regression, including a removed, renamed, or skipped test. Fourth, detected test-oracle tampering invalidates the result. Kernel v2 additionally rejects protected setup-artifact tampering. These checks are independent of the agent reporting that it is done or requesting a handoff. A nonempty patch and an LLM quality-rubric score are not additional conditions in task_success. The code permits an unset regression count when regression checking is explicitly disabled; the reported comparisons use measured regression counts. Hidden compatibility results may reuse the visible suite, as they do in the DeepSeek repetition block, so they are not always independent test evidence. Infrastructure failures are recorded separately from ordinary task failures.', [source('src/benchmark/evaluation.py'),path.join(REPO,'src/benchmark/evaluation.py')]);
+ text(s,'All conditions must hold at final evaluation.',72,155,1136,42,29,{bold:true,color:C.blue});
+ const t=table(s,[['Condition','What the evaluator checks'],['Visible tests pass','The visible suite passes after the agent stops.'],['Required hidden tests pass','Every required withheld suite passes.'],['No regressions','Every previously passing visible test still passes.'],['Evaluation integrity','No detected test-oracle tampering.']],[384,752],{y:213,h:366,size:25,rowHeight:77,headerHeight:58});
+ t.cells.block({row:0,column:0,rowCount:5,columnCount:2}).assign({margins:{left:16,right:12,top:7,bottom:7}});
+ text(s,'Kernel v2 also rejects protected setup-artifact tampering.',72,595,1136,30,23,{color:C.muted});
+ text(s,'An agent’s “done” message does not determine the score.',72,638,1136,34,27,{bold:true,color:C.blue});
+}
+// Protocol and local pilot
 {
  const s=newSlide('Model choice and execution budgets', 'The author reports that preliminary local trials were too slow and produced insufficient solution quality for the selected repository tasks. This was a qualitative feasibility observation, without a quantified pilot table in the saved master artifacts. The primary comparison therefore uses hosted GLM-5.2 through OpenRouter. Core-small uses the same 50-step cap for all architectures. Medium and SWE Pro allow multi-agent systems 75 steps. The SWE Pro initial max_tokens setting is also unequal: 16,384 for single and 4,096 for graph. A truncation retry can increase the initial setting, so these are not absolute per-call limits. Equal steps still do not mean equal token usage or compute. Report the recorded system policies by block and actual resource use.', [source('docs/final_benchmark_results.md'),source('docs/final_benchmark_task_set.md'),source('experiments/results/sessions/final_v1_swepro_single50/sweep.json'),source('experiments/results/sessions/final_v1_swepro_graph75/sweep.json'),'Author-provided explanation of preliminary local trials, September 4, 2026.']);
  text(s,'Primary model: GLM-5.2 through OpenRouter',72,167,1128,58,35,{bold:true,color:C.blue});
@@ -150,7 +159,16 @@ function chart(s, {cats,vals,labels,title,x,y,w,h,max=1,format='0%',colors=[C.bl
  text(s,'Local pilot: slow execution and insufficient solution quality',72,590,1125,38,27,{bold:true});
  text(s,'Author-reported feasibility observation. No quantified pilot results in the saved artifacts.',72,638,1125,28,20,{color:C.muted});
 }
-// 09. Block results
+// Recorded model configuration
+{
+ const s=newSlide('Model configurations and temperature', 'Every displayed experiment configures temperature at 0.0, consistently across its compared architectures. The primary master study uses GLM-5.2 without an explicit reasoning-effort override. In the kernel v2 initial comparisons, GLM-5.2 requests high reasoning effort, DeepSeek V4 Flash requests low, and GPT-5.1 Codex Mini has no explicit effort override. Both additional DeepSeek repetitions retain temperature 0.0 and low reasoning effort, matching the original scored comparison including the tenacity recovery. Unset means that the harness does not request a particular reasoning effort; it does not mean that model reasoning is disabled. Temperature controls sampling randomness, while reasoning effort is a separate provider-specific request. These are recorded/requested configuration values, not independent measurements of provider-side enforcement. The local client passes temperature 0.0 for the displayed OpenRouter model identifiers, but the saved artifacts do not establish how each provider applies it internally. The exact identifiers are z-ai/glm-5.2, deepseek/deepseek-v4-flash-0731:nitro, and openai/gpt-5.1-codex-mini. The experiment seed controls architecture execution order, not LLM sampling. A zero temperature does not guarantee identical outputs or task outcomes, as the repeated task results demonstrate. Reasoning effort and compaction settings differ between kernel model configurations, so the experiment does not isolate model identity. No temperature ablation was performed.', [source('experiments/results/sessions/final_v1_core_small/sweep.json'),source('experiments/results/sessions/final_v1_core_medium_single50/sweep.json'),source('experiments/results/sessions/final_v1_core_medium_multi75/sweep.json'),source('experiments/results/sessions/final_v1_swepro_single50/sweep.json'),source('experiments/results/sessions/final_v1_swepro_graph75/sweep.json'),path.join(REPO,'src/run/models.py'),path.join(REPO,'src/benchmark/sweep.py'),...['kernel_v2_glm_5_2_core_small_control','kernel_v2_ds_v4_flash_0731_nitro_low_core_small_v4','kernel_v2_codex_mini_core_small_steps50','kernel_v2_ds_defense_repeat_20260904_r1','kernel_v2_ds_defense_repeat_20260904_r2'].map(session=>path.join(REPO,'experiments/results/sessions',session,'sweep.json'))]);
+ text(s,'Recorded settings for the comparisons shown in this presentation',72,158,1136,42,27,{bold:true,color:C.blue});
+ const t=table(s,[['Study block','Model','Temperature','Reasoning effort'],['Master','GLM-5.2','0.0','Unset'],['Kernel v2','GLM-5.2','0.0','High'],['Kernel v2 + repeats','DeepSeek V4 Flash','0.0','Low'],['Kernel v2','GPT-5.1 Codex Mini','0.0','Unset']],[280,390,206,260],{y:219,h:340,size:25,rowHeight:71,headerHeight:56});
+ t.cells.block({row:0,column:0,rowCount:5,columnCount:4}).assign({margins:{left:16,right:12,top:7,bottom:7}});
+ text(s,'Unset = no reasoning-effort override; reasoning is not necessarily disabled.',72,582,1136,32,23,{color:C.muted});
+ text(s,'Temperature 0.0 does not guarantee identical runs.',72,628,1136,42,29,{bold:true,color:C.blue});
+}
+// Block results
 {
  const s=newSlide('Success rates by benchmark block', 'All three architectures resolve 11 of the 12 small tasks. On medium tasks, single resolves 11 while graph and guarded resolve 10 each. On the selected SWE Pro subset, single and graph both resolve 9 of 15, with identical paired outcomes. Guarded was not run on that extension. The figure presents recorded outcomes, not a statistically established ranking. There is one final attempt per task and architecture. The medium and SWE blocks use different step caps across architectures. SWE Pro also uses different initial completion-token settings (16,384 single and 4,096 graph, before any truncation retry). Core-small is the equal-step comparison.', [source('experiments/results/final_report/summary.csv'),source('docs/final_benchmark_results.md')]);
  ['Core small','Core medium','SWE Pro subset'].forEach((t,i)=>text(s,t,72+i*396,163,362,43,31,{bold:true}));
@@ -371,7 +389,7 @@ for(let i=0;i<slides.length;i++) {
  await fs.writeFile(path.join(BUILD,`slide-${String(i+1).padStart(2,'0')}.layout.json`),await layout.text());
  console.log(`Rendered ${i+1}/${slides.length}`);
 }
-const version=process.env.DECK_REVISION??'v9';
+const version=process.env.DECK_REVISION??'v10';
 const finalPath=path.join(WORK,'output',`Repository_Level_Agent_Evaluation_Defense_EN_${version}.pptx`);
 const result=await finalizePresentation({workspaceDir:WORK,candidatePath:candidate,finalPath,pythonExecutable:PYTHON,
  integrityValidatorPath:path.join(SKILL,'container_tools/inspect_presentation_package_integrity.py'),
