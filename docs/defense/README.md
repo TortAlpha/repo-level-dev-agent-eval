@@ -6,16 +6,16 @@ extension. The presentation and notes are in English.
 
 ## Presentation
 
-- [Current presentation, v7](presentation/output/Repository_Level_Agent_Evaluation_Defense_EN_v7.pptx): 24 slides.
-- [Current speaker notes, v7](presentation/output/Speaker_Notes_EN_v7.md).
+- [Current presentation, v9](presentation/output/Repository_Level_Agent_Evaluation_Defense_EN_v9.pptx): 26 slides.
+- [Current speaker notes, v9](presentation/output/Speaker_Notes_EN_v9.md).
 - [Editable presentation builder](presentation/build_deck.mjs).
-- [Earlier presentation, v4](presentation/output/Repository_Level_Agent_Evaluation_Defense_EN_v4.pptx): retained as the builder's typography reference.
+- [Previous delivery, v7](presentation/output/Repository_Level_Agent_Evaluation_Defense_EN_v7.pptx): retained as the builder's typography reference.
 
-The v7 PowerPoint and notes are byte-for-byte copies of the reviewed delivery.
-All 24 slides were rendered from the final PowerPoint package; changed slides
-were visually inspected. Package, font, chart-workbook and layout checks passed
-without findings or layout warnings. Native PowerPoint application rendering
-was not separately verified.
+Slides 19–20 compare the project with Xu et al. and identify differences in
+methodology and cost accounting. Slide 21 states the hypothesis outcomes with
+numerical evidence. Slide 25 provides visible, clickable paper references and
+scope caveats for Xu et al., Tran and Kiela, and Agentless. Full citations and
+explanations are also included in the speaker notes.
 
 ## New results
 
@@ -63,7 +63,7 @@ in the presentation. Infrastructure failures remain in their separate journal.
 [SOURCE.json](SOURCE.json) identifies the selected tracked master files in
 `source/`. This is a source evidence snapshot, not a complete runnable checkout.
 [DEFENSE_EN.md](DEFENSE_EN.md) is the earlier master-focused preparation guide;
-use the v7 notes and repetition audit for the latest extension conclusions.
+use the v9 notes and repetition audit for the latest extension conclusions.
 `kernel_v2_interim_snapshot.json` is an earlier snapshot, retained as historical
 evidence, not the final repetition report.
 
@@ -98,7 +98,7 @@ artifact-tool package through normal Node module resolution, set
 `PYTHON_EXECUTABLE`, then run:
 
 ```bash
-DECK_REVISION=v8 node docs/defense/presentation/build_deck.mjs
+DECK_REVISION=v10 node docs/defense/presentation/build_deck.mjs
 ```
 
 Choose a fresh revision for each delivery; the finalizer preserves existing

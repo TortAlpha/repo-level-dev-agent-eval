@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { Presentation, PresentationFile } from '@oai/artifact-tool';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -13,7 +14,7 @@ const PYTHON = process.env.PYTHON_EXECUTABLE ?? 'python3';
 if (!process.env.RUNTIME_NODE_MODULES) throw new Error('Set RUNTIME_NODE_MODULES to the runtime node_modules directory.');
 const {resolvePresentationFont, applyPresentationChartFont, finalizePresentation} = await import(path.join(SKILL, 'container_tools/artifact_tool_utils.mjs'));
 const FONT = 'Helvetica Neue';
-const REFERENCE = path.join(WORK, 'output', 'Repository_Level_Agent_Evaluation_Defense_EN_v4.pptx');
+const REFERENCE = path.join(WORK, 'output', 'Repository_Level_Agent_Evaluation_Defense_EN_v7.pptx');
 const REFERENCE_SHA = createHash('sha256').update(await fs.readFile(REFERENCE)).digest('hex');
 const REPO = path.resolve(ROOT, '../..');
 const REPEAT_SOURCE = path.join(REPO, 'experiments/plans/defense_repeats_20260904/analysis');
@@ -31,6 +32,7 @@ const slides = [];
 const speaker = [];
 const tableOwners = [];
 const chartOwners = [];
+const citationLinks = [];
 const source = rel => `${ROOT}/source/${rel}`;
 const qualityAudit = JSON.parse(await fs.readFile(path.join(ROOT, 'quality_metrics_audit.json'), 'utf8'));
 const coreMetrics = qualityAudit.groups['Core total'];
@@ -43,6 +45,11 @@ function text(s, value, x, y, w, h, size=28, opts={}) {
   sh.text=value;
   sh.text.style={typeface:FONT,fontSize:size,color:opts.color??C.ink,bold:opts.bold??false,alignment:opts.align??'left',verticalAlignment:'top',autoFit:'none',wrap:'square',insets:{left:0,right:0,top:0,bottom:0},...opts.style};
   return sh;
+}
+function citation(s, label, url, y, {x=72,w=1136,size=21}={}) {
+  const name=`citation-${citationLinks.length+1}`;
+  text(s,label,x,y,w,30,size,{color:C.blue,name});
+  citationLinks.push({slide:slides.length,name,url});
 }
 function newSlide(title, note, sources=[], {dark=false, appendix=false}={}) {
   const s=P.slides.add(); s.background.fill=dark?C.dark:C.bg;
@@ -257,17 +264,38 @@ function chart(s, {cats,vals,labels,title,x,y,w,h,max=1,format='0%',colors=[C.bl
  text(s,'*Operational proxies. Rubric quality scores: N/A for all 72 attempts.',72,651,1105,28,22,{bold:true,color:C.blue});
 }
 
-// Original hypotheses and extension conclusions
+// Comparison with the paper that motivated the project.
 {
- const s=newSlide('Hypotheses and conclusions', 'The evidence supports a scoped conclusion. H1 predicted that single agents would be more cost-effective on simple tasks. Master supports this descriptively: all systems solve 11/12 core-small tasks, and single has the lowest cost. The DeepSeek kernel/v2 repetitions show mixed cost-efficiency outcomes under the same recorded configuration. Single costs less per successful outcome in both new repeats, but graph is slightly cheaper by that measure in the original attempt. Graph solves 10/12 tasks in all three attempts, compared with 7/12 for single. H2 predicted that the multi-agent benefit would grow with complexity. Master does not support that pattern: single solves 11/12 medium tasks versus 10/12 for both multi-agent variants, while single and graph both solve 9/15 SWE Pro tasks. Unequal step and initial completion-token settings in larger blocks, limited cross-module changes, and the small task sample prevent a general rejection of H2. The new repetitions use small, familiar tasks and do not test H2. The repeatability question was added after the original result, rather than being an initial preregistered hypothesis. Graph leads by 2, 0 and 1 tasks in the three comparisons. Graph is more consistently successful on this sample, while single has lower pooled cost per success. The experiment establishes neither a universal winner nor superior maintainability.', [source('docs/spec.md'),source('docs/final_benchmark_results.md'),...repeatSources],{dark:true});
- text(s,'H1. Single is more cost-effective on simple tasks',72,164,1130,55,33,{bold:true,color:C.white});
- text(s,'Supported in master. Mixed across kernel v2 attempts.',72,223,1130,46,28,{bold:true,color:C.pale});
- text(s,'Single costs less per success in both new DeepSeek repetitions.',72,276,1125,46,27,{color:C.white});
- text(s,'H2. Multi-agent benefits increase with complexity',72,353,1130,55,33,{bold:true,color:C.white});
- text(s,'Not supported in master. The new repeats do not test H2.',72,412,1130,46,28,{bold:true,color:C.pale});
- text(s,'Most core changes are local. Larger blocks use unequal budgets.',72,465,1125,46,27,{color:C.white});
- text(s,'Repeatability finding',72,543,1120,43,31,{bold:true,color:C.pale});
- text(s,'Graph solved 10/12 tasks in all three attempts; single solved 7/12.',72,594,1125,69,28,{color:C.white});
+ const s=newSlide('Comparison with Xu et al.', 'The table reproduces mean pass@1 and standard deviations from Table 1. Our master core-small comparison supports a similar cost-efficiency finding in a different task setting. The DeepSeek repetition result adds an observed cost-versus-consistency tradeoff. The numerical scores belong to separate benchmarks and should not be pooled or directly ranked across studies.', ['https://arxiv.org/html/2601.12307v1#S4.T1','https://arxiv.org/html/2601.12307v1#S6',source('experiments/results/final_report/summary.csv'),...repeatSources]);
+ text(s,'OneFlow with GPT-4o mini. Three runs, mean pass@1 ± SD.',72,149,1130,44,28,{color:C.muted});
+ const t=table(s,[['Benchmark','Multi-agent','Single execution'],['HumanEval','91.6% ± 0.8','92.1% ± 0.4'],['MBPP','81.1% ± 0.4','81.4% ± 0.6']],[510,313,313],{y:213,h:192,size:26,rowHeight:64,headerHeight:64});
+ t.cells.block({row:0,column:0,rowCount:3,columnCount:3}).assign({margins:{left:16,right:12,top:10,bottom:10}});
+ text(s,'Master core-small: the same success at lower single-agent cost',72,441,1130,40,28,{bold:true,color:C.blue});
+ text(s,'All systems solve 11/12. Graph costs 2.03× as much as single.',72,488,1130,40,27);
+ text(s,'DeepSeek repeats: graph improves consistency at a higher cost.',72,549,1130,43,27,{bold:true});
+ citation(s,'Xu et al. (2026), Table 1 and §6. arxiv.org/abs/2601.12307','https://arxiv.org/html/2601.12307v1#S4.T1',631);
+}
+// Methodological boundaries of the comparison.
+{
+ const s=newSlide('Limits of the comparison', 'Homogeneous means that the roles share the same base model. Xu et al. assess workflow simulation and optimize workflows with OneFlow. This project evaluates separately designed agent systems. The API single-execution cost calculation in Xu et al. assumes ideal KV-cache reuse. Our repeated DeepSeek observations use complete provider billing, but we did not experimentally isolate cache effects. Equal step limits do not ensure equal tokens or compute. Larger master blocks also use unequal limits. These design differences support a comparison of findings, without a claim of direct replication.', ['https://arxiv.org/html/2601.12307v1#S3.SS2','https://arxiv.org/html/2601.12307v1#S4.SS1',source('experiments/results/sessions/final_v1_swepro_single50/sweep.json'),source('experiments/results/sessions/final_v1_swepro_graph75/sweep.json'),...repeatSources]);
+ text(s,'Both studies use engineered workflows with roles and tools.',72,147,1130,42,28,{color:C.blue,bold:true});
+ const t=table(s,[['Aspect','Xu et al.','This project'],['Execution','Single simulates the same\nworkflow across roles','Separate single and multi\nworkflow implementations'],['Coding tasks','HumanEval and MBPP','Repository edits with\nvisible and withheld tests'],['Cost evidence','Ideal KV-cache API estimate.\nQwen latency measured.','Actual DeepSeek billing.\nNo cache-control ablation.'],['Budget control','Workflow-specific usage','Step caps and cost guards.\nActual compute differs.']],[246,445,445],{y:212,h:388,size:24,rowHeight:82,headerHeight:60});
+ t.cells.block({row:0,column:0,rowCount:5,columnCount:3}).assign({margins:{left:16,right:12,top:7,bottom:7}});
+ citation(s,'Xu et al. (2026), §§3.2 and 4.1. arxiv.org/abs/2601.12307','https://arxiv.org/html/2601.12307v1#S4.SS1',635);
+}
+// Original hypotheses and the additional repeatability finding.
+{
+ const s=newSlide('Hypotheses and conclusions', 'H1 predicted that single agents would be more cost-effective on simple tasks. Master core-small supports it: all three systems solve 11/12 with a 50-step cap, while graph costs 2.03 times and guarded 2.58 times as much as single. H2 predicted that the multi-agent advantage would increase with complexity. That pattern did not appear: single resolves 11/12 medium tasks versus 10/12 for both multi variants, and single and graph tie at 9/15 on SWE Pro. H2 is not supported by this benchmark. Unequal step and initial output-token settings in larger blocks and limited cross-module changes prevent a universal rejection. The additional DeepSeek experiment repeats 12 familiar tasks. Graph succeeds in 32/36 observations versus 29/36 and solves 10 tasks in every attempt versus 7 for single. Both solve the same 11 distinct tasks at least once. Graph costs 20.5 percent more per successful outcome across all three attempts. Thus the observed benefit is greater consistency on this sample, without wider observed task coverage. It does not test complexity or establish better maintainability. Rubric quality scores remain unavailable.', [source('docs/spec.md'),source('experiments/results/final_report/summary.csv'),...repeatSources],{dark:true});
+ text(s,'H1. Single is more cost-effective on simple tasks',72,161,1130,48,32,{bold:true,color:C.white});
+ text(s,'Supported in master: all systems solve 11/12.',72,211,1130,42,28,{bold:true,color:C.pale});
+ text(s,'Graph costs 2.03× single. Guarded costs 2.58×.',72,254,1130,42,27,{color:C.white});
+ text(s,'H2. Multi-agent benefits increase with complexity',72,327,1130,48,32,{bold:true,color:C.white});
+ text(s,'Not supported: medium single 11/12, multi 10/12.',72,378,1130,38,27,{bold:true,color:C.pale});
+ text(s,'SWE Pro: single and graph both solve 9/15.',72,417,1130,35,26,{color:C.white});
+ text(s,'DeepSeek: more consistent graph results at higher cost',72,465,1130,45,31,{bold:true,color:C.white});
+ text(s,'Solved in all three attempts: graph 10/12 tasks, single 7/12.',72,514,1130,42,27,{color:C.pale});
+ text(s,'Both solve the same 11 tasks at least once. Graph cost/success: +20.5%.',72,555,1130,42,26,{color:C.white});
+ text(s,'Scope: 12 familiar tasks in repeats. Larger master blocks use unequal budgets.\nRepository size only approximates task complexity.',72,621,1125,52,21,{color:C.pale});
 }
 // 17. Appendix: dataset questions
 {
@@ -298,14 +326,19 @@ function chart(s, {cats,vals,labels,title,x,y,w,h,max=1,format='0%',colors=[C.bl
  sweTable.cells.block({row:0,column:0,rowCount:8,columnCount:3}).assign({margins:{left:16,right:12,top:8,bottom:8}});
  text(s,'*Same proxy definitions as core. Visible passes do not guarantee final success.',72,633,1130,30,23,{color:C.blue,bold:true});
 }
-// 20. Appendix: literature
+// Appendix: visible literature references and scope caveats.
 {
- const s=newSlide('Related work and reproducibility', 'Xu and colleagues motivate a stronger single-agent baseline for homogeneous workflows. Tran and Kiela show why compute and context accounting matter in multi-hop reasoning, which is a different domain. Agentless demonstrates the value of simple software-engineering pipelines. The local evidence consists of the frozen final-v1 manifest, run records, patches, and the report generator at the defended commit. Full reproduction additionally requires the task descriptions, hidden tests, and repository snapshots that are stored outside Git.', ['https://arxiv.org/abs/2601.12307','https://arxiv.org/abs/2604.02460','https://arxiv.org/abs/2407.01489',source('eval/task_sets/final_v1.json')],{appendix:true});
- text(s,'Xu et al. (2026)',72,179,1120,40,30,{bold:true});text(s,'Rethinking the Value of Multi-Agent Workflow\nA Strong Single Agent Baseline',72,224,1120,81,27,{color:C.muted});
- text(s,'Tran and Kiela (2026)',72,333,1120,40,30,{bold:true});text(s,'Single-Agent LLMs Outperform Multi-Agent Systems on\nMulti-Hop Reasoning Under Equal Thinking Token Budgets',72,378,1120,85,27,{color:C.muted});
- text(s,'Xia et al. (2024)',72,493,1120,40,30,{bold:true});text(s,'Agentless: Demystifying LLM-based Software Engineering Agents',72,538,1120,75,27,{color:C.muted});
+ const s=newSlide('Related work and scope', 'Xu et al., Rethinking the Value of Multi-Agent Workflow: A Strong Single Agent Baseline (2026), motivates the primary research question. Dat Tran and Douwe Kiela, Single-Agent LLMs Outperform Multi-Agent Systems on Multi-Hop Reasoning Under Equal Thinking Token Budgets (2026), studies FRAMES and MuSiQue. Requested intermediate thinking caps exclude prompts and final answers, and actual consumption may differ. Gemini accounting is approximate. Our step caps do not reproduce this resource control. Chunqiu Steven Xia, Yinlin Deng, Soren Dunn and Lingming Zhang, Agentless: Demystifying LLM-based Software Engineering Agents (2024), uses a fixed localization, patching and test-selection pipeline. The LLM does not autonomously choose the next tool action. Its comparison does not isolate our single-versus-multi orchestration question.', ['https://arxiv.org/html/2601.12307v1#S6','https://arxiv.org/html/2604.02460v2#S4','https://arxiv.org/html/2604.02460v2#A3','https://arxiv.org/html/2407.01489v2#S3'],{appendix:true});
+ text(s,'Xu et al. (2026): OneFlow',72,161,1130,41,30,{bold:true});
+ text(s,'Homogeneous workflow simulation. Our study compares\nseparately designed repository agents.',72,207,1130,71,26,{color:C.muted});
+ citation(s,'arxiv.org/abs/2601.12307  (§§3.2, 4.1 and 6)','https://arxiv.org/html/2601.12307v1',282);
+ text(s,'Tran and Kiela (2026): thinking-token budgets',72,334,1130,41,30,{bold:true});
+ text(s,'Text-only multi-hop QA. Requested thinking caps exclude\nprompts and final answers. Our step limits control a different resource.',72,380,1130,71,26,{color:C.muted});
+ citation(s,'arxiv.org/abs/2604.02460  (§4 and Appendix C)','https://arxiv.org/html/2604.02460v2',454);
+ text(s,'Xia et al. (2024): Agentless',72,506,1130,41,30,{bold:true});
+ text(s,'Fixed repair pipeline with tests. Its baseline differs from\nour autonomous agent loop.',72,552,1130,71,26,{color:C.muted});
+ citation(s,'arxiv.org/abs/2407.01489  (§3)','https://arxiv.org/html/2407.01489v2',626);
 }
-
 
 // Appendix: task-level repeatability
 {
@@ -327,6 +360,9 @@ await fs.writeFile(path.join(BUILD,'speaker_notes.json'),JSON.stringify(speaker,
 await fs.writeFile(path.join(BUILD,'deck_content.json'),JSON.stringify({font:FONT,slides:slides.length,tableOwners,chartOwners},null,2));
 const candidate=path.join(BUILD,'candidate.pptx');
 await (await PresentationFile.exportPptx(P)).save(candidate);
+const linksPath=path.join(BUILD,'citation_links.json');
+await fs.writeFile(linksPath,JSON.stringify(citationLinks,null,2));
+execFileSync(PYTHON,[path.join(WORK,'add_citation_links.py'),candidate,linksPath],{stdio:'inherit'});
 console.log(JSON.stringify({candidate,slides:slides.length,font:FONT}));
 for(let i=0;i<slides.length;i++) {
  const png=await P.export({slide:slides[i],format:'png',scale:1});
@@ -335,7 +371,7 @@ for(let i=0;i<slides.length;i++) {
  await fs.writeFile(path.join(BUILD,`slide-${String(i+1).padStart(2,'0')}.layout.json`),await layout.text());
  console.log(`Rendered ${i+1}/${slides.length}`);
 }
-const version=process.env.DECK_REVISION??'v8';
+const version=process.env.DECK_REVISION??'v9';
 const finalPath=path.join(WORK,'output',`Repository_Level_Agent_Evaluation_Defense_EN_${version}.pptx`);
 const result=await finalizePresentation({workspaceDir:WORK,candidatePath:candidate,finalPath,pythonExecutable:PYTHON,
  integrityValidatorPath:path.join(SKILL,'container_tools/inspect_presentation_package_integrity.py'),

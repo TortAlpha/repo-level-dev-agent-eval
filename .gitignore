@@ -29,4 +29,5 @@ experiments/results/*.lock
 experiments/results/patches/*.lock
 experiments/results/leases/
 docs/defense/presentation/.build/
-docs/defense/presentation/node_modules/
+docs/defense/presentation/node_modules
+docs/defense/presentation/.chart-data-*/
