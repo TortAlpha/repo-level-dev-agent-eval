@@ -6,17 +6,18 @@ extension. The presentation and notes are in English.
 
 ## Presentation
 
-- [Current presentation, v10](presentation/output/Repository_Level_Agent_Evaluation_Defense_EN_v10.pptx): 28 slides.
-- [Current speaker notes, v10](presentation/output/Speaker_Notes_EN_v10.md).
+- [Current presentation, v11](presentation/output/Repository_Level_Agent_Evaluation_Defense_EN_v11.pptx): 29 slides.
+- [Current speaker notes, v11](presentation/output/Speaker_Notes_EN_v11.md).
 - [Editable presentation builder](presentation/build_deck.mjs).
-- [Previous delivery, v9](presentation/output/Repository_Level_Agent_Evaluation_Defense_EN_v9.pptx): retained as the builder's typography reference.
+- [Previous delivery, v10](presentation/output/Repository_Level_Agent_Evaluation_Defense_EN_v10.pptx): retained as the builder's typography reference.
 
 Slide 8 explains the external evaluator's final PASS conditions, including the
 additional setup-artifact integrity check in kernel v2. Slide 10 lists recorded
 model temperature and reasoning-effort settings, with their interpretation limits.
-Slides 21–22 compare the project with Xu et al. and identify differences in
-methodology and cost accounting. Slide 23 states the hypothesis outcomes with
-numerical evidence. Slide 27 provides visible, clickable paper references and
+Slide 17 compares the first runtime version with kernel v2, before the kernel
+results. Slides 22–23 compare the project with Xu et al. and identify differences
+in methodology and cost accounting. Slide 24 states the hypothesis outcomes with
+numerical evidence. Slide 28 provides visible, clickable paper references and
 scope caveats for Xu et al., Tran and Kiela, and Agentless. Full citations and
 explanations are also included in the speaker notes.
 
@@ -66,7 +67,7 @@ in the presentation. Infrastructure failures remain in their separate journal.
 [SOURCE.json](SOURCE.json) identifies the selected tracked master files in
 `source/`. This is a source evidence snapshot, not a complete runnable checkout.
 [DEFENSE_EN.md](DEFENSE_EN.md) is the earlier master-focused preparation guide;
-use the v10 notes and repetition audit for the latest extension conclusions.
+use the v11 notes and repetition audit for the latest extension conclusions.
 `kernel_v2_interim_snapshot.json` is an earlier snapshot, retained as historical
 evidence, not the final repetition report.
 
@@ -101,7 +102,7 @@ artifact-tool package through normal Node module resolution, set
 `PYTHON_EXECUTABLE`, then run:
 
 ```bash
-DECK_REVISION=v11 node docs/defense/presentation/build_deck.mjs
+DECK_REVISION=v12 node docs/defense/presentation/build_deck.mjs
 ```
 
 Choose a fresh revision for each delivery; the finalizer preserves existing
